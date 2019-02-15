@@ -9,6 +9,9 @@ module DiscreteDynamicProgramming
 	using SparseArrays
 	using LinearAlgebra
 
+	export createmodel, solve
+	export NeoClassicalSimple
+
 	# model definition and parameters
 	abstract type DiscreteDynamicModel end
 	const DDM = DiscreteDynamicModel

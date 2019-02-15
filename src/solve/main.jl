@@ -7,8 +7,14 @@ solve(p::DDM; disp::Bool = false) = solve(p, eval(p.params.intdim), disp = disp)
 function solve(p::DDM, method::Type{T}; disp::Bool = false) where
                         T <: Union{separable, intermediate}
 
-
-    mOutput = outputfunc(p)
+    @unpack rewardmat = p.params
+    if rewardmat == :prebuild_partial
+        mReward = outputfunc(p)
+    elseif rewardmat == :nobuild
+        mReward = nothing
+    elseif rewardmat == :prebuild
+        mReward = rewardmatrix(p)
+    end
     mG = transitionmatrix(p)
 
     # not sure what the rule should be here...
@@ -20,5 +26,5 @@ function solve(p::DDM, method::Type{T}; disp::Bool = false) where
     # one == two  ||
     #     error("second dim of output matrix has wrong dimensions, is $one, should be $two")
 
-    out = solve(p, p.params.β * Array(mG), mOutput, disp = disp)
+    out = solve(p, p.params.β * Array(mG), mReward = mReward, disp = disp)
 end

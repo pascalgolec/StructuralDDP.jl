@@ -2,8 +2,9 @@
 ##### Solver ######
 ########################
 
-function solve(p::DDM, mTransition::Array{Float64,2}, mOutput::Array{Float64,2};
-                disp::Bool = false)
+function solve(p::DDM, mTransition::Array{Float64,2};
+		mReward::Union{Nothing, Array{Float64,2}} = nothing,
+		disp::Bool = false)
 
 	@unpack intdim, monotonicity, concavity, rewardmat = p.params
 
@@ -72,28 +73,29 @@ function solve(p::DDM, mTransition::Array{Float64,2}, mOutput::Array{Float64,2};
 
 					# if typeof(p) == NeoClassicalVolatilityAge
 					# 	age = mgridstateother[i,2]
-                    # 	reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime], age)
+                    # 	reward = rewardfunc(p, mReward[j,i], vChoices[j], vChoices[jprime], age)
 					# elseif typeof(p) == LearningKVolatilityAge
 					# 	age = mgridstateother[i,3]
-                    # 	reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime], age)
+                    # 	reward = rewardfunc(p, mReward[j,i], vChoices[j], vChoices[jprime], age)
 					# elseif typeof(p) == NewIdeasAge
 					# 	age = mgridstateother[i,3]
-                    # 	reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime], age)
+                    # 	reward = rewardfunc(p, mReward[j,i], vChoices[j], vChoices[jprime], age)
 					# else
-                    # 	reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime])
+                    # 	reward = rewardfunc(p, mReward[j,i], vChoices[j], vChoices[jprime])
 					# end
 
 					# reward using prebuild_partial output matrix
 					if rewardmat == :prebuild_partial
-						reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime])
+						reward = rewardfunc(p, mReward[j,i], vChoices[j], vChoices[jprime])
 					elseif rewardmat == :nobuild
 						# need to be VERY careful with order of state vars here.. could get fucked up..
 						reward = rewardfunc(p, getindex.(p.tStateVectors, [j, ix.I...]), vChoices[jprime])
 						# istatevars = [j, ix.I...]
 						# vstatevars = getindex.(p.tStateVectors, istatevars)
 						# reward = rewardfunc(p, vstatevars, vChoices[jprime])
-					else
-						throw("did not implement full reward calculation yet")
+					elseif rewardmat == :prebuild
+						reward = mReward[jprime, j + nEndogStates *(i-1)] # nChoices x nStates
+						# throw("did not implement full reward calculation yet")
 					end
 
                     if intdim == :separable
@@ -117,7 +119,7 @@ function solve(p::DDM, mTransition::Array{Float64,2}, mOutput::Array{Float64,2};
 				# # compare with discontinuity
                 # if isdefined(p.params, :F) || typeof(p) <: SalesAdjCosts
                 #     # compare with inaction: investing enough to keep K constant
-    			# 	reward = rewardfuncinaction(p, mOutput[j,i], vChoices[j])
+    			# 	reward = rewardfuncinaction(p, mReward[j,i], vChoices[j])
 				#
                 #     if intdim == :separable
                 #         inactionvalue = reward + mEV[j, i]
@@ -135,13 +137,13 @@ function solve(p::DDM, mTransition::Array{Float64,2}, mOutput::Array{Float64,2};
 
                 # # compare with liquidation
                 # if typeof(p) == LearningKExit
-                #     liquidationvalue = mOutput[j,i] + p.β*p.κ*(1-p.δ)*vChoices[j]
+                #     liquidationvalue = mReward[j,i] + p.β*p.κ*(1-p.δ)*vChoices[j]
                 #
 				# 	# liquidation value is when desinvest to zero, don't need to pay future fixed costs
 				# 	# can not be smaller than zero because of limited liability
-				# 	# liquidationvalue = max(0, rewardfunc(mOutput[j,i], vChoices[j], 0., p))
+				# 	# liquidationvalue = max(0, rewardfunc(mReward[j,i], vChoices[j], 0., p))
                 #
-				# 	# liquidationvalue = dividends(rewardfunc(mOutput[j,i], vChoices[j], 0., p), p)
+				# 	# liquidationvalue = dividends(rewardfunc(mReward[j,i], vChoices[j], 0., p), p)
                 #     if valueHighSoFar < liquidationvalue
                 #        valueHighSoFar = liquidationvalue
                 #        mExit[j,i] = true
