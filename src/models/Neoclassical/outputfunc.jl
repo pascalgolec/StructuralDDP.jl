@@ -10,8 +10,6 @@ end
 
 function outputfunc(p::NeoClassicalSimple)
 
-    rewardfunc(p::DDM, vStateVars::Vector{Float64}, choice)
-
     @unpack α = p.params
 
     vK = p.tStateVectors[1]

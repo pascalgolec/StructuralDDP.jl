@@ -23,6 +23,7 @@
     nPeriods::I = 120
     nFirms::I = 1000
 
+    rewardmat::Symbol = :nobuild
     intdim::Symbol = :separable
     monotonicity::B = true
     concavity::B = true

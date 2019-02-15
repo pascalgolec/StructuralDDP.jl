@@ -19,3 +19,4 @@ Each discrete dynamic problem has
 
 - state variables are always forced to stay within bounds
 - for `intermediate` and `separable`, can choose directly the state variable
+- order of state variables is first the endogenous state variable, then exogenous

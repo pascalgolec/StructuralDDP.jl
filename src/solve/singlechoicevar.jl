@@ -5,7 +5,7 @@
 function solve(p::DDM, mTransition::Array{Float64,2}, mOutput::Array{Float64,2};
                 disp::Bool = false)
 
-	@unpack intdim, monotonicity, concavity = p.params
+	@unpack intdim, monotonicity, concavity, rewardmat = p.params
 
     # our first state variable is also the choice variable
     vChoices = p.tStateVectors[p.bEndogStateVars][1]
@@ -16,9 +16,13 @@ function solve(p::DDM, mTransition::Array{Float64,2}, mOutput::Array{Float64,2};
     nEndogStates = prod(length.(p.tStateVectors[p.bEndogStateVars]))
 
     mValFun    = zeros((nChoices, nOtherStates))
-    mValFunNew = zeros((nChoices, nOtherStates))
+	mValFunNew = zeros((nChoices, nOtherStates))
+	# StateVarDims = length.(p.tStateVectors)
+	# mValFun    = zeros(StateVarDims)
+	# mValFunNew = zeros(StateVarDims)
 
 	mPolFunInd = zeros(Int16, nChoices, nOtherStates)
+	# mPolFunInd = zeros(Int16, StateVarDims)
 
     mEV = zeros(nChoices, size(mTransition, 1)) # depends on intdim
 
@@ -49,7 +53,10 @@ function solve(p::DDM, mTransition::Array{Float64,2}, mOutput::Array{Float64,2};
 
         # inbounds does help by 50%
 	    # @inbounds
-		for i = 1:nOtherStates # other states
+		# for i = 1:nOtherStates # other states
+		i = 0
+		for ix in CartesianIndices(length.(p.tStateVectors[.!p.bEndogStateVars])) # other states
+			i = i + 1
 
 	        # We start from previous choice (monotonicity of policy function)
             if monotonicity
@@ -76,14 +83,18 @@ function solve(p::DDM, mTransition::Array{Float64,2}, mOutput::Array{Float64,2};
                     # 	reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime])
 					# end
 
-					reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime])
-
-					# doesn't work because doing nOtherStates
-					# statevars = getindex.(p.tStateVectors,[1,2])
-					# reward = rewardfunc(p, vStateVars::Vector{Float64}, vChoices[jprime])
-					# need rewardfunc as function of EndogStates, ExogStates and choices
-					# just create a vector from endogstates and exogstates
-					# --> need to work with cartesianindeces instead of nOtherStates
+					# reward using prebuild_partial output matrix
+					if rewardmat == :prebuild_partial
+						reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime])
+					elseif rewardmat == :nobuild
+						# need to be VERY careful with order of state vars here.. could get fucked up..
+						reward = rewardfunc(p, getindex.(p.tStateVectors, [j, ix.I...]), vChoices[jprime])
+						# istatevars = [j, ix.I...]
+						# vstatevars = getindex.(p.tStateVectors, istatevars)
+						# reward = rewardfunc(p, vstatevars, vChoices[jprime])
+					else
+						throw("did not implement full reward calculation yet")
+					end
 
                     if intdim == :separable
 	                    valueProvisional = reward + mEV[jprime, i] # mEV is already discounted
