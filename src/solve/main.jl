@@ -6,6 +6,8 @@ solve(p::DDM; disp::Bool = false) = solve(p, eval(p.params.intdim), disp = disp)
 
 function solve(p::DDM, method::Type{T}; disp::Bool = false) where
                         T <: Union{separable, intermediate}
+
+
     mOutput = outputfunc(p)
     mG = transitionmatrix(p)
 

@@ -6,6 +6,9 @@ module DiscreteDynamicProgramming
 	using Parameters
 	using NLsolve # to find steady state
 
+	using SparseArrays
+	using LinearAlgebra
+
 	# model definition and parameters
 	abstract type DiscreteDynamicModel end
 	const DDM = DiscreteDynamicModel
@@ -17,6 +20,8 @@ module DiscreteDynamicProgramming
 	abstract type separable <: DDMIntDim end
 	abstract type intermediate <: DDMIntDim end
 	const SA = StateAction
+
+	include("helpfunctions.jl")
 
 	# Neoclassical
 	include("models/Neoclassical/constructor.jl")

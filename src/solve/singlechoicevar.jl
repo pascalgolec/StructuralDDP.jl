@@ -2,7 +2,7 @@
 ##### Solver ######
 ########################
 
-function solve(p::SingleChoiceVar, mTransition::Array{Float64,2}, mOutput::Array{Float64,2};
+function solve(p::DDM, mTransition::Array{Float64,2}, mOutput::Array{Float64,2};
                 disp::Bool = false)
 
 	@unpack intdim, monotonicity, concavity = p.params
@@ -38,9 +38,9 @@ function solve(p::SingleChoiceVar, mTransition::Array{Float64,2}, mOutput::Array
     mValFunDiff = zeros(nChoices,nOtherStates)
     mValFunDiffAbs = zeros(nChoices,nOtherStates)
 
-	if typeof(p) <: Union{NeoClassicalVolatilityAge, LearningKVolatilityAge, NewIdeasAge}
-		mgridstateother = gridmake(p.tStateVectors[.!p.bEndogStateVars]...)
-	end
+	# if typeof(p) <: Union{NeoClassicalVolatilityAge, LearningKVolatilityAge, NewIdeasAge}
+	# 	mgridstateother = gridmake(p.tStateVectors[.!p.bEndogStateVars]...)
+	# end
 
     # VFI
     while maxDifference > tolerance
@@ -48,7 +48,8 @@ function solve(p::SingleChoiceVar, mTransition::Array{Float64,2}, mOutput::Array
         mul!(mEV, mValFun, transpose(mTransition))
 
         # inbounds does help by 50%
-	    @inbounds for i = 1:nOtherStates # other states
+	    # @inbounds
+		for i = 1:nOtherStates # other states
 
 	        # We start from previous choice (monotonicity of policy function)
             if monotonicity
@@ -62,23 +63,32 @@ function solve(p::SingleChoiceVar, mTransition::Array{Float64,2}, mOutput::Array
 
 	            for jprime = iChoiceStart:nChoices
 
-					if typeof(p) == NeoClassicalVolatilityAge
-						age = mgridstateother[i,2]
-                    	reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime], age)
-					elseif typeof(p) == LearningKVolatilityAge
-						age = mgridstateother[i,3]
-                    	reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime], age)
-					elseif typeof(p) == NewIdeasAge
-						age = mgridstateother[i,3]
-                    	reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime], age)
-					else
-                    	reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime])
-					end
+					# if typeof(p) == NeoClassicalVolatilityAge
+					# 	age = mgridstateother[i,2]
+                    # 	reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime], age)
+					# elseif typeof(p) == LearningKVolatilityAge
+					# 	age = mgridstateother[i,3]
+                    # 	reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime], age)
+					# elseif typeof(p) == NewIdeasAge
+					# 	age = mgridstateother[i,3]
+                    # 	reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime], age)
+					# else
+                    # 	reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime])
+					# end
+
+					reward = rewardfunc(p, mOutput[j,i], vChoices[j], vChoices[jprime])
+
+					# doesn't work because doing nOtherStates
+					# statevars = getindex.(p.tStateVectors,[1,2])
+					# reward = rewardfunc(p, vStateVars::Vector{Float64}, vChoices[jprime])
+					# need rewardfunc as function of EndogStates, ExogStates and choices
+					# just create a vector from endogstates and exogstates
+					# --> need to work with cartesianindeces instead of nOtherStates
 
                     if intdim == :separable
-	                    valueProvisional = dividends(reward, p) + mEV[jprime, i] # mEV is already discounted
+	                    valueProvisional = reward + mEV[jprime, i] # mEV is already discounted
                     elseif intdim == :intermediate
-                        valueProvisional = dividends(reward, p) + mEV[jprime, j + nEndogStates *(i-1)] # mEV is already discounted
+                        valueProvisional = reward + mEV[jprime, j + nEndogStates *(i-1)] # mEV is already discounted
                     end
 
 	                if (valueProvisional>=valueHighSoFar)
@@ -93,22 +103,23 @@ function solve(p::SingleChoiceVar, mTransition::Array{Float64,2}, mOutput::Array
 
 	            end #jprime
 
-                if isdefined(p.params, :F) || typeof(p) <: SalesAdjCosts
-                    # compare with inaction: investing enough to keep K constant
-    				reward = rewardfuncinaction(p, mOutput[j,i], vChoices[j])
-
-                    if intdim == :separable
-                        inactionvalue = dividends(reward, p) + mEV[j, i]
-                    elseif intdim == :intermediate
-                        inactionvalue = dividends(reward, p) + mEV[j, j + nEndogStates *(i-1)] # mEV is already discounted
-                    end
-
-                    if valueHighSoFar <= inactionvalue
-                        # don't have interior K'
-                        valueHighSoFar = inactionvalue
-                        iChoice = j
-                    end
-                end
+				# # compare with discontinuity
+                # if isdefined(p.params, :F) || typeof(p) <: SalesAdjCosts
+                #     # compare with inaction: investing enough to keep K constant
+    			# 	reward = rewardfuncinaction(p, mOutput[j,i], vChoices[j])
+				#
+                #     if intdim == :separable
+                #         inactionvalue = reward + mEV[j, i]
+                #     elseif intdim == :intermediate
+                #         inactionvalue = reward + mEV[j, j + nEndogStates *(i-1)] # mEV is already discounted
+                #     end
+				#
+                #     if valueHighSoFar <= inactionvalue
+                #         # don't have interior K'
+                #         valueHighSoFar = inactionvalue
+                #         iChoice = j
+                #     end
+                # end
 
 
                 # # compare with liquidation

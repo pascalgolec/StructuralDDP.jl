@@ -13,11 +13,13 @@ function transitionmatrix(p::DDM, method::Type{T}) where T<:DDMIntDim
     nStates = prod(length.(p.tStateVectors))
     dimStates = length(p.tStateVectors)
 
-    if typeof(p) <: SingleChoiceVar
-        nChoices = length(p.vChoiceVector)
-    else
-        nChoices = prod(length.(p.tChoiceVectors))
-    end
+    # if typeof(p) <: SingleChoiceVar
+    #     nChoices = length(p.vChoiceVector)
+    # else
+    #     nChoices = prod(length.(p.tChoiceVectors))
+    # end
+
+    nChoices = prod(length.(p.tChoiceVectors))
 
     bStochStateVars = .!p.bEndogStateVars
     dimStochStates = sum(.!p.bEndogStateVars)
@@ -38,11 +40,13 @@ function transitionmatrix(p::DDM, method::Type{T}) where T<:DDMIntDim
         mG = spzeros(nInputStates, nStochStates)
     elseif method == SA # mT is nChoices*nStates x nStates
         nInputStates = nStates * nChoices
-        if typeof(p) <: SingleChoiceVar
-            mInputStates = gridmake(p.tStateVectors..., p.vChoiceVector)
-        elseif typeof(p) <: ManyChoiceVars
-            mInputStates = gridmake(p.tStateVectors..., p.tChoiceVectors...)
-        end
+        # if typeof(p) <: SingleChoiceVar
+        #     mInputStates = gridmake(p.tStateVectors..., p.vChoiceVector)
+        # elseif typeof(p) <: ManyChoiceVars
+        #     mInputStates = gridmake(p.tStateVectors..., p.tChoiceVectors...)
+        # end
+        mInputStates = gridmake(p.tStateVectors..., p.tChoiceVectors...)
+
         mInputStates_states = mInputStates[:, 1:dimStates]
         vInputStates_choices = mInputStates[:, dimStates+1 : end]
         basisOutputStates = Basis(SplineParams.(p.tStateVectors,0,1))

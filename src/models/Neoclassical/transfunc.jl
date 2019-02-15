@@ -10,7 +10,7 @@ function transfunc(p::NeoClassicalSimple, method::Type{separable}, vExogState, v
     @unpack ρ , σ = p.params
     z = vExogState[1]
     zprime  = ρ*z + σ * vShocks[1];
-    return  inbounds(zprime, p.vMin[2], p.vMax[2])
+    return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
 end
 
 transfunc(p::NeoClassicalSimple, method::Type{intermediate}, vState, vShocks) =

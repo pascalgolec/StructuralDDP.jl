@@ -28,21 +28,23 @@
     concavity::B = true
 end
 
-struct NeoClassicalSimple <: DDM
+struct NeoClassicalSimple <: SingleChoiceVar
     # parameters that can user supplies
     params::NeoClassicalSimpleParams{Float64, Int64, Bool} # important to specify here for type stability
 
-    K_ss::Float64
+    # K_ss::Float64
 
     # parameters that are a function of inputs or always the same depending on model
-    vMin::Vector{Float64}
-    vMax::Vector{Float64}
+    # vMin::Vector{Float64}
+    # vMax::Vector{Float64}
 
     tStateVectors::NTuple{2, Vector{Float64}}
-    vChoiceVector::Vector{Float64}
+    tChoiceVectors::NTuple{1, Vector{Float64}}
 
+    # which state variables are endogenous
     bEndogStateVars::Vector{Bool}
 
+    # quadrature for calculating expectations
     vWeights::Vector{Float64}
     mShocks::Array{Float64,2}
 end
@@ -86,21 +88,22 @@ function createmodel(model::Type{NeoClassicalSimple}; kwargs...)
     # @show log(K_ss_analytical(minz))
     # @show log(K_ss_analytical(maxz))
 
-    vMin = [exp(minK_log), minz]
-    vMax = [exp(maxK_log), maxz]
+    # vMin = [exp(minK_log), minz]
+    # vMax = [exp(maxK_log), maxz]
 
     tStateVectors = (vK, vz) # tuple of basis vectors
     # rChoiceStateVars = 1:1
 
-    # tChoiceVectors = (vK)
-    vChoiceVector = vK
+    tChoiceVectors = (vK,) # important to add the comma, otherwise not a tuple
 
     bEndogStateVars = [true, false]
 
     # shocks
     vShocks, vWeights = qnwnorm(nShocks,0,1)
-    mShocks = addDim(vShocks)'
+    mShocks = vShocks'
 
-    NeoClassicalSimple(params, K_ss, vMin, vMax, tStateVectors, vChoiceVector,
+    # NeoClassicalSimple(params, K_ss, vMin, vMax, tStateVectors, tChoiceVectors,
+    #     bEndogStateVars, vWeights, mShocks)
+    NeoClassicalSimple(params, tStateVectors, tChoiceVectors,
         bEndogStateVars, vWeights, mShocks)
 end

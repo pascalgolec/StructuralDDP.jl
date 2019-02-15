@@ -1,7 +1,7 @@
 function rewardmatrix(p::SingleChoiceVar)
     # output dimension is nChoices x nStates
 
-    nChoices = length(p.vChoiceVector)
+    nChoices = length(p.tChoiceVectors[1])
 
     nStates  = prod(length.(p.tStateVectors))
     mStates = gridmake(p.tStateVectors...)
@@ -9,7 +9,7 @@ function rewardmatrix(p::SingleChoiceVar)
     mF = zeros(Float64, nChoices, nStates)
     for i = 1 : nStates # state i
            for j = 1 : nChoices # choice j
-               mF[j,i] = rewardfunc(p, mStates[i,:], p.vChoiceVector[j])
+               mF[j,i] = rewardfunc(p, mStates[i,:], p.tChoiceVectors[1][j])
            end
     end
 
@@ -32,7 +32,7 @@ end # getF
 #                mF[j,i] = rewardfunc(p, mStates[i,:], mChoices[j,:])
 #            end
 #     end
-# 
+#
 #     return mF
 #
 # end # getF

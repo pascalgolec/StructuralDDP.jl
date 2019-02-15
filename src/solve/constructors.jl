@@ -5,26 +5,46 @@
 # abstract type passive <: capitalaction end
 # # only use capital action for multiplechoicevar. will try to code without
 
-abstract type DDPSolution end
-
-# constructors
-struct SingleChoiceVarSolution <: DDPSolution
+struct DDPSolution
 
        meshValFun::Array{Float64}
-       meshPolFun::Array{Float64}
+       tmeshPolFun::Tuple{Array{Float64}}
        # mV0::Array{Float64}
        # mPolFun0::Array{Float64}
 
 end
 
-function createsolution(p::SingleChoiceVar, meshValFun::Array{Float64},
-                                            meshPolFun::Array{Float64})
+function createsolution(p::DDM, meshValFun::Array{Float64},
+                                meshPolFun::Array{Float64}) # implies singlechoicevar
 
         # mV0, mPolFun0 = initialendogstatevars(p, meshValFun)
 
         # SingleChoiceVarSolution(meshValFun, meshPolFun, mV0, mPolFun0)
-        SingleChoiceVarSolution(meshValFun, meshPolFun)
+        DDPSolution(meshValFun, (meshPolFun,))
 end
+
+# abstract type DDPSolution end
+
+# constructors
+
+# struct SingleChoiceVarSolution <: DDPSolution
+#
+#        meshValFun::Array{Float64}
+#        meshPolFun::Array{Float64}
+#        # mV0::Array{Float64}
+#        # mPolFun0::Array{Float64}
+#
+# end
+
+
+# function createsolution(p::SingleChoiceVar, meshValFun::Array{Float64},
+#                                             meshPolFun::Array{Float64})
+#
+#         # mV0, mPolFun0 = initialendogstatevars(p, meshValFun)
+#
+#         # SingleChoiceVarSolution(meshValFun, meshPolFun, mV0, mPolFun0)
+#         SingleChoiceVarSolution(meshValFun, meshPolFun)
+# end
 
 # struct ManyChoiceVarSolution <: DDPSolution
 #
