@@ -1,7 +1,8 @@
 module DiscreteDynamicProgramming
 
 	using BasisMatrices: Basis, SplineParams, nodes, BasisMatrix, Expanded
-	using QuantEcon: qnwnorm, qnwunif, gridmake
+	using QuantEcon: qnwnorm, qnwunif, gridmake, DiscreteDP, VFI
+	import QuantEcon: solve # import because will extend
 	using Interpolations
 	using Parameters
 	using NLsolve # to find steady state
@@ -40,6 +41,7 @@ module DiscreteDynamicProgramming
 	include("solve/rewardmatrix.jl")
 	include("solve/transitionmatrix.jl")
 	include("solve/singlechoicevar.jl")
+	include("solve/state_action.jl")
 	include("solve/initialendogstatevars.jl")
 
 end

@@ -1,7 +1,4 @@
 
-# Structure:
-# - `p.bConvex==false` takes reward matrix as input, the others the output of the firm
-
 solve(p::DDM; disp::Bool = false) = solve(p, eval(p.params.intdim), disp = disp)
 
 function solve(p::DDM, method::Type{T}; disp::Bool = false) where
