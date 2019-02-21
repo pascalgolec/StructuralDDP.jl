@@ -3,12 +3,12 @@ transitionmatrix(p::DDM) = transitionmatrix(p, eval(p.params.intdim))
 # transitionmatrix(p::DDM, method::Symbol) = transitionmatrix(p, eval(method))
 
 function transitionmatrix(p::DDM, method::Type{T}) where T<:DDMIntDim
-    # Calculates probability transition matrix G of stoch. vars
-    # - use gaussian quadrature to get G, not Tauchen method
-    # - we use linear basis functions to get the transition matrix
-
-    # size of mTransition will be (nInputStates x nOutputStates)
-    # InputStates together with shocks affect the transition of OutputStates
+    # Calculates probability transition matrix, depending on integration dimension
+    # - uses gaussian quadrature
+    # - uses linear basis functions
+    # - size of matrix is nInputStates x nOutputStates.
+    #       - InputStates together with shocks affect the transition of OutputStates
+    #       - so it is States_today x States_tomorrow, same dimension as QuantEcon.tauchen()
 
     nStates = prod(length.(p.tStateVectors))
     dimStates = length(p.tStateVectors)

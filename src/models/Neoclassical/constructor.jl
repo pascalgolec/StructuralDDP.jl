@@ -30,7 +30,7 @@
 end
 
 struct NeoClassicalSimple <: SingleChoiceVar
-    # parameters that can user supplies
+    # parameters that user supplies
     params::NeoClassicalSimpleParams{Float64, Int64, Bool} # important to specify here for type stability
 
     # K_ss::Float64
@@ -49,6 +49,8 @@ struct NeoClassicalSimple <: SingleChoiceVar
     vWeights::Vector{Float64}
     mShocks::Array{Float64,2}
 end
+
+createmodel(sym_model; kwargs...) = createmodel(eval(sym_model); kwargs...)
 
 function createmodel(model::Type{NeoClassicalSimple}; kwargs...)
 

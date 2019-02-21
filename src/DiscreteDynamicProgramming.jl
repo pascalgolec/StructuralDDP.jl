@@ -11,7 +11,7 @@ module DiscreteDynamicProgramming
 	using LinearAlgebra
 
 	export createmodel, solve
-	export NeoClassicalSimple
+	# export NeoClassicalSimple
 
 	# model definition and parameters
 	abstract type DiscreteDynamicModel end

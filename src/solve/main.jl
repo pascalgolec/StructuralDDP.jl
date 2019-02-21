@@ -1,8 +1,6 @@
 
-solve(p::DDM; disp::Bool = false) = solve(p, eval(p.params.intdim), disp = disp)
-
-function solve(p::DDM, method::Type{T}; disp::Bool = false) where
-                        T <: Union{separable, intermediate}
+function solve(p::DDM; mTransition::Union{Nothing, Array{Float64,2}} = nothing,
+    disp::Bool = false)
 
     @unpack rewardmat = p.params
     if rewardmat == :prebuild_partial
@@ -12,7 +10,11 @@ function solve(p::DDM, method::Type{T}; disp::Bool = false) where
     elseif rewardmat == :prebuild
         mReward = rewardmatrix(p)
     end
-    mG = transitionmatrix(p)
+
+
+    if mTransition == nothing
+        mTransition = Array(transitionmatrix(p))
+    end
 
     # not sure what the rule should be here...
     # nOtherStates = prod(length.(p.tStateVectors[.!p.bEndogStateVars]))
@@ -23,5 +25,5 @@ function solve(p::DDM, method::Type{T}; disp::Bool = false) where
     # one == two  ||
     #     error("second dim of output matrix has wrong dimensions, is $one, should be $two")
 
-    out = solve(p, p.params.β * Array(mG), mReward = mReward, disp = disp)
+    out = solve(p, p.params.β * mTransition, mReward = mReward, disp = disp)
 end
