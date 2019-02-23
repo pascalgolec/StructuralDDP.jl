@@ -1,5 +1,6 @@
 
 function outputfunc(p::NeoClassicalSimple)
+    @warn "using deprecated outputfunc NeoClassicalSimple"
     @unpack α = p.params
 
     vK = p.tStateVectors[1]

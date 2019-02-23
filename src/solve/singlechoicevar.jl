@@ -2,11 +2,12 @@
 ##### Solver ######
 ########################
 
-function solve(p::DDM, mTransition::Array{Float64,2};
-		mReward::Union{Nothing, Array{Float64,2}} = nothing,
-		disp::Bool = false)
+function solve(p::DDM, method::Type{T},
+		mTransition, mReward, disp, rewardmat, intdim, monotonicity, concavity) where
+			T <: Union{separable, intermediate}
 
-	@unpack intdim, monotonicity, concavity, rewardmat = p.params
+	# @unpack intdim, monotonicity, concavity, rewardmat = p.params
+	# @unpack monotonicity, concavity, rewardmat = p.params
 
     # our first state variable is also the choice variable
     vChoices = p.tStateVectors[p.bEndogStateVars][1]
@@ -47,10 +48,13 @@ function solve(p::DDM, mTransition::Array{Float64,2};
 	# 	mgridstateother = gridmake(p.tStateVectors[.!p.bEndogStateVars]...)
 	# end
 
+	# will need beta times transpose of transition matrix
+	mTransition_βT = p.params.β * transpose(mTransition)
+
     # VFI
     while maxDifference > tolerance
 
-        mul!(mEV, mValFun, transpose(mTransition))
+        mul!(mEV, mValFun, mTransition_βT)
 
         # inbounds does help by 50%
 	    # @inbounds
@@ -94,13 +98,12 @@ function solve(p::DDM, mTransition::Array{Float64,2};
 						# vstatevars = getindex.(p.tStateVectors, istatevars)
 						# reward = rewardfunc(p, vstatevars, vChoices[jprime])
 					elseif rewardmat == :prebuild
-						reward = mReward[jprime, j + nEndogStates *(i-1)] # nChoices x nStates
-						# throw("did not implement full reward calculation yet")
+						reward = mReward[jprime, j + nEndogStates * (i-1)] # nChoices x nStates
 					end
 
-                    if intdim == :separable
+                    if method == separable
 	                    valueProvisional = reward + mEV[jprime, i] # mEV is already discounted
-                    elseif intdim == :intermediate
+                    else # method == intermediate
                         valueProvisional = reward + mEV[jprime, j + nEndogStates *(i-1)] # mEV is already discounted
                     end
 

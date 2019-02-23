@@ -4,7 +4,9 @@
 ####################################################
 
 # this function sets up the state-action pairs and feeds them into the QuantEcon solver
-function solve(p::SingleChoiceVar, method::Type{SA}; disp::Bool = false)
+function solve(p::SingleChoiceVar, method::Type{SA},  mTransition, mReward, disp::Bool)
+
+    # ONLY PROGRAMMED FOR SINGLECHOICEVAR SO FAR!
 
     # state action pair representation
     nStateVars = length(p.tStateVectors)
@@ -21,12 +23,12 @@ function solve(p::SingleChoiceVar, method::Type{SA}; disp::Bool = false)
     mA_coord = mSA_coord[:,2:2]
 
     # rewardmatrix gives choices x states, want states x choices
-    R = rewardmatrix(p)' # is choices x states
+    R = mReward' # is choices x states
     # R_sa = addDim(R[:]) # can convert into state-action repr
     R_sa = R[:]
 
     # get transition matrix, which elements are allowed?
-    Q = transitionmatrix(p, method)
+    Q = mTransition
 
     # is state-action representation, since the choices don't need to be equal
     # to the states, it is possible that some choices are not admissible

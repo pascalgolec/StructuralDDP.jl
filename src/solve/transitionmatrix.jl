@@ -1,5 +1,6 @@
 
-transitionmatrix(p::DDM) = transitionmatrix(p, eval(p.params.intdim))
+# transitionmatrix(p::DDM) = transitionmatrix(p, eval(p.params.intdim))
+transitionmatrix(p::DDM; intdim::Symbol=:SA) = transitionmatrix(p, eval(intdim))
 # transitionmatrix(p::DDM, method::Symbol) = transitionmatrix(p, eval(method))
 
 function transitionmatrix(p::DDM, method::Type{T}) where T<:DDMIntDim

@@ -18,6 +18,7 @@ module DiscreteDynamicProgramming
 	const DDM = DiscreteDynamicModel
 	abstract type SingleChoiceVar <: DDM end
 
+	# need this for transfunc
 	abstract type DDMIntegrationDimension end
 	const DDMIntDim = DDMIntegrationDimension
 	abstract type StateAction <: DDMIntDim end
