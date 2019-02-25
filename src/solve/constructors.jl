@@ -8,19 +8,21 @@
 struct DDPSolution
 
        meshValFun::Array{Float64}
-       tmeshPolFun::Tuple{Array{Float64}}
+       tmeshPolFun::NTuple{N,Array{Float64}} where N
        # mV0::Array{Float64}
        # mPolFun0::Array{Float64}
 
 end
 
+
 function createsolution(p::DDM, meshValFun::Array{Float64},
-                                meshPolFun::Array{Float64}) # implies singlechoicevar
+                                tmeshPolFun::NTuple{N,Array{Float64}}) where
+                                N # implies singlechoicevar
 
         # mV0, mPolFun0 = initialendogstatevars(p, meshValFun)
 
         # SingleChoiceVarSolution(meshValFun, meshPolFun, mV0, mPolFun0)
-        DDPSolution(meshValFun, (meshPolFun,))
+        DDPSolution(meshValFun, tmeshPolFun)
 end
 
 # abstract type DDPSolution end
@@ -46,7 +48,7 @@ end
 #         SingleChoiceVarSolution(meshValFun, meshPolFun)
 # end
 
-# struct ManyChoiceVarSolution <: DDPSolution
+# struct TwoChoiceVarolution <: DDPSolution
 #
 #        meshValFun::Array{Float64}
 #        meshPolFun1::Array{Float64}
@@ -68,12 +70,12 @@ end
 # end
 
 
-# function createsolution(p::ManyChoiceVars, meshValFun::Array{Float64},
+# function createsolution(p::TwoChoiceVar, meshValFun::Array{Float64},
 #                            meshPolFun1::Array{Float64}, meshPolFun2 ::Array{Float64})
 #
 #         mV0, mPolFunOne0, mPolFunTwo0 = initialendogstatevars(p, meshValFun)
 #
-#         ManyChoiceVarSolution(meshValFun, meshPolFun1, meshPolFun2,
+#         TwoChoiceVarolution(meshValFun, meshPolFun1, meshPolFun2,
 #                                    mV0, mPolFunOne0, mPolFunTwo0)
 # end
 

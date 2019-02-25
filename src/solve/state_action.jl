@@ -64,10 +64,10 @@ function solve(p::SingleChoiceVar, method::Type{SA},  mTransition, mReward, disp
     meshPolFun = reshape(mPolFun, tuple(tNodes...))
     meshValFun = reshape(results.v, tuple(tNodes...))
 
-    return createsolution(p, meshValFun, meshPolFun)
+    return createsolution(p, meshValFun, (meshPolFun,))
 end
 
-# function solve(p::ManyChoiceVars, method::Type{SA}; disp::Bool = false)
+# function solve(p::TwoChoiceVar, method::Type{SA}; disp::Bool = false)
 #
 #     # state action pair representation
 #     nStateVars = length(p.tStateVectors)

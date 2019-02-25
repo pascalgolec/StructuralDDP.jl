@@ -43,7 +43,7 @@ function transitionmatrix(p::DDM, method::Type{T}) where T<:DDMIntDim
         nInputStates = nStates * nChoices
         # if typeof(p) <: SingleChoiceVar
         #     mInputStates = gridmake(p.tStateVectors..., p.vChoiceVector)
-        # elseif typeof(p) <: ManyChoiceVars
+        # elseif typeof(p) <: TwoChoiceVar
         #     mInputStates = gridmake(p.tStateVectors..., p.tChoiceVectors...)
         # end
         mInputStates = gridmake(p.tStateVectors..., p.tChoiceVectors...)

@@ -48,7 +48,7 @@ function initialendogstatevars(p::SingleChoiceVar, meshValFun)
 
 end
 
-# function initialendogstatevars(p::ManyChoiceVars, meshValFun)
+# function initialendogstatevars(p::TwoChoiceVar, meshValFun)
 #
 #     tNodes = length.(p.tStateVectors)
 #     exogtNodes = tNodes[.!p.bEndogStateVars]

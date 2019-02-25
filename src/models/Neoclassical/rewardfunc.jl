@@ -29,6 +29,10 @@ function cashflow(p::NeoClassicalSimple, vStateVars::Vector{Float64}, Kprime::Fl
     return netincome(p, vStateVars, Kprime) + δ*K - (1-κ*(capx<0))*capx
 end
 
+# need a vector for choices, so just make a conversion func
+cashflow(p::NeoClassicalSimple, vStateVars::Vector{Float64}, vChoices::Vector{Float64}) =
+    cashflow(p, vStateVars, vChoices[1])
+
 dividend(p::DDM, vStateVars::Vector{Float64}, choice) =
     cashflow(p, vStateVars, choice)
 

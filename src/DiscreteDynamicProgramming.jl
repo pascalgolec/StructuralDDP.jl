@@ -17,6 +17,8 @@ module DiscreteDynamicProgramming
 	abstract type DiscreteDynamicModel end
 	const DDM = DiscreteDynamicModel
 	abstract type SingleChoiceVar <: DDM end
+	abstract type TwoChoiceVar <: DDM end
+
 
 	# need this for transfunc
 	abstract type DDMIntegrationDimension end
@@ -30,11 +32,18 @@ module DiscreteDynamicProgramming
 
 	# Neoclassical
 	include("models/Neoclassical/constructor.jl")
-	include("models/Neoclassical/initializationproblem.jl")
-	include("models/Neoclassical/initialize.jl")
-	include("models/Neoclassical/outputfunc.jl")
+	# include("models/Neoclassical/initializationproblem.jl")
+	# include("models/Neoclassical/initialize.jl")
+	# include("models/Neoclassical/outputfunc.jl")
 	include("models/Neoclassical/rewardfunc.jl")
 	include("models/Neoclassical/transfunc.jl")
+
+	#Intangible
+	include("models/Intangible/constructor.jl")
+	include("models/Intangible/transfunc.jl")
+	include("models/Intangible/rewardfunc.jl")
+
+	createmodel(sym_model; kwargs...) = createmodel(eval(sym_model); kwargs...)
 
 	# Solver
 	include("solve/constructors.jl")
@@ -42,6 +51,7 @@ module DiscreteDynamicProgramming
 	include("solve/rewardmatrix.jl")
 	include("solve/transitionmatrix.jl")
 	include("solve/singlechoicevar.jl")
+	include("solve/twochoicevar.jl")
 	include("solve/state_action.jl")
 	include("solve/initialendogstatevars.jl")
 

@@ -3,7 +3,7 @@
 # NeoClassical
 ####################
 
-@with_kw struct NeoClassicalSimpleParams{R<:Real, I<:Int64, B<:Bool}
+@with_kw struct NeoClassicalSimpleParams{R<:Real, I<:Int64}
     α::R = 0.67
     β::R = 0.9
     ρ::R = 0.6
@@ -23,15 +23,15 @@
     nPeriods::I = 120
     nFirms::I = 1000
 
-    rewardmat::Symbol = :nobuild
-    intdim::Symbol = :separable
-    monotonicity::B = true
-    concavity::B = true
+    # rewardmat::Symbol = :nobuild
+    # intdim::Symbol = :separable
+    # monotonicity::B = true
+    # concavity::B = true
 end
 
 struct NeoClassicalSimple <: SingleChoiceVar
     # parameters that user supplies
-    params::NeoClassicalSimpleParams{Float64, Int64, Bool} # important to specify here for type stability
+    params::NeoClassicalSimpleParams{Float64, Int64} # important to specify here for type stability
 
     # K_ss::Float64
 
@@ -40,6 +40,8 @@ struct NeoClassicalSimple <: SingleChoiceVar
     # vMax::Vector{Float64}
 
     tStateVectors::NTuple{2, Vector{Float64}}
+    # can use NTuple{N, Vector{Float64}} where N
+    # if want to be more general
     tChoiceVectors::NTuple{1, Vector{Float64}}
 
     # which state variables are endogenous
@@ -50,17 +52,15 @@ struct NeoClassicalSimple <: SingleChoiceVar
     mShocks::Array{Float64,2}
 end
 
-createmodel(sym_model; kwargs...) = createmodel(eval(sym_model); kwargs...)
-
 function createmodel(model::Type{NeoClassicalSimple}; kwargs...)
 
     # all userprovided parameters go in here
-    params = NeoClassicalSimpleParams(;kwargs...)
+    params = NeoClassicalSimpleParams(; kwargs...)
 
     # need to unpack to get default values if not provided
     @unpack_NeoClassicalSimpleParams params
 
-    nNodes = collect((nK, nz))
+    # nNodes = collect((nK, nz))
 
     # calculate Amin, Amax
     stdz = sqrt(σ^2/(1-ρ^2))

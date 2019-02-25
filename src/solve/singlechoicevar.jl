@@ -2,51 +2,44 @@
 ##### Solver ######
 ########################
 
-function solve(p::DDM, method::Type{T},
-		mTransition, mReward, disp, rewardmat, intdim, monotonicity, concavity) where
+function solve(p::SingleChoiceVar, method::Type{T},
+		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
+		disp::Bool, rewardmat, monotonicity, concavity) where
 			T <: Union{separable, intermediate}
-
-	# @unpack intdim, monotonicity, concavity, rewardmat = p.params
-	# @unpack monotonicity, concavity, rewardmat = p.params
 
     # our first state variable is also the choice variable
     vChoices = p.tStateVectors[p.bEndogStateVars][1]
     nChoices = length(vChoices)
 
     nStates = prod(length.(p.tStateVectors))
-    nOtherStates = prod(length.(p.tStateVectors[.!p.bEndogStateVars]))
-    nEndogStates = prod(length.(p.tStateVectors[p.bEndogStateVars]))
+	tOtherStates = p.tStateVectors[.!p.bEndogStateVars]
+    nOtherStates = prod(length.(tOtherStates))
 
     mValFun    = zeros((nChoices, nOtherStates))
 	mValFunNew = zeros((nChoices, nOtherStates))
-	# StateVarDims = length.(p.tStateVectors)
-	# mValFun    = zeros(StateVarDims)
-	# mValFunNew = zeros(StateVarDims)
 
 	mPolFunInd = zeros(Int16, nChoices, nOtherStates)
-	# mPolFunInd = zeros(Int16, StateVarDims)
 
-    mEV = zeros(nChoices, size(mTransition, 1)) # depends on intdim
-
-    # mExit = fill(false, (nChoices,nOtherStates))
+    mβEV = zeros(nChoices, size(mTransition, 1)) # depends on intdim
 
     # VFI initialization
-    maxDifference = 10000.0 # to initialize
+    maxDifference::Float64 = 10000.0 # to initialize
     tolerance = 1.E-8
-    iteration = 0 # initialize counter
+    iteration::Int64 = 0 # initialize counter
 
     # initialize for less memory allocation
-    liquidationvalue = -10000.
-    inactionvalue = -10000.
-    reward = -10000.
-    iChoiceStart::Int16 = 1
-    iChoice::Int16 = 1
-    mValFunDiff = zeros(nChoices,nOtherStates)
+	mValFunDiff = zeros(nChoices,nOtherStates)
     mValFunDiffAbs = zeros(nChoices,nOtherStates)
 
-	# if typeof(p) <: Union{NeoClassicalVolatilityAge, LearningKVolatilityAge, NewIdeasAge}
-	# 	mgridstateother = gridmake(p.tStateVectors[.!p.bEndogStateVars]...)
-	# end
+    liquidationvalue::Float64 = -10000.
+    inactionvalue::Float64 = -10000.
+    reward::Float64 = -10000.
+
+	valueHighSoFar::Float64 = -1000.
+	valueProvisional::Float64 = -1000.
+    iChoiceStart::Int16 = 1
+    iChoice::Int16 = 1
+	i::Int64 = 0 # outer loop for other state vars
 
 	# will need beta times transpose of transition matrix
 	mTransition_βT = p.params.β * transpose(mTransition)
@@ -54,13 +47,13 @@ function solve(p::DDM, method::Type{T},
     # VFI
     while maxDifference > tolerance
 
-        mul!(mEV, mValFun, mTransition_βT)
+        mul!(mβEV, mValFun, mTransition_βT)
 
         # inbounds does help by 50%
 	    # @inbounds
 		# for i = 1:nOtherStates # other states
 		i = 0
-		for ix in CartesianIndices(length.(p.tStateVectors[.!p.bEndogStateVars])) # other states
+		for ix in CartesianIndices(length.(tOtherStates)) # other states
 			i = i + 1
 
 	        # We start from previous choice (monotonicity of policy function)
@@ -98,13 +91,13 @@ function solve(p::DDM, method::Type{T},
 						# vstatevars = getindex.(p.tStateVectors, istatevars)
 						# reward = rewardfunc(p, vstatevars, vChoices[jprime])
 					elseif rewardmat == :prebuild
-						reward = mReward[jprime, j + nEndogStates * (i-1)] # nChoices x nStates
+						reward = mReward[jprime, j + nChoices * (i-1)] # nChoices x nStates
 					end
 
                     if method == separable
-	                    valueProvisional = reward + mEV[jprime, i] # mEV is already discounted
+	                    valueProvisional = reward + mβEV[jprime, i] # mβEV is already discounted
                     else # method == intermediate
-                        valueProvisional = reward + mEV[jprime, j + nEndogStates *(i-1)] # mEV is already discounted
+                        valueProvisional = reward + mβEV[jprime, j + nChoices *(i-1)] # mβEV is already discounted
                     end
 
 	                if (valueProvisional>=valueHighSoFar)
@@ -125,9 +118,9 @@ function solve(p::DDM, method::Type{T},
     			# 	reward = rewardfuncinaction(p, mReward[j,i], vChoices[j])
 				#
                 #     if intdim == :separable
-                #         inactionvalue = reward + mEV[j, i]
+                #         inactionvalue = reward + mβEV[j, i]
                 #     elseif intdim == :intermediate
-                #         inactionvalue = reward + mEV[j, j + nEndogStates *(i-1)] # mEV is already discounted
+                #         inactionvalue = reward + mβEV[j, j + nChoices *(i-1)] # mβEV is already discounted
                 #     end
 				#
                 #     if valueHighSoFar <= inactionvalue
@@ -201,7 +194,7 @@ function solve(p::DDM, method::Type{T},
     meshValFun = reshape(mValFun, tuple(nNodes...))
     # meshExit   = reshape(mExit, tuple(p.nNodes...))
 
-    createsolution(p, meshValFun, meshPolFun)
+    createsolution(p, meshValFun, (meshPolFun,))
 
 end # solve
 
