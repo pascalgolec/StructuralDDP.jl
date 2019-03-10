@@ -16,13 +16,13 @@ sol_neoclassical_SA = solve(p_neoclassical, intdim = :SA)
 sol_neoclassical_separable = solve(p_neoclassical; diopt..., intdim = :separable)
 sol_neoclassical_intermediate = solve(p_neoclassical; diopt..., intdim = :intermediate)
 
-ptest = createmodel(:Intangible; nK = 25, nN = 20, nz = 3)
+ptest = createmodel(:Intangible; nK = 15, nN = 10, nz = 3)
 optdict = Dict(
 	:monotonicity=>[true,true],
 	:concavity=>[true,true],
 	:rewardmat=>:prebuild_partial,
 	)
-# sol_intan_SA = solve(ptest; intdim = :SA)
+sol_intan_SA = solve(ptest; intdim = :SA)
 sol_intan_separable = solve(ptest; optdict..., intdim = :separable)
 sol_intan_intermediate = solve(ptest; optdict..., intdim = :intermediate)
 
@@ -53,8 +53,8 @@ sol_intan_intermediate = solve(ptest; optdict..., intdim = :intermediate)
         compare_solutions("Neoclassical_SA_int", sol_neoclassical_SA, sol_neoclassical_intermediate)
         compare_solutions("Neoclassical_sep_int", sol_neoclassical_separable, sol_neoclassical_intermediate)
 
-		# compare_solutions("Intangible_SA_sep", sol_intan_SA, sol_intan_separable)
-        # compare_solutions("Intangible_SA_int", sol_intan_SA, sol_intan_intermediate)
+		compare_solutions("Intangible_SA_sep", sol_intan_SA, sol_intan_separable)
+        compare_solutions("Intangible_SA_int", sol_intan_SA, sol_intan_intermediate)
         compare_solutions("Intangible_sep_int", sol_intan_separable, sol_intan_intermediate)
 
     end

@@ -124,11 +124,13 @@ function solve(p::TwoChoiceVar, method::Type{T},
     liquidationvalue::Float64 = -Inf
     inactionvalue::Float64 = -Inf
     reward::Float64 = -Inf
+	βEV::Float64 = -Inf
 
 	valueHighSoFarOne::Float64 = -Inf
 	valueProvisionalOne::Float64 = -Inf
 
-	# CHECK WHICH MORE TO ADD
+	valueHighSoFarTwo::Float64 = -Inf
+	valueProvisionalTwo::Float64 = -Inf
 
     iChoice1::Int16 = 0
     iChoice2::Int16 = 0

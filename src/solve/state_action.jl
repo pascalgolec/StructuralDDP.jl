@@ -4,7 +4,7 @@
 ####################################################
 
 # this function sets up the state-action pairs and feeds them into the QuantEcon solver
-function solve(p::SingleChoiceVar, method::Type{SA},  mTransition, mReward, disp::Bool)
+function solve(p::DDM, method::Type{SA},  mTransition, mReward, disp::Bool)
 
     # ONLY PROGRAMMED FOR SINGLECHOICEVAR SO FAR!
 
@@ -12,8 +12,9 @@ function solve(p::SingleChoiceVar, method::Type{SA},  mTransition, mReward, disp
     nStateVars = length(p.tStateVectors)
     tNodes = length.(p.tStateVectors)
 
-    nChoiceVars = 1
-    nChoices = length(p.tChoiceVectors[1])
+    nChoiceVars = length(p.tChoiceVectors)
+    nChoices = prod(length.(p.tChoiceVectors))
+    # nChoices = length(p.tChoiceVectors[1])
 
     # tAll = (tNodes..., nChoices)
     # mSA = gridmake(p.tStateVectors..., p.vChoiceVector)
@@ -59,15 +60,23 @@ function solve(p::SingleChoiceVar, method::Type{SA},  mTransition, mReward, disp
     end
 
     # results.sigma is a vector of indices of optimal choices
-    mPolFun = p.tChoiceVectors[1][results.sigma]
+    # mPolFun = p.tChoiceVectors[1][results.sigma]
+    vChoiceVector = gridmake(p.tChoiceVectors...)
+    mPolFun = vChoiceVector[results.sigma, :]
 
-    meshPolFun = reshape(mPolFun, tuple(tNodes...))
+    # meshPolFun = reshape(mPolFun, tuple(tNodes...))
     meshValFun = reshape(results.v, tuple(tNodes...))
 
-    return createsolution(p, meshValFun, (meshPolFun,))
+    # return createsolution(p, meshValFun, (meshPolFun,))
+    meshPolFun = Vector{Array{Float64}}()
+    for k = 1 : nChoiceVars
+        push!(meshPolFun, reshape(mPolFun[:,k], tuple(tNodes...)))
+    end
+
+    return createsolution(p, meshValFun, Tuple(meshPolFun))
 end
 
-# function solve(p::TwoChoiceVar, method::Type{SA}; disp::Bool = false)
+# function solve(p::TwoChoiceVar, method::Type{SA},  mTransition, mReward, disp::Bool)
 #
 #     # state action pair representation
 #     nStateVars = length(p.tStateVectors)
@@ -84,15 +93,16 @@ end
 #     mA_coord = mSA_coord[:,2:2]
 #
 #     # reward usually gives choices x states, want states x choices
-#     R = rewardmatrix(p)' # is choices x states
-#     R_sa = addDim(R[:]) # can convert into state-action repr
+#     R = mReward' # is choices x states
+#     # R_sa = addDim(R[:]) # can convert into state-action repr
+#     R_sa = R[:]
 #
 #
 #     # get transition matrix, which elements are allowed?
 #     Q = transitionmatrix(p, method)
 #
 #     # mark all rows where probabilities are not within 0 and 1
-#     admissible = all((Q.>=0.) .& (Q.<=1.), dims=2)
+#     admissible = all((Q.>=0.) .& (Q.<=1.), dims=2)[:]
 #     # would be more effcient to do this on g than Q, huge matrix
 #
 #     # delete s-a pairs that are not admissible
@@ -126,6 +136,6 @@ end
 #     meshPolFun2 = reshape(mPolFun[:,2], tuple(tNodes...))
 #     meshValFun = reshape(results.v, tuple(tNodes...))
 #
-#     return createsolution(p, meshValFun, meshPolFun1, meshPolFun2)
+#     return createsolution(p, meshValFun, (meshPolFun1, meshPolFun2))
 #
 # end
