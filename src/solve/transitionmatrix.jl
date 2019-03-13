@@ -1,7 +1,16 @@
 
-# transitionmatrix(p::DDM) = transitionmatrix(p, eval(p.params.intdim))
 transitionmatrix(p::DDM; intdim::Symbol=:SA) = transitionmatrix(p, eval(intdim))
-# transitionmatrix(p::DDM, method::Symbol) = transitionmatrix(p, eval(method))
+
+# if user only supplies separable, can still do the others with the help of these
+transfunc(p::DDM, method::Type{intermediate}, vState, vShocks) =
+    transfunc(p, separable, vState[.!p.bEndogStateVars], vShocks)
+transfunc(p::DDM, method::Type{SA}, vState, vChoice, vShock) =
+    [vChoice..., transfunc(p, intermediate, vState, vShock)...]
+
+# transfunc(p::DDM, method::Type{separable}, vState, vShock) =
+#     transfunc(p::DDM, vState, nothing, vShock)
+# transfunc(p::DDM, method::Type{intermediate}, vState, vShock) =
+#     transfunc(p::DDM, vState, nothing, vShock)
 
 function transitionmatrix(p::DDM, method::Type{T}) where T<:DDMIntDim
     # Calculates probability transition matrix, depending on integration dimension
@@ -41,11 +50,6 @@ function transitionmatrix(p::DDM, method::Type{T}) where T<:DDMIntDim
         mG = spzeros(nInputStates, nStochStates)
     elseif method == SA # mT is nChoices*nStates x nStates
         nInputStates = nStates * nChoices
-        # if typeof(p) <: SingleChoiceVar
-        #     mInputStates = gridmake(p.tStateVectors..., p.vChoiceVector)
-        # elseif typeof(p) <: TwoChoiceVar
-        #     mInputStates = gridmake(p.tStateVectors..., p.tChoiceVectors...)
-        # end
         mInputStates = gridmake(p.tStateVectors..., p.tChoiceVectors...)
 
         mInputStates_states = mInputStates[:, 1:dimStates]
@@ -73,6 +77,13 @@ function transitionmatrix(p::DDM, method::Type{T}) where T<:DDMIntDim
             else
                 g[:,j] .= transfunc(p, method, mInputStates[:, j], p.mShocks[:,i])
             end
+
+            # if method == SA
+            #     g[:,j] .= transfunc(p, mInputStates_states[j, :],
+            #         vInputStates_choices[j, :],  p.mShocks[:,i])
+            # else
+            #     g[:,j] .= transfunc(p, mInputStates[:, j], p.mShocks[:,i])
+            # end
         end
 
         PhiTemp .= BasisMatrix(basisOutputStates, Expanded(), g', 0).vals[1]
