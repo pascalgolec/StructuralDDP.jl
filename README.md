@@ -2,7 +2,7 @@
 
 This package solves and simulates discrete dynamic choice models with value function iteration.
 
-V(s_t, a_t, α)
+<img src="https://latex.codecogs.com/svg.latex?\alpha^2" title="\alpha^2" />
 
 ## Problem definition
 
