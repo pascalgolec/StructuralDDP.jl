@@ -2,11 +2,11 @@
 
 This package solves and simulates discrete dynamic choice models with value function iteration.
 
-$\alpha$
+V(s_t, a_t, α)
 
 ## Problem definition
 
-Each discrete dynamic problem has can be written in the fol 
+Each discrete dynamic problem has can be written in the fol
 
 Each discrete dynamic problem has
 
