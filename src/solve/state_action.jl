@@ -73,7 +73,7 @@ function solve(p::DDM, method::Type{SA},  mTransition, mReward, disp::Bool)
         push!(meshPolFun, reshape(mPolFun[:,k], tuple(tNodes...)))
     end
 
-    return createsolution(p, meshValFun, Tuple(meshPolFun))
+    return meshValFun, Tuple(meshPolFun)
 end
 
 # function solve(p::TwoChoiceVar, method::Type{SA},  mTransition, mReward, disp::Bool)

@@ -10,7 +10,7 @@ module DiscreteDynamicProgramming
 	using SparseArrays
 	using LinearAlgebra
 
-	export createmodel, solve
+	export createmodel, solve, drawshocks, simulate
 	# export NeoClassicalSimple
 
 	# using DiscreteDynamicModels
@@ -35,8 +35,7 @@ module DiscreteDynamicProgramming
 	include("models/Neoclassical/constructor.jl")
 	include("models/Neoclassical/rewardfunc.jl")
 	include("models/Neoclassical/transfunc.jl")
-
-	# include("models/Neoclassical/initializationproblem.jl")
+	include("models/Neoclassical/initialize.jl")
 	# include("models/Neoclassical/initialize.jl")
 	# include("models/Neoclassical/outputfunc.jl")
 
@@ -44,6 +43,7 @@ module DiscreteDynamicProgramming
 	include("models/Intangible/constructor.jl")
 	include("models/Intangible/transfunc.jl")
 	include("models/Intangible/rewardfunc.jl")
+	include("models/Intangible/initialize.jl")
 
 	createmodel(sym_model::Symbol; kwargs...) = createmodel(eval(sym_model); kwargs...)
 
@@ -56,5 +56,9 @@ module DiscreteDynamicProgramming
 	include("solve/twochoicevar.jl")
 	include("solve/state_action.jl")
 	include("solve/initialendogstatevars.jl")
+
+	# Simulator
+	include("simulate/shocks.jl")
+	include("simulate/simulate.jl")
 
 end

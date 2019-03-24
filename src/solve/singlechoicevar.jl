@@ -194,7 +194,7 @@ function solve(p::SingleChoiceVar, method::Type{T},
     meshValFun = reshape(mValFun, tuple(nNodes...))
     # meshExit   = reshape(mExit, tuple(p.nNodes...))
 
-    createsolution(p, meshValFun, (meshPolFun,))
+    meshValFun, (meshPolFun,)
 
 end # solve
 

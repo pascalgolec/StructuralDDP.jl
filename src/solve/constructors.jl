@@ -7,22 +7,26 @@
 
 struct DDPSolution
 
-       meshValFun::Array{Float64}
-       tmeshPolFun::NTuple{N,Array{Float64}} where N
-       # mV0::Array{Float64}
-       # mPolFun0::Array{Float64}
+   meshValFun::Array{Float64}
+   tmeshPolFun::NTuple{N,Array{Float64}} where N
+   meshValFunZero::Union{Array{Float64}, Nothing}
+   tmeshPolFunZero::Union{NTuple{N,Array{Float64}}, Nothing} where N
 
 end
 
 
 function createsolution(p::DDM, meshValFun::Array{Float64},
-                                tmeshPolFun::NTuple{N,Array{Float64}}) where
-                                N # implies singlechoicevar
+                                tmeshPolFun::NTuple{N,Array{Float64}},
+                                initialize_exact::Bool = false) where N
 
-        # mV0, mPolFun0 = initialendogstatevars(p, meshValFun)
+   if initialize_exact
+      meshValFunZero, tmeshPolFunZero = initialendogstatevars(p, meshValFun)
+   else
+      meshValFunZero = nothing
+      tmeshPolFunZero = (nothing)
+   end
 
-        # SingleChoiceVarSolution(meshValFun, meshPolFun, mV0, mPolFun0)
-        DDPSolution(meshValFun, tmeshPolFun)
+   DDPSolution(meshValFun, tmeshPolFun, meshValFunZero, tmeshPolFunZero)
 end
 
 # abstract type DDPSolution end

@@ -270,6 +270,6 @@ function solve(p::TwoChoiceVar, method::Type{T},
 
     meshValFun = reshape(mValFun, tuple(nNodes...))
     # meshExit   = reshape(mExit, tuple(nNodes...))
-    return createsolution(p, meshValFun, (meshPolFun1, meshPolFun2))
 
+	return meshValFun, (meshPolFun1, meshPolFun2)
 end # solve
