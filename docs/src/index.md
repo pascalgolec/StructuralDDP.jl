@@ -1,6 +1,12 @@
 # DiscreteDynamicProgramming
 
-This package solves and simulates discrete dynamic choice models with value function iteration fast. By taking advantage of properties of the problem, a wide array of problems can be solved very fast without requiring parallelization.
+This package solves and simulates discrete dynamic choice models with value function iteration fast. By taking advantage of properties of the problem, a wide array of problems can be solved very fast without requiring parallelization. Inline latex: ``\sqrt{1 + x + x^2 + }``
+
+Here's an equation:
+
+```math
+\frac{n!}{k!(n - k)!} = \binom{n}{k}
+```
 
 The general workflow is to define a problem, solve the problem, and then analyze the solution. The full code for solving an example is:
 
@@ -12,20 +18,19 @@ sol = solve(prob, :intdim=>:separable, :monotonicity=>true, :concavity=>true, :r
 
 ## Problem definition
 
-Each discrete dynamic problem has can be written in the follows
+Each discrete dynamic maximization problem has an objective function as follows
 
-<img src="https://latex.codecogs.com/svg.latex?\mathbb{E}&space;\sum_{t&space;=&space;0}^{\infty}&space;\beta^t&space;r(s_t,&space;a_t)" title="\mathbb{E} \sum_{t = 0}^{\infty} \beta^t r(s_t, a_t)" />
+```math
+\mathbb{E} \sum_{t=0}^{\infty} \beta^t r(s_t, a_t)
+```
 
-Each discrete dynamic problem has
+where
 
-- a flow reward `r(s_t, a_t)` as a function of the state variables and choice(s)
-- transition equation(s) for state variables `s_t+1` depending on current states `s_t` and current actions `a_t`
-- a discount factor `β`
-- a tuple of vectors of state variables
-	- tStateVectors
-	- the choice state variables need to come first
-- a tuple of vectors of choice variables
-	- tChoiceVectors
+- ``r(s_t, a_t)`` is the current reward as a function of the state variables ``s_t`` and choice(s) ``a_t``
+- transition equation(s) for state variables ``s_{t+1}`` depending on ``(s_t, a_t)``
+- a discount factor ``β``
+
+For a more formal definiton, see the QuantEcon lectures [here](https://lectures.quantecon.org/jl/discrete_dp.html#Discrete-DPs).
 
 The package includes a neoclassical capital investment model with convex adjustment costs as an example. We define the problem by creating an instance of the model with specific parameters,
 
@@ -33,7 +38,11 @@ The package includes a neoclassical capital investment model with convex adjustm
 prob = createmodel(:NeoClassicalSimple, ρ=0.7, σ=0.2, β=0.9)
 ```
 
-To solve the model
+To solve the model,
+
+```julia
+sol = solve(prob, :intdim=>:separable, :monotonicity=>true, :concavity=>true, :rewardmat=>:prebuild_partial)
+```
 
 ### Preparation
 
