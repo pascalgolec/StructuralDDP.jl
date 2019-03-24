@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_CHTML-full" type="text/javascript"></script>
+</head>
+<body>
+<h1 id="discretedynamicprogramming">DiscreteDynamicProgramming</h1>
+<p>This package solves and simulates discrete dynamic choice models with value function iteration.</p>
+<p><span class="math inline">\(\alpha\)</span></p>
+<h2 id="problem-definition">Problem definition</h2>
+<p>Each discrete dynamic problem has can be written in the fol</p>
+<p>Each discrete dynamic problem has</p>
+<ul>
+<li>a flow reward as a function of the state variables and choice(s)</li>
+<li>transition equation(s) for state variables
+<ul>
+<li>--&gt; for calculating probability transition matrix</li>
+<li>an also supply own prob transition matrix</li>
+</ul></li>
+<li>parameters</li>
+<li>a tuple of vectors of state variables
+<ul>
+<li>tStateVectors</li>
+<li>the choice state variables need to come first</li>
+</ul></li>
+<li>a tuple of vectors of choice variables
+<ul>
+<li>tChoiceVectors</li>
+</ul></li>
+</ul>
+<h2 id="solver-assumptions">Solver assumptions</h2>
+<ul>
+<li>state variables are always forced to stay within bounds</li>
+<li>for <code>intermediate</code> and <code>separable</code>, can choose directly the state variable</li>
+<li>order of state variables is first the endogenous state variable, then exogenous</li>
+</ul>
+<h2 id="reserved-parameters">Reserved parameters</h2>
+<ul>
+<li>discount factor beta</li>
+<li>solver options</li>
+</ul>
+</body>
+</html>
