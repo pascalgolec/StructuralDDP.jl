@@ -7,8 +7,6 @@ function solve(p::SingleChoiceVar, method::Type{T},
 		disp::Bool, rewardmat, monotonicity, concavity) where
 			T <: Union{separable, intermediate}
 
-	@show typeof(p.rewardfunc)
-
     # our first state variable is also the choice variable
     vChoices = p.tStateVectors[p.bEndogStateVars][1]
     nChoices = length(vChoices)
