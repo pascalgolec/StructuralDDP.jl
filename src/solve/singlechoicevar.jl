@@ -4,7 +4,8 @@
 
 function solve(p::SingleChoiceVar, method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
-		disp::Bool, rewardmat, monotonicity, concavity) where
+		disp::Bool, rewardmat, monotonicity, concavity,
+        rewardfunc::Function) where
 			T <: Union{separable, intermediate}
 
     # our first state variable is also the choice variable
@@ -83,11 +84,11 @@ function solve(p::SingleChoiceVar, method::Type{T},
 
 					# reward using prebuild_partial output matrix
 					if rewardmat == :prebuild_partial
-						reward = p.rewardfunc(mReward[j,i], vChoices[j], vChoices[jprime])
+						reward = rewardfunc(mReward[j,i], vChoices[j], vChoices[jprime])
 					elseif rewardmat == :nobuild
 						# need to be VERY careful with order of state vars here.. could get fucked up..
 						# reward = rewardfunc(p, getindex.(p.tStateVectors, [j, ix.I...]), vChoices[jprime])
-						reward = p.rewardfunc(getindex.(p.tStateVectors, [j, ix.I...]), vChoices[jprime])
+						reward = rewardfunc(getindex.(p.tStateVectors, [j, ix.I...]), vChoices[jprime])
 					elseif rewardmat == :prebuild
 						reward = mReward[jprime, j + nChoices * (i-1)] # nChoices x nStates
 					end
