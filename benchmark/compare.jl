@@ -37,8 +37,7 @@ plt = Gadfly.plot(df,
         guide_title_position = :left,
         colorkey_swatch_shape = :circle,
         minor_label_font = "Georgia",
-        major_label_font = "Georgia"
-    ),
+        major_label_font = "Georgia"),
 	)
 
 draw(SVGJS("compare.svg"), plt)

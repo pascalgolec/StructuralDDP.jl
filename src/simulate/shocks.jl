@@ -8,6 +8,8 @@ struct DDPShocks
 	aSim ::Array{Float64,3}
 end
 
+drawshocks(p::DDM) = drawshocks(p, p.params.nPeriods, p.params.nFirms)
+
 function drawshocks(p::DDM, nPeriods::Int64, nFirms::Int64)
 	# @unpack nFirms, nPeriods = p.params
 	dimShocks = size(p.mShocks,1)

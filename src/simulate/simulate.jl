@@ -1,14 +1,18 @@
 
-function simulate(p::DDM)
-	seed!(42) # fix the seed
-	simulate(p, drawshocks(p))
-end
+# function simulate(p::DDM)
+# 	# seed!(42) # fix the seed
+# 	simulate(p, drawshocks(p))
+# end
 
-function simulate(p::DDM, sol::DDPSolution)
-	seed!(42) # fix the seed
-	simulate(p, sol, drawshocks(p))
-end
+# function simulate(p::DDM, sol::DDPSolution)
+# 	# seed!(42) # fix the seed
+# 	simulate(p, sol, drawshocks(p))
+# end
 
+simulate(p::DDM) = simulate(p, drawshocks(p))
+simulate(p::DDM, sol::DDPSolution) = simulate(p, sol, drawshocks(p))
+simulate(p::DDM, sol::DDPSolution, nPeriods::Int64, nFirms::Int64) =
+	simulate(p, sol, drawshocks(p, nPeriods, nFirms))
 simulate(p::DDM, shocks::DDPShocks) = simulate(p, solve(p), shocks)
 
 function initialize_simple(p::DDM)
