@@ -12,7 +12,7 @@ function rewardmatrix(p::DDM)
     mReward = zeros(Float64, nChoices, nStates)
     for i = 1 : nStates # state i
            for j = 1 : nChoices # choice j
-               mReward[j,i] = rewardfunc(p, mStates[i,:], mChoices[j,:])
+               mReward[j,i] = p.rewardfunc(mStates[i,:], mChoices[j,:])
            end
     end
 
@@ -33,7 +33,7 @@ function rewardmatrix_partial(p::DDM)
     for i = 1 : nExogStates # state i
            for j = 1 : nEndogStates # choice j
                # PROBABLY NEED TO CHANGE THIS, USE SOME CARTESIAN INDEXER
-               mReward[j,i] = grossprofits(p, mStates[j + nEndogStates *(i-1),:])
+               mReward[j,i] = p.grossprofits(mStates[j + nEndogStates *(i-1),:])
            end
     end
 

@@ -1,57 +1,33 @@
+@with_kw struct NeoClassicalSimpleParams{R<:Real, I<:Int64} <: ModelParams
+    α::R = 0.67
+    β::R = 0.9
+    ρ::R = 0.6
+    σ::R = 0.3
+    δ::R = 0.15
+    γ::R = 2.0
+    F::R = 0.01
+    C0::R = 0.6
+    π::R = 0.
+    τ::R = 0.35
 
+    κ::R = 0.
+    nK::I = 100
+    nz::I = 20
 
-####################
-# NeoClassical
-####################
-# abstract type modelparams end
+    nShocks::I = 3
+    nPeriods::I = 120
+    nFirms::I = 1000
 
-# @with_kw struct NeoClassicalSimpleParams{R<:Real, I<:Int64}
-#     α::R = 0.67
-#     β::R = 0.9
-#     ρ::R = 0.6
-#     σ::R = 0.3
-#     δ::R = 0.15
-#     γ::R = 2.0
-#     F::R = 0.01
-#     C0::R = 0.6
-#     π::R = 0.
-#     τ::R = 0.35
-#
-#     κ::R = 0.
-#     nK::I = 100
-#     nz::I = 20
-#
-#     nShocks::I = 3
-#     nPeriods::I = 120
-#     nFirms::I = 1000
-#
-#     # rewardmat::Symbol = :nobuild
-#     # intdim::Symbol = :separable
-#     # monotonicity::B = true
-#     # concavity::B = true
-# end
-
-
-struct NeoClassicalSimple <: SingleChoiceVar
-    # parameters that user supplies
-    # params::NeoClassicalSimpleParams{Float64, Int64} # important to specify here for type stability
-    params::Any
-
-    tStateVectors::NTuple{2, Vector{Float64}} # can use NTuple{N, Vector{Float64}} where N
-    tChoiceVectors::NTuple{1, Vector{Float64}}
-
-    # which state variables are endogenous
-    bEndogStateVars::Vector{Bool}
-
-    # quadrature for calculating expectations
-    vWeights::Vector{Float64}
-    mShocks::Array{Float64,2}
+    # rewardmat::Symbol = :nobuild
+    # intdim::Symbol = :separable
+    # monotonicity::B = true
+    # concavity::B = true
 end
 
-function createmodel(model::Type{NeoClassicalSimple}; kwargs...)
+function NeoClassicalSimple(; kwargs...)
 
     # all userprovided parameters go in here
-    params = NeoClassicalSimpleParams(; kwargs...)
+    params = NeoClassicalSimpleParams{Float64, Int64}(; kwargs...)
 
     # need to unpack to get default values if not provided
     @unpack_NeoClassicalSimpleParams params
@@ -104,6 +80,19 @@ function createmodel(model::Type{NeoClassicalSimple}; kwargs...)
     # NeoClassicalSimple(params, tStateVectors, tChoiceVectors,
     #     bEndogStateVars, vWeights, mShocks)
 
+	function myrewardfunc(vStateVars, vChoiceVars)
+		(K, z) = vStateVars
+		Kprime = vChoiceVars[1]
+		capx = Kprime - (1-δ)*K
+		return K^α * exp(z) - capx - γ/2*(capx/K- δ)^2 * K
+	end
+
+	function myrewardfunc(Output::Float64, K::Float64, Kprime::Float64)
+	    capx = Kprime - (1-δ)K
+	    out = (1-τ)*(Output - F*K - γ/2*(capx/K- δ)^2 * K) - (1-κ*(capx<0))*capx + τ * δ * K
+	    # dont have condition on F in here!!!!
+	end
+
     function mytransfunc(method::Type{separable}, vExogState, vShocksss)
         # @unpack ρ , σ = p.params
         z = vExogState[1]
@@ -112,19 +101,10 @@ function createmodel(model::Type{NeoClassicalSimple}; kwargs...)
         return  inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
     end
 
-    DiscreteDynamicProblem(mytransfunc, params, tStateVectors, tChoiceVectors,
+	mygrossprofits(vStateVars::Vector{Float64}) = vStateVars[1]^α * exp(vStateVars[2])
+
+    DiscreteDynamicProblem(myrewardfunc, mytransfunc, mygrossprofits,
+		params,
+		tStateVectors, tChoiceVectors,
         bEndogStateVars, vWeights, mShocks)
 end
-
-
-prob = createmodel(:NeoClassicalSimple)
-
-function getrans(p::DDM)
-    p.transfunc(separable, [1.], [1.])
-end
-getrans(prob)
-
-
-typeof(prob) <: DDM
-
-transitionmatrix(prob, intdim = :separable)

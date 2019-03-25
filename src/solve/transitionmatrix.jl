@@ -20,6 +20,8 @@ function transitionmatrix(p::DDM, method::Type{T}) where T<:DDMIntDim
     #       - InputStates together with shocks affect the transition of OutputStates
     #       - so it is States_today x States_tomorrow, same dimension as QuantEcon.tauchen()
 
+    # transfunc = p.transfunc
+
     nStates = prod(length.(p.tStateVectors))
     dimStates = length(p.tStateVectors)
 
@@ -75,7 +77,8 @@ function transitionmatrix(p::DDM, method::Type{T}) where T<:DDMIntDim
                 g[:,j] .= transfunc(p, method, mInputStates_states[j, :],
                     vInputStates_choices[j, :],  p.mShocks[:,i])
             else
-                g[:,j] .= transfunc(p, method, mInputStates[:, j], p.mShocks[:,i])
+                # g[:,j] .= transfunc(p, method, mInputStates[:, j], p.mShocks[:,i])
+                g[:,j] .= p.transfunc(method, mInputStates[:, j], p.mShocks[:,i])
             end
 
             # if method == SA

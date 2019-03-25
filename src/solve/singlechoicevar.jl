@@ -7,6 +7,8 @@ function solve(p::SingleChoiceVar, method::Type{T},
 		disp::Bool, rewardmat, monotonicity, concavity) where
 			T <: Union{separable, intermediate}
 
+	@show typeof(p.rewardfunc)
+
     # our first state variable is also the choice variable
     vChoices = p.tStateVectors[p.bEndogStateVars][1]
     nChoices = length(vChoices)
@@ -83,13 +85,11 @@ function solve(p::SingleChoiceVar, method::Type{T},
 
 					# reward using prebuild_partial output matrix
 					if rewardmat == :prebuild_partial
-						reward = rewardfunc(p, mReward[j,i], vChoices[j], vChoices[jprime])
+						reward = p.rewardfunc(mReward[j,i], vChoices[j], vChoices[jprime])
 					elseif rewardmat == :nobuild
 						# need to be VERY careful with order of state vars here.. could get fucked up..
-						reward = rewardfunc(p, getindex.(p.tStateVectors, [j, ix.I...]), vChoices[jprime])
-						# istatevars = [j, ix.I...]
-						# vstatevars = getindex.(p.tStateVectors, istatevars)
-						# reward = rewardfunc(p, vstatevars, vChoices[jprime])
+						# reward = rewardfunc(p, getindex.(p.tStateVectors, [j, ix.I...]), vChoices[jprime])
+						reward = p.rewardfunc(getindex.(p.tStateVectors, [j, ix.I...]), vChoices[jprime])
 					elseif rewardmat == :prebuild
 						reward = mReward[jprime, j + nChoices * (i-1)] # nChoices x nStates
 					end

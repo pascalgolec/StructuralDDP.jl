@@ -31,13 +31,14 @@ module DiscreteDynamicProgramming
 
 	include("helpfunctions.jl")
 
+	# type constructor
+	include("DiscreteDynamicProblem.jl")
+
 	# Neoclassical
-	include("models/Neoclassical/constructor.jl")
-	include("models/Neoclassical/rewardfunc.jl")
-	include("models/Neoclassical/transfunc.jl")
-	include("models/Neoclassical/initialize.jl")
+	# include("models/Neoclassical/constructor.jl")
+	# include("models/Neoclassical/rewardfunc.jl")
+	# include("models/Neoclassical/transfunc.jl")
 	# include("models/Neoclassical/initialize.jl")
-	# include("models/Neoclassical/outputfunc.jl")
 
 	#Intangible
 	include("models/Intangible/constructor.jl")
