@@ -33,15 +33,7 @@ struct NeoClassicalSimple <: SingleChoiceVar
     # parameters that user supplies
     params::NeoClassicalSimpleParams{Float64, Int64} # important to specify here for type stability
 
-    # K_ss::Float64
-
-    # parameters that are a function of inputs or always the same depending on model
-    # vMin::Vector{Float64}
-    # vMax::Vector{Float64}
-
-    tStateVectors::NTuple{2, Vector{Float64}}
-    # can use NTuple{N, Vector{Float64}} where N
-    # if want to be more general
+    tStateVectors::NTuple{2, Vector{Float64}} # can use NTuple{N, Vector{Float64}} where N
     tChoiceVectors::NTuple{1, Vector{Float64}}
 
     # which state variables are endogenous
