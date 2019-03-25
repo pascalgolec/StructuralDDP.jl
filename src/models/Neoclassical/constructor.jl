@@ -1,41 +1,33 @@
 
+@with_kw struct NeoClassicalSimpleParams{R<:Real, I<:Int64}
+    α::R = 0.67
+    β::R = 0.9
+    ρ::R = 0.6
+    σ::R = 0.3
+    δ::R = 0.15
+    γ::R = 2.0
+    F::R = 0.01
+    C0::R = 0.6
+    π::R = 0.
+    τ::R = 0.35
 
-####################
-# NeoClassical
-####################
-# abstract type modelparams end
+    κ::R = 0.
+    nK::I = 100
+    nz::I = 20
 
-# @with_kw struct NeoClassicalSimpleParams{R<:Real, I<:Int64}
-#     α::R = 0.67
-#     β::R = 0.9
-#     ρ::R = 0.6
-#     σ::R = 0.3
-#     δ::R = 0.15
-#     γ::R = 2.0
-#     F::R = 0.01
-#     C0::R = 0.6
-#     π::R = 0.
-#     τ::R = 0.35
-#
-#     κ::R = 0.
-#     nK::I = 100
-#     nz::I = 20
-#
-#     nShocks::I = 3
-#     nPeriods::I = 120
-#     nFirms::I = 1000
-#
-#     # rewardmat::Symbol = :nobuild
-#     # intdim::Symbol = :separable
-#     # monotonicity::B = true
-#     # concavity::B = true
-# end
+    nShocks::I = 3
+    nPeriods::I = 120
+    nFirms::I = 1000
 
+    # rewardmat::Symbol = :nobuild
+    # intdim::Symbol = :separable
+    # monotonicity::B = true
+    # concavity::B = true
+end
 
 struct NeoClassicalSimple <: SingleChoiceVar
     # parameters that user supplies
-    # params::NeoClassicalSimpleParams{Float64, Int64} # important to specify here for type stability
-    params::Any
+    params::NeoClassicalSimpleParams{Float64, Int64} # important to specify here for type stability
 
     tStateVectors::NTuple{2, Vector{Float64}} # can use NTuple{N, Vector{Float64}} where N
     tChoiceVectors::NTuple{1, Vector{Float64}}
@@ -101,30 +93,8 @@ function createmodel(model::Type{NeoClassicalSimple}; kwargs...)
     vShocks, vWeights = qnwnorm(nShocks,0,1)
     mShocks = vShocks'
 
-    # NeoClassicalSimple(params, tStateVectors, tChoiceVectors,
+    # NeoClassicalSimple(params, K_ss, vMin, vMax, tStateVectors, tChoiceVectors,
     #     bEndogStateVars, vWeights, mShocks)
-
-    function mytransfunc(method::Type{separable}, vExogState, vShocksss)
-        # @unpack ρ , σ = p.params
-        z = vExogState[1]
-        zprime  = ρ*z + σ * vShocksss[1];
-        # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
-        return  inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
-    end
-
-    DiscreteDynamicProblem(mytransfunc, params, tStateVectors, tChoiceVectors,
+    NeoClassicalSimple(params, tStateVectors, tChoiceVectors,
         bEndogStateVars, vWeights, mShocks)
 end
-
-
-prob = createmodel(:NeoClassicalSimple)
-
-function getrans(p::DDM)
-    p.transfunc(separable, [1.], [1.])
-end
-getrans(prob)
-
-
-typeof(prob) <: DDM
-
-transitionmatrix(prob, intdim = :separable)
