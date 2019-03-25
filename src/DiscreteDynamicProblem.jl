@@ -6,7 +6,7 @@ struct DiscreteDynamicProblem <: SingleChoiceVar # DiscreteDynamicModel
 
     rewardfunc::Function
     transfunc::Function
-    grossprofits::Union{Function, Nothing}
+    grossprofits::Function
 
     # params::NeoClassicalSimpleParams{Float64, Int64} # important to specify here for type stability
     params::ModelParams # important to specify here for type stability
