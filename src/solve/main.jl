@@ -25,7 +25,7 @@ function solve(p::DDM; mTransition::Union{Nothing, Array{Float64,2}} = nothing,
     end
 
     if intdim == :SA
-        meshValFun, tmeshPolFun = solve(p, eval(intdim), mTransition, mReward, disp)
+        meshValFun, tmeshPolFun = _solve(p, eval(intdim), mTransition, mReward, disp)
     else
         # make both choices true or false if the user supplied only a single value or none
         if typeof(p)<:TwoChoiceVar
@@ -33,8 +33,8 @@ function solve(p::DDM; mTransition::Union{Nothing, Array{Float64,2}} = nothing,
             if typeof(monotonicity) == Bool; monotonicity = fill!(Vector{Bool}(undef, 2), monotonicity) end
             if typeof(concavity) == Bool; concavity = fill!(Vector{Bool}(undef, 2), concavity) end
         end
-        meshValFun, tmeshPolFun = solve(p, eval(intdim), mTransition, mReward, disp,
-            rewardmat, monotonicity, concavity, p.rewardfunc)
+        meshValFun, tmeshPolFun = _solve(p, eval(intdim), mTransition, mReward, disp,
+            rewardmat, monotonicity, concavity)
     end
 
     createsolution(p, meshValFun, tmeshPolFun, initialize_exact)

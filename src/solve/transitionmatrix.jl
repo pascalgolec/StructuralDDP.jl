@@ -1,5 +1,5 @@
 
-transitionmatrix(p::DDM; intdim::Symbol=:SA) = transitionmatrix(p, eval(intdim))
+transitionmatrix(p::DDM; intdim::Symbol=:SA) = _transitionmatrix(p, eval(intdim))
 
 # if user only supplies separable, can still do the others with the help of these
 # transfunc(method::Type{intermediate}, vState, vShocks) =
@@ -12,11 +12,11 @@ transitionmatrix(p::DDM; intdim::Symbol=:SA) = transitionmatrix(p, eval(intdim))
 # transfunc(p::DDM, method::Type{intermediate}, vState, vShock) =
 #     transfunc(p::DDM, vState, nothing, vShock)
 
-transitionmatrix(p::DDM, method::Type{T}) where T<:DDMIntDim =
-    transitionmatrix(p.transfunc, method, p.tStateVectors, p.tChoiceVectors, p.bEndogStateVars,
+_transitionmatrix(p::DDM, method::Type{T}) where T<:DDMIntDim =
+    _transitionmatrix(p.transfunc, method, p.tStateVectors, p.tChoiceVectors, p.bEndogStateVars,
     p.vWeights, p.mShocks)
 
-function transitionmatrix(transfunc, method::Type{T},
+function _transitionmatrix(transfunc, method::Type{T},
     tStateVectors, tChoiceVectors, bEndogStateVars,
     vWeights, mShocks) where T<:DDMIntDim
     # Calculates probability transition matrix, depending on integration dimension

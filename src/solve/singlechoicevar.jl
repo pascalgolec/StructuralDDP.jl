@@ -2,18 +2,27 @@
 ##### Solver ######
 ########################
 
-function solve(p::SingleChoiceVar, method::Type{T},
+_solve(p::SingleChoiceVar, method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
-		disp::Bool, rewardmat, monotonicity, concavity,
-        rewardfunc::Function) where
-			T <: Union{separable, intermediate}
+		disp::Bool, rewardmat::Symbol, monotonicity::Bool, concavity::Bool) where
+			T <: Union{separable, intermediate} =
+		_solve(p.rewardfunc, method,
+			mTransition, mReward,
+			disp, rewardmat, monotonicity, concavity,
+			p.tStateVectors, p.bEndogStateVars, p.params.β)
+
+function _solve(rewardfunc::Function, method::Type{T},
+				mTransition, mReward,
+				disp, rewardmat, monotonicity, concavity,
+				tStateVectors, bEndogStateVars, β) where
+				T <: Union{separable, intermediate}
 
     # our first state variable is also the choice variable
-    vChoices = p.tStateVectors[p.bEndogStateVars][1]
+    vChoices = tStateVectors[bEndogStateVars][1]
     nChoices = length(vChoices)
 
-    nStates = prod(length.(p.tStateVectors))
-	tOtherStates = p.tStateVectors[.!p.bEndogStateVars]
+    nStates = prod(length.(tStateVectors))
+	tOtherStates = tStateVectors[.!bEndogStateVars]
     nOtherStates = prod(length.(tOtherStates))
 
     mValFun    = zeros((nChoices, nOtherStates))
@@ -43,7 +52,7 @@ function solve(p::SingleChoiceVar, method::Type{T},
 	i::Int64 = 0 # outer loop for other state vars
 
 	# will need beta times transpose of transition matrix
-	mTransition_βT = p.params.β * transpose(mTransition)
+	mTransition_βT = β * transpose(mTransition)
 
     # VFI
     while maxDifference > tolerance
@@ -87,8 +96,8 @@ function solve(p::SingleChoiceVar, method::Type{T},
 						reward = rewardfunc(mReward[j,i], vChoices[j], vChoices[jprime])
 					elseif rewardmat == :nobuild
 						# need to be VERY careful with order of state vars here.. could get fucked up..
-						# reward = rewardfunc(p, getindex.(p.tStateVectors, [j, ix.I...]), vChoices[jprime])
-						reward = rewardfunc(getindex.(p.tStateVectors, [j, ix.I...]), vChoices[jprime])
+						# reward = rewardfunc(p, getindex.(tStateVectors, [j, ix.I...]), vChoices[jprime])
+						reward = rewardfunc(getindex.(tStateVectors, [j, ix.I...]), vChoices[jprime])
 					elseif rewardmat == :prebuild
 						reward = mReward[jprime, j + nChoices * (i-1)] # nChoices x nStates
 					end
@@ -176,8 +185,8 @@ function solve(p::SingleChoiceVar, method::Type{T},
 
         if iteration > 1000
             println("WARNING: maximum iterations exceeded")
-            println("Parameters used:")
-			println(p.params)
+            # println("Parameters used:")
+			# println(p.params)
             break
         end
 
@@ -188,7 +197,7 @@ function solve(p::SingleChoiceVar, method::Type{T},
 
     mPolFun = vChoices[mPolFunInd]
 
-    nNodes = length.(p.tStateVectors)
+    nNodes = length.(tStateVectors)
     meshPolFun = reshape(mPolFun, tuple(nNodes...))
     meshValFun = reshape(mValFun, tuple(nNodes...))
     # meshExit   = reshape(mExit, tuple(p.nNodes...))
@@ -197,10 +206,10 @@ function solve(p::SingleChoiceVar, method::Type{T},
 
 end # solve
 
-function mcqueen!(v, vold, beta)
-    b_l = beta /(1-beta) * minimum(v-vold);
-    b_u = beta /(1-beta) * maximum(v-vold);
-    # @show (b_l+b_u)/2
-    v[:] = v[:] + (b_l+b_u)/2;
-    nothing
-end
+# function mcqueen!(v, vold, beta)
+#     b_l = beta /(1-beta) * minimum(v-vold);
+#     b_u = beta /(1-beta) * maximum(v-vold);
+#     # @show (b_l+b_u)/2
+#     v[:] = v[:] + (b_l+b_u)/2;
+#     nothing
+# end

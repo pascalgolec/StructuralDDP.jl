@@ -1,7 +1,7 @@
 rewardmatrix(p::DDM) =
-    rewardmatrix(p.rewardfunc, p.tStateVectors, p.tChoiceVectors, p.bEndogStateVars)
+    _rewardmatrix(p.rewardfunc, p.tStateVectors, p.tChoiceVectors, p.bEndogStateVars)
 
-function rewardmatrix(rewardfunc::Function, tStateVectors, tChoiceVectors, bEndogStateVars)
+function _rewardmatrix(rewardfunc::Function, tStateVectors, tChoiceVectors, bEndogStateVars)
     # output dimension is nChoices x nStates
 
     tChoiceVectors = tStateVectors[bEndogStateVars]
@@ -22,10 +22,10 @@ function rewardmatrix(rewardfunc::Function, tStateVectors, tChoiceVectors, bEndo
     return mReward
 end
 
-rewardmatrix_partial(p::DDM) = rewardmatrix_partial(p.grossprofits,
+rewardmatrix_partial(p::DDM) = _rewardmatrix_partial(p.grossprofits,
     p.tStateVectors, p.bEndogStateVars)
 
-function rewardmatrix_partial(grossprofits::Function, tStateVectors, bEndogStateVars)
+function _rewardmatrix_partial(grossprofits::Function, tStateVectors, bEndogStateVars)
     # output dimension is nEndogStates x nExogStates
 
     # IMPORTANT THAT ENDOGENOUS STATE VARIABLES COME FIRST IN tStateVectors
