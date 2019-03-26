@@ -1,4 +1,4 @@
-@with_kw struct NeoClassicalSimpleParams{R<:Real, I<:Int64} <: ModelParams
+@with_kw struct NeoClassicalSimpleParams222{R<:Float64, I<:Int64} <: ModelParams
     α::R = 0.67
     β::R = 0.9
     ρ::R = 0.6
@@ -27,10 +27,10 @@ end
 function NeoClassicalSimple(; kwargs...)
 
     # all userprovided parameters go in here
-    params = NeoClassicalSimpleParams{Float64, Int64}(; kwargs...)
+    params = NeoClassicalSimpleParams222{Float64, Int64}(; kwargs...)
 
     # need to unpack to get default values if not provided
-    @unpack_NeoClassicalSimpleParams params
+    @unpack_NeoClassicalSimpleParams222 params
 
     # nNodes = collect((nK, nz))
 
@@ -80,11 +80,18 @@ function NeoClassicalSimple(; kwargs...)
     # NeoClassicalSimple(params, tStateVectors, tChoiceVectors,
     #     bEndogStateVars, vWeights, mShocks)
 
-	function myrewardfunc(vStateVars, vChoiceVars)
+	# need a vector for choices, so just make a conversion func
+	myrewardfunc(vStateVars::Vector{Float64}, vChoices::Vector{Float64}) =
+	    myrewardfunc(vStateVars, vChoices[1])
+
+	function myrewardfunc(vStateVars::Vector{Float64}, choice)
 		(K, z) = vStateVars
-		Kprime = vChoiceVars[1]
+		# Kprime = vChoiceVars[1]
+		Kprime = choice
 		capx = Kprime - (1-δ)*K
-		return K^α * exp(z) - capx - γ/2*(capx/K- δ)^2 * K
+		action = (Kprime != K)
+		oibdp = K^α * exp(z) - F*K*action + γ/2*(capx/K- δ)^2 * K
+		return oibdp*(1-τ) + τ * δ * K - (1-κ*(capx<0))*capx
 	end
 
 	function myrewardfunc(Output::Float64, K::Float64, Kprime::Float64)
@@ -100,6 +107,13 @@ function NeoClassicalSimple(; kwargs...)
         # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
         return  inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
     end
+
+	# could make an intermediate step before creating DiscreteDynamicProblem where
+	# supply more methods for functions that the user supplies
+	mytransfunc(method::Type{intermediate}, vState, vShocks) =
+	    mytransfunc(separable, vState[.!bEndogStateVars], vShocks)
+	mytransfunc(method::Type{SA}, vState, vChoice, vShock) =
+	    [vChoice..., mytransfunc(intermediate, vState, vShock)...]
 
 	mygrossprofits(vStateVars::Vector{Float64}) = vStateVars[1]^α * exp(vStateVars[2])
 

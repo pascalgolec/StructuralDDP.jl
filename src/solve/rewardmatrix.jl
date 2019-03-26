@@ -1,39 +1,44 @@
-function rewardmatrix(p::DDM)
+rewardmatrix(p::DDM) =
+    rewardmatrix(p.rewardfunc, p.tStateVectors, p.tChoiceVectors, p.bEndogStateVars)
+
+function rewardmatrix(rewardfunc::Function, tStateVectors, tChoiceVectors, bEndogStateVars)
     # output dimension is nChoices x nStates
 
-    tChoiceVectors = p.tStateVectors[p.bEndogStateVars]
+    tChoiceVectors = tStateVectors[bEndogStateVars]
     # nChoices = prod(length.(tChoiceVectors))
     mChoices = gridmake(tChoiceVectors...)
     nChoices = size(mChoices, 1)
 
-    nStates  = prod(length.(p.tStateVectors))
-    mStates = gridmake(p.tStateVectors...)
+    nStates  = prod(length.(tStateVectors))
+    mStates = gridmake(tStateVectors...)
 
     mReward = zeros(Float64, nChoices, nStates)
     for i = 1 : nStates # state i
            for j = 1 : nChoices # choice j
-               mReward[j,i] = p.rewardfunc(mStates[i,:], mChoices[j,:])
+               mReward[j,i] = rewardfunc(mStates[i,:], mChoices[j,:])
            end
     end
 
     return mReward
 end
 
+rewardmatrix_partial(p::DDM) = rewardmatrix_partial(p.grossprofits,
+    p.tStateVectors, p.bEndogStateVars)
 
-function rewardmatrix_partial(p::DDM)
+function rewardmatrix_partial(grossprofits::Function, tStateVectors, bEndogStateVars)
     # output dimension is nEndogStates x nExogStates
 
     # IMPORTANT THAT ENDOGENOUS STATE VARIABLES COME FIRST IN tStateVectors
-    nEndogStates = prod(length.(p.tStateVectors[p.bEndogStateVars]))
-    nExogStates = prod(length.(p.tStateVectors[.!p.bEndogStateVars]))
+    nEndogStates = prod(length.(tStateVectors[bEndogStateVars]))
+    nExogStates = prod(length.(tStateVectors[.!bEndogStateVars]))
 
-    mStates = gridmake(p.tStateVectors...)
+    mStates = gridmake(tStateVectors...)
 
     mReward = zeros(Float64, nEndogStates, nExogStates)
     for i = 1 : nExogStates # state i
            for j = 1 : nEndogStates # choice j
                # PROBABLY NEED TO CHANGE THIS, USE SOME CARTESIAN INDEXER
-               mReward[j,i] = p.grossprofits(mStates[j + nEndogStates *(i-1),:])
+               mReward[j,i] = grossprofits(mStates[j + nEndogStates *(i-1),:])
            end
     end
 
