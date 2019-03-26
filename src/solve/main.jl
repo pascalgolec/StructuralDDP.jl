@@ -27,14 +27,20 @@ function solve(p::DDM; mTransition::Union{Nothing, Array{Float64,2}} = nothing,
     if intdim == :SA
         meshValFun, tmeshPolFun = _solve(p, eval(intdim), mTransition, mReward, disp)
     else
-        # make both choices true or false if the user supplied only a single value or none
-        if typeof(p)<:TwoChoiceVar
+        if typeof(p.tChoiceVectors) == Tuple{Vector{Float64}}
+            meshValFun, tmeshPolFun = _solve1(p, eval(intdim), mTransition, mReward, disp,
+                rewardmat, monotonicity, concavity)
+        elseif typeof(p.tChoiceVectors) == Tuple{Vector{Float64},Vector{Float64}}
 
+            # if user only supplied monotonivity/concavity for one option, extend to vector
             if typeof(monotonicity) == Bool; monotonicity = fill!(Vector{Bool}(undef, 2), monotonicity) end
             if typeof(concavity) == Bool; concavity = fill!(Vector{Bool}(undef, 2), concavity) end
+
+            meshValFun, tmeshPolFun = _solve2(p, eval(intdim), mTransition, mReward, disp,
+                rewardmat, monotonicity, concavity)
+        else
+            error("only :SA supports more than two choice variables")
         end
-        meshValFun, tmeshPolFun = _solve(p, eval(intdim), mTransition, mReward, disp,
-            rewardmat, monotonicity, concavity)
     end
 
     createsolution(p, meshValFun, tmeshPolFun, initialize_exact)

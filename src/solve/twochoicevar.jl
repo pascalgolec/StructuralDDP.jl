@@ -1,5 +1,5 @@
 
-function getsecondchoice(p::TwoChoiceVar,
+function getsecondchoice(rewardfunc::Function,
                          # action::Type{act},
                          mReward::Union{Array{Float64,2},Nothing},
                          mβEV::Array{Float64,2},
@@ -25,19 +25,6 @@ function getsecondchoice(p::TwoChoiceVar,
     # find highest value for second state var
     for lprime = iChoice2Start:nChoiceTwo
 
-        # if typeof(p) <: FinancingDebt &&
-        #         (1+p.r*(1-p.τ))*vChoiceTwo[lprime]>p.θ*(1-p.δ)*vChoiceOne[jprime]
-        #         # collateral constraint violated
-        #         valueProvisionalTwo = -Inf
-        #         break
-        # end
-
-        # if typeof(p) <: Intangible
-        #     output = mReward[j + nChoiceOne*(l-1), i] # first dimension of mReward is nChoiceOne x nChoiceTwo if second variable affects output
-        # elseif typeof(p) <: Union{IEI, IEIR, FinancingLeverageSimple}
-        #     output = mReward[j,i] # second state variable does not affect output: output matrix is smaller
-        # end
-
         # if action == active
 		#
         #     reward = rewardfunc(p, output, vChoiceOne[j], vChoiceOne[jprime],
@@ -49,19 +36,15 @@ function getsecondchoice(p::TwoChoiceVar,
         #                                 vChoiceTwo[l], vChoiceTwo[lprime])
         # end
 
-		# preallocate reward?
-
 		# reward using prebuild_partial output matrix
 		if rewardmat == :prebuild_partial
-			reward = rewardfunc(p, mReward[j + nChoiceOne*(l-1),i],
+			reward = rewardfunc(mReward[j + nChoiceOne*(l-1),i],
 								vChoiceOne[j], vChoiceOne[jprime],
 	                            vChoiceTwo[l], vChoiceTwo[lprime])
-			# @error "to do"
 		elseif rewardmat == :nobuild
 			# need to be VERY careful with order of state vars here.. could get fucked up..
-			reward = rewardfunc(p, getindex.(p.tStateVectors, [j, l, ixI...]),
+			reward = rewardfunc(getindex.(tStateVectors, [j, l, ixI...]),
 								[vChoiceOne[jprime], vChoiceTwo[lprime]])
-			# @error "to do"
 		elseif rewardmat == :prebuild
 			# jprime is first choice var, changes faster
 			reward = mReward[jprime + nChoiceOne * (lprime-1), j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1)] # nChoices x nStates
@@ -73,7 +56,7 @@ function getsecondchoice(p::TwoChoiceVar,
             βEV = mβEV[jprime + nChoiceOne * (lprime-1), j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1)]
         end
 
-        valueProvisionalTwo = reward + βEV # mβEV is already discounted
+        valueProvisionalTwo = reward + βEV
 
         if valueProvisionalTwo >= valueHighSoFarTwo
            valueHighSoFarTwo = valueProvisionalTwo
@@ -87,21 +70,32 @@ function getsecondchoice(p::TwoChoiceVar,
     return valueHighSoFarTwo, iChoice2
 end
 
-
-function solve(p::TwoChoiceVar, method::Type{T},
+_solve2(p::DDM, method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 		disp::Bool, rewardmat::Symbol, monotonicity::Vector{Bool}, concavity::Vector{Bool}) where
-			T <: Union{separable, intermediate}
+			T <: Union{separable, intermediate} = _solve2(p.rewardfunc, method,
+			mTransition, mReward,
+			disp, rewardmat, monotonicity, concavity,
+			p.tStateVectors, p.bEndogStateVars, p.params.β)
 
-	tChoiceVectors = p.tStateVectors[p.bEndogStateVars]
+# function solve(p::TwoChoiceVar, method::Type{T},
+# 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
+# 		disp::Bool, rewardmat::Symbol, monotonicity::Vector{Bool}, concavity::Vector{Bool}) where
+# 			T <: Union{separable, intermediate}
+function _solve2(rewardfunc::Function, method::Type{T},
+						mTransition, mReward,
+						disp, rewardmat, monotonicity, concavity,
+						tStateVectors, bEndogStateVars, β) where
+						T <: Union{separable, intermediate}
+	tChoiceVectors = tStateVectors[bEndogStateVars]
     (nChoiceOne, nChoiceTwo) = length.(tChoiceVectors)
 	nChoices = nChoiceOne * nChoiceTwo
     (vChoiceOne, vChoiceTwo) = tChoiceVectors
 
     # nStochStates = size(mTransition,2)
 
-    nStates = prod(length.(p.tStateVectors))
-	tOtherStates = p.tStateVectors[.!p.bEndogStateVars]
+    nStates = prod(length.(tStateVectors))
+	tOtherStates = tStateVectors[.!bEndogStateVars]
     nOtherStates = prod(length.(tOtherStates))
 
     mValFun    = zeros((nChoices, nOtherStates))
@@ -141,7 +135,7 @@ function solve(p::TwoChoiceVar, method::Type{T},
 	i::Int64 = 0 # outer loop for other state vars
 
 	# will need beta times transpose of transition matrix
-	mTransition_βT = p.params.β * transpose(mTransition)
+	mTransition_βT = β * transpose(mTransition)
 
     # VFI
     while maxDifference > tolerance
@@ -174,7 +168,7 @@ function solve(p::TwoChoiceVar, method::Type{T},
                     for jprime = iChoice1Start:nChoiceOne
 
                         (valueHighSoFarTwo, lprime) =
-                                        getsecondchoice(p,
+                                        getsecondchoice(rewardfunc,
                                                         # active, # whether capital choice active or passive
                                                         mReward, mβEV, i, j, l,
                                                         nChoiceOne, vChoiceOne, jprime,
@@ -235,7 +229,7 @@ function solve(p::TwoChoiceVar, method::Type{T},
         mValFunDiffAbs .= abs.(mValFunDiff)
         maxDifference  = maximum(mValFunDiffAbs)
 
-        # mcqueen!(mValFunNew, mValFun, p.β) #--> does not even converge somehow
+        # mcqueen!(mValFunNew, mValFun, β) #--> does not even converge somehow
 
         copyto!(mValFun, mValFunNew)
 
@@ -251,8 +245,8 @@ function solve(p::TwoChoiceVar, method::Type{T},
 
         if iteration > 1000
             println("WARNING: maximum iterations exceeded")
-            println("Parameters used:")
-			println(p.params)
+            # println("Parameters used:")
+			# println(p.params)
             break
         end
 
@@ -264,7 +258,7 @@ function solve(p::TwoChoiceVar, method::Type{T},
     mPolFun1 = vChoiceOne[mPolFunInd1]
     mPolFun2 = vChoiceTwo[mPolFunInd2]
 
-    nNodes = length.(p.tStateVectors)
+    nNodes = length.(tStateVectors)
     meshPolFun1 = reshape(mPolFun1, tuple(nNodes...))
     meshPolFun2 = reshape(mPolFun2, tuple(nNodes...))
 

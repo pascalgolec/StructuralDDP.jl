@@ -1,4 +1,4 @@
-@with_kw struct NeoClassicalSimpleParams222{R<:Float64, I<:Int64} <: ModelParams
+@with_kw struct NeoClassicalSimpleParams{R<:Float64, I<:Int64} <: ModelParams
     α::R = 0.67
     β::R = 0.9
     ρ::R = 0.6
@@ -27,10 +27,10 @@ end
 function NeoClassicalSimple(; kwargs...)
 
     # all userprovided parameters go in here
-    params = NeoClassicalSimpleParams222{Float64, Int64}(; kwargs...)
+    params = NeoClassicalSimpleParams{Float64, Int64}(; kwargs...)
 
     # need to unpack to get default values if not provided
-    @unpack_NeoClassicalSimpleParams222 params
+    @unpack_NeoClassicalSimpleParams params
 
     # nNodes = collect((nK, nz))
 
@@ -77,9 +77,6 @@ function NeoClassicalSimple(; kwargs...)
     vShocks, vWeights = qnwnorm(nShocks,0,1)
     mShocks = vShocks'
 
-    # NeoClassicalSimple(params, tStateVectors, tChoiceVectors,
-    #     bEndogStateVars, vWeights, mShocks)
-
 	# need a vector for choices, so just make a conversion func
 	myrewardfunc(vStateVars::Vector{Float64}, vChoices::Vector{Float64}) =
 	    myrewardfunc(vStateVars, vChoices[1])
@@ -94,6 +91,7 @@ function NeoClassicalSimple(; kwargs...)
 		return oibdp*(1-τ) + τ * δ * K - (1-κ*(capx<0))*capx
 	end
 
+	# including output
 	function myrewardfunc(Output::Float64, K::Float64, Kprime::Float64)
 	    capx = Kprime - (1-δ)K
 	    out = (1-τ)*(Output - F*K - γ/2*(capx/K- δ)^2 * K) - (1-κ*(capx<0))*capx + τ * δ * K
@@ -117,7 +115,19 @@ function NeoClassicalSimple(; kwargs...)
 
 	mygrossprofits(vStateVars::Vector{Float64}) = vStateVars[1]^α * exp(vStateVars[2])
 
+	initializationproblem(value::Float64, K::Float64) =
+		value - (1 + (1-β)/β + C0) * K
+
+	function initialize(dShock::Array{Float64, 1}, itp_K0)
+	    z0 = dShock[1] * sqrt(σ^2 / (1-ρ^2))
+		z0 = inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
+	    K0 = itp_K0(z0)
+		K0 = inbounds(K0, tStateVectors[1][1], tStateVectors[1][end])
+		return [K0, z0]
+	end
+
     DiscreteDynamicProblem(myrewardfunc, mytransfunc, mygrossprofits,
+		initializationproblem, initialize,
 		params,
 		tStateVectors, tChoiceVectors,
         bEndogStateVars, vWeights, mShocks)

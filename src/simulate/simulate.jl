@@ -9,11 +9,15 @@
 # 	simulate(p, sol, drawshocks(p))
 # end
 
-simulate(p::DDM) = simulate(p, drawshocks(p))
-simulate(p::DDM, sol::DDPSolution) = simulate(p, sol, drawshocks(p))
-simulate(p::DDM, sol::DDPSolution, nPeriods::Int64, nFirms::Int64) =
-	simulate(p, sol, drawshocks(p, nPeriods, nFirms))
-simulate(p::DDM, shocks::DDPShocks) = simulate(p, solve(p), shocks)
+# convenience wrappers
+simulate(p::DDM; kwargs...) =
+	_simulate(p, drawshocks(p); kwargs...)
+simulate(p::DDM, sol::DDPSolution; kwargs...) =
+	_simulate(p, sol, drawshocks(p), p.transfunc; kwargs...)
+simulate(p::DDM, sol::DDPSolution, nPeriods::Int64, nFirms::Int64; kwargs...) =
+	_simulate(p, sol, drawshocks(p, nPeriods, nFirms), p.transfunc; kwargs...)
+simulate(p::DDM, shocks::DDPShocks; kwargs...) =
+	_simulate(p, solve(p), shocks, p.transfunc; kwargs...)
 
 function initialize_simple(p::DDM)
 	# write a standard initialization function if want burn-in method
@@ -23,15 +27,23 @@ function initialize_simple(p::DDM)
 	getindex.(p.tStateVectors, Int.(floor.(length.(p.tStateVectors)./2)))
 end
 
+# expand p structure
+_simulate(p::DDM, sol::DDPSolution, shocks::DDPShocks, transfunc::Function;
+        initialize_exact::Bool = sol.tmeshPolFunZero != nothing) =
+		_simulate(p, sol, shocks, transfunc,
+				p.tStateVectors, p.tChoiceVectors, p.bEndogStateVars,
+				p.initializefunc, initialize_exact)
+
 # perhaps better to return a tuple of arrays rather than an array
-function simulate(p::DDM, sol::DDPSolution, shocks::DDPShocks;
-        initialize_exact::Bool = sol.tmeshPolFunZero != nothing)
+function _simulate(p::DDM, sol::DDPSolution, shocks::DDPShocks, transfunc::Function,
+				tStateVectors, tChoiceVectors, bEndogStateVars,
+				initializefunc, initialize_exact)
 
 	# @unpack intdim, nPeriods, nFirms = p.params
 	# transmethod = eval(intdim)
 	# transmethod <: Union{SA,intermediate,separable} || error("intdim does not fit simulate")
 
-	nDim = length(p.tStateVectors)
+	nDim = length(tStateVectors)
 	nChoiceVars = length(sol.tmeshPolFun)
 
 	# choose firms as last dimension because loop over firms (easier to code)
@@ -43,12 +55,12 @@ function simulate(p::DDM, sol::DDPSolution, shocks::DDPShocks;
 	#############
 	# construct interpolator
 	# if knots are not evenly spaced: need gridded interpolation
-	itp_policy = [interpolate(p.tStateVectors, polfun, Gridded(Linear())) for polfun in sol.tmeshPolFun]
-	itp_value = interpolate(p.tStateVectors, sol.meshValFun, Gridded(Linear()))
+	itp_policy = [interpolate(tStateVectors, polfun, Gridded(Linear())) for polfun in sol.tmeshPolFun]
+	itp_value = interpolate(tStateVectors, sol.meshValFun, Gridded(Linear()))
 
 	# if knots are evenly spaced: scaled Bsplines (not working yet)
 	# itp = interpolate(meshPolFun, BSpline(Linear()), OnGrid())
-	# itp = scale(itp, p.vK, p.vAlog)
+	# itp = scale(itp, vK, vAlog)
 
 	# specify that if value requested outside of grid, return grid value
 	# I am using my inbounds() function, but still there is an issue with values on the grid somehow..
@@ -57,32 +69,32 @@ function simulate(p::DDM, sol::DDPSolution, shocks::DDPShocks;
 	itp_value = extrapolate(itp_value, Flat())
 
 	if initialize_exact
-        # itp_policy0 = interpolate(p.tStateVectors[.!p.bEndogStateVars],
+        # itp_policy0 = interpolate(tStateVectors[.!bEndogStateVars],
         #     sol.tmeshPolFunZero[1], Gridded(Linear()))
-        itp_policy0 = [interpolate(p.tStateVectors[.!p.bEndogStateVars], polfun, Gridded(Linear())) for polfun in sol.tmeshPolFunZero]
+        itp_policy0 = [interpolate(tStateVectors[.!bEndogStateVars], polfun, Gridded(Linear())) for polfun in sol.tmeshPolFunZero]
         itp_policy0 = [extrapolate(itp, Flat()) for itp in itp_policy0]
     end
 
 
 	# bounds such that choice variable does not exit bounds
-	minChoice = [choicevec[1] for choicevec in p.tChoiceVectors]
-	maxChoice = [choicevec[end] for choicevec in p.tChoiceVectors]
+	minChoice = [choicevec[1] for choicevec in tChoiceVectors]
+	maxChoice = [choicevec[end] for choicevec in tChoiceVectors]
 
 	# # for exogenous exit
- 	# do_exog_exit = isdefined(p.params,:π)
+ 	# do_exog_exit = isdefined(params,:π)
 	# if do_exog_exit
-	# 	do_exog_exit =  do_exog_exit * (p.params.π>0)
+	# 	do_exog_exit =  do_exog_exit * (params.π>0)
 	# end
 
 	# simulate one firm at a time, so that can do in parallel later
-	# @sync @parallel for i = 1:p.nFirms
+	# @sync @parallel for i = 1:nFirms
 	for i = 1:nFirms
 
 		vSim_i = fill!(zeros(nDim, nPeriods+1), NaN) # need NaN so that will register as exit
 		vVal_i = fill!(zeros(nPeriods+1), NaN)
 
         if initialize_exact
-            vSim_i[:,1] .= initialize(p, shocks.aInit[:,1,i], itp_policy0...)
+            vSim_i[:,1] .= initializefunc(shocks.aInit[:,1,i], itp_policy0...)
         else
             vSim_i[:,1] .= initialize_simple(p)
         end
@@ -97,11 +109,11 @@ function simulate(p::DDM, sol::DDPSolution, shocks::DDPShocks;
 			choice = [inbounds(itp_policy[i](vSim_i[:,t]...), minChoice[i], maxChoice[i])
 				for i = 1:nChoiceVars]
 
-			vSim_i[:,t+1] .= transfunc(p, SA, vSim_i[:,t], choice, mShocks_i[:,t])
+			vSim_i[:,t+1] .= transfunc(SA, vSim_i[:,t], choice, mShocks_i[:,t])
 			vVal_i[t+1] = itp_value(vSim_i[:,t+1]...)
 
 			# if do_exog_exit
-			# 	if i/nFirms > (1-p.params.π)^max(t-2, 0)
+			# 	if i/nFirms > (1-params.π)^max(t-2, 0)
 			# 		break
 			# 	end
 			# end # exit condition

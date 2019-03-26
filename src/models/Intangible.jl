@@ -1,10 +1,10 @@
-# Model:
+# Model: Peters and Taylor 2017
 # profits = (Kphy^α Kint^(1-α))^γ
 # law of motion: 	Kphy' = (1-δphy)Kphy + Iphy
 # 					Kint' = (1-δint)Kint + Iint
 # adjustment costs:
 #   - only convex, not fixed
-@with_kw struct IntangibleParams{R<:Real, I<:Int64}
+@with_kw struct IntangibleParams{R<:Real, I<:Int64} <: ModelParams
 	β ::R  = 0.96
 	α ::R = 0.67
 	γ ::R = 0.6
@@ -21,34 +21,15 @@
 	nN::I = 50
 	nz::I = 3
 
-	nShocks::I = 2
+	nShocks::I = 3
 	nPeriods::I = 40
 	nFirms::I = 100
 
-	# rewardmat::Symbol = :nobuild
-	# intdim::Symbol = :separable
-	# monotonicity::Vector{B} = [true, true]
-	# concavity::Vector{B} = [true, true]
 end
 
-struct Intangible <: TwoChoiceVar
-    # parameters that user supplies
-    params::IntangibleParams{Float64, Int64}
+function Intangible(; kwargs...)
 
-    tStateVectors::NTuple{3, Vector{Float64}}
-    tChoiceVectors::NTuple{2, Vector{Float64}}
-
-    # which state variables are endogenous
-    bEndogStateVars::Vector{Bool}
-
-    # quadrature for calculating expectations
-    vWeights::Vector{Float64}
-    mShocks::Array{Float64,2}
-end
-
-function createmodel(model::Type{Intangible}; kwargs...)
-
-    params = IntangibleParams{Float64, Int64}(; kwargs...)
+	params = IntangibleParams(;kwargs...)
     @unpack_IntangibleParams params
 
 	# initial standard deviation of transitiory shock
@@ -120,6 +101,86 @@ function createmodel(model::Type{Intangible}; kwargs...)
     vShocks, vWeights = qnwnorm(nShocks,0,1)
     mShocks = vShocks' # need transpose because want row vector
 
-	Intangible(params, tStateVectors, tChoiceVectors,
+	# Intangible(params, tStateVectors, tChoiceVectors,
+    #     bEndogStateVars, vWeights, mShocks)
+
+	function mygrossprofits(vStateVars::Vector{Float64})
+		(K, N, z) = vStateVars
+		return (K^α * N^(1-α))^γ * exp(z)
+	end
+
+	function myadjustcosts(Kprime::Float64,
+	                     K::Float64,
+						 Nprime::Float64,
+						 N::Float64)
+
+	    capx = Kprime - (1-δ_K)*K
+	    intx = Nprime - (1-δ_N)*N
+
+	    Ktot = K + N
+
+	    adj_K = a_K/2*(capx/Ktot)^2 * Ktot
+	    adj_N = a_N/2*(intx/Ktot)^2 * Ktot
+
+	    return adj_K + adj_N
+	end
+
+	function myrewardfunc(vStateVars::Vector{Float64}, vChoices::Vector{Float64})
+		(K, N, z) = vStateVars
+		(Kprime, Nprime) = vChoices
+
+		capx = Kprime - (1-δ_K)*K
+		intx = Nprime - (1-δ_N)*N
+
+		oibdp = mygrossprofits(vStateVars) -
+									myadjustcosts(Kprime, K, Nprime, N) - intx
+		return oibdp*(1-τ) + τ*δ_K*K - capx
+	end
+
+	function myrewardfunc(Output::Float64, K::Float64, Kprime::Float64,
+	                                     N::Float64, Nprime::Float64)
+	    capx = Kprime - (1-δ_K)*K
+	    intx = Nprime - (1-δ_N)*N
+
+	    adj = myadjustcosts(Kprime, K, Nprime, N)
+
+	    return (Output - adj - intx)*(1-τ) - capx + δ_K*τ*K
+	end
+
+	function mytransfunc(method::Type{separable}, vExogState, vShocksss::Vector{Float64})
+	    zprime  = ρ*vExogState[1] + σ * vShocksss[1];
+	    return  inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])
+	end
+
+	mytransfunc(method::Type{intermediate}, vState, vShocks) =
+	    mytransfunc(separable, vState[.!bEndogStateVars], vShocks)
+	mytransfunc(method::Type{SA}, vState, vChoice, vShock) =
+	    [vChoice..., mytransfunc(intermediate, vState, vShock)...]
+
+	function initializationproblem(value::Float64, choiceone::Float64, choicetwo::Float64)
+	    K = choiceone
+	    N = choicetwo
+	    # want to choose K to maximize V[K,N,z] - (1+p.C0)*K - (1+p.C0)*N
+	    return value - (1+C0)*K - (1+C0)*N
+	end
+
+	function initialize(vShocks::Array{Float64, 1}, itp_K0, itp_N0)
+
+	    z0 = vShocks[1] * sqrt(σ^2 / (1-ρ^2))
+		z0 = inbounds(z0, tStateVectors[3][1], tStateVectors[3][end])
+
+		K0 = itp_K0(z0)
+		K0 = inbounds(K0, tStateVectors[1][1], tStateVectors[1][end])
+
+		N0 = itp_N0(z0)
+		N0 = inbounds(N0, tStateVectors[2][1], tStateVectors[2][end])
+
+		return [K0, N0, z0]
+	end
+
+	DiscreteDynamicProblem(myrewardfunc, mytransfunc, mygrossprofits,
+		initializationproblem, initialize,
+		params,
+		tStateVectors, tChoiceVectors,
         bEndogStateVars, vWeights, mShocks)
 end

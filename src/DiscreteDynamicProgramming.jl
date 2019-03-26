@@ -18,8 +18,10 @@ module DiscreteDynamicProgramming
 	# model definition and parameters
 	abstract type DiscreteDynamicModel end
 	const DDM = DiscreteDynamicModel
-	abstract type SingleChoiceVar <: DDM end
-	abstract type TwoChoiceVar <: DDM end
+
+	# abstract type NumChoiceVar end
+	# abstract type SingleChoiceVar <: NumChoiceVar end
+	# abstract type TwoChoiceVar <: NumChoiceVar end
 
 	# need this for transfunc
 	abstract type DDMIntegrationDimension end
@@ -35,17 +37,18 @@ module DiscreteDynamicProgramming
 	include("DiscreteDynamicProblem.jl")
 
 	# Neoclassical
-	include("models/Neoclassical/main.jl")
+	include("models/Neoclassical.jl")
 	# include("models/Neoclassical/constructor.jl")
 	# include("models/Neoclassical/rewardfunc.jl")
 	# include("models/Neoclassical/transfunc.jl")
 	# include("models/Neoclassical/initialize.jl")
 
 	#Intangible
-	include("models/Intangible/constructor.jl")
-	include("models/Intangible/transfunc.jl")
-	include("models/Intangible/rewardfunc.jl")
-	include("models/Intangible/initialize.jl")
+	include("models/Intangible.jl")
+	# include("models/Intangible/constructor.jl")
+	# include("models/Intangible/transfunc.jl")
+	# include("models/Intangible/rewardfunc.jl")
+	# include("models/Intangible/initialize.jl")
 
 	createmodel(sym_model::Symbol; kwargs...) = createmodel(eval(sym_model); kwargs...)
 
@@ -59,7 +62,7 @@ module DiscreteDynamicProgramming
 	include("solve/state_action.jl")
 	include("solve/initialendogstatevars.jl")
 
-	# Simulator
+	# simulator
 	include("simulate/shocks.jl")
 	include("simulate/simulate.jl")
 

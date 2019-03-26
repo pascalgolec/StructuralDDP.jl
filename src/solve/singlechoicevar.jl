@@ -2,16 +2,16 @@
 ##### Solver ######
 ########################
 
-_solve(p::SingleChoiceVar, method::Type{T},
+_solve1(p::DDM, method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 		disp::Bool, rewardmat::Symbol, monotonicity::Bool, concavity::Bool) where
 			T <: Union{separable, intermediate} =
-		_solve(p.rewardfunc, method,
+		_solve1(p.rewardfunc, method,
 			mTransition, mReward,
 			disp, rewardmat, monotonicity, concavity,
 			p.tStateVectors, p.bEndogStateVars, p.params.β)
 
-function _solve(rewardfunc::Function, method::Type{T},
+function _solve1(rewardfunc::Function, method::Type{T},
 				mTransition, mReward,
 				disp, rewardmat, monotonicity, concavity,
 				tStateVectors, bEndogStateVars, β) where
