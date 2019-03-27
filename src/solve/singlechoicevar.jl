@@ -2,28 +2,31 @@
 ##### Solver ######
 ########################
 
-_solve1(p::DDM, method::Type{T},
+_solve(p::DiscreteDynamicProblem{nStateVars, 1, T},
+		method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 		disp::Bool, rewardmat::Symbol, monotonicity::Bool, concavity::Bool) where
-			T <: Union{separable, intermediate} =
+			{T <: Union{separable, intermediate}, nStateVars} =
 		_solve1(p.rewardfunc, method,
 			mTransition, mReward,
 			disp, rewardmat, monotonicity, concavity,
-			p.tStateVectors, p.bEndogStateVars, p.params.β)
+			p.tStateVectors, p.tStateVectors[p.bEndogStateVars][1], p.tStateVectors[.!p.bEndogStateVars],
+			# p.bEndogStateVars,
+			p.params.β)
 
 function _solve1(rewardfunc::Function, method::Type{T},
-				mTransition, mReward,
-				disp, rewardmat, monotonicity, concavity,
-				tStateVectors, bEndogStateVars, β) where
+				mTransition::Array{Float64,2}, mReward::Array{Float64,2},
+				disp::Bool, rewardmat::Symbol, monotonicity::Bool, concavity::Bool,
+				tStateVectors,#::NTuple{2,Vector{Float64}},
+				vChoices::Vector{Float64},
+				tOtherStateVectors, #::NTuple{1,Vector{Float64}}
+				β::Float64) where
 				T <: Union{separable, intermediate}
 
-    # our first state variable is also the choice variable
-    vChoices = tStateVectors[bEndogStateVars][1]
     nChoices = length(vChoices)
 
     nStates = prod(length.(tStateVectors))
-	tOtherStates = tStateVectors[.!bEndogStateVars]
-    nOtherStates = prod(length.(tOtherStates))
+    nOtherStates = prod(length.(tOtherStateVectors))
 
     mValFun    = zeros((nChoices, nOtherStates))
 	mValFunNew = zeros((nChoices, nOtherStates))
@@ -63,7 +66,7 @@ function _solve1(rewardfunc::Function, method::Type{T},
 	    # @inbounds
 		# for i = 1:nOtherStates # other states
 		i = 0
-		for ix in CartesianIndices(length.(tOtherStates)) # other states
+		for ix in CartesianIndices(length.(tOtherStateVectors)) # other states
 			i = i + 1
 
 	        # We start from previous choice (monotonicity of policy function)

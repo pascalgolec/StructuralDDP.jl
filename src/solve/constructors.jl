@@ -5,12 +5,14 @@
 # abstract type passive <: capitalaction end
 # # only use capital action for multiplechoicevar. will try to code without
 
-struct DDPSolution
+struct DDPSolution{nChoicevars}
 
-   meshValFun::Array{Float64}
-   tmeshPolFun::NTuple{N,Array{Float64}} where N
-   meshValFunZero::Union{Array{Float64}, Nothing}
-   tmeshPolFunZero::Union{NTuple{N,Array{Float64}}, Nothing} where N
+   meshValFun::Array{Float64,2}
+   # tmeshPolFun::NTuple{N,Array{Float64}} where N
+   tmeshPolFun::NTuple{nChoicevars,Array{Float64,2}}
+   meshValFunZero::Nothing
+   # tmeshPolFunZero::Union{NTuple{N,Array{Float64}}, Nothing} where N
+   tmeshPolFunZero::Nothing
 
 end
 
