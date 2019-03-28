@@ -6,6 +6,7 @@ module DiscreteDynamicProgramming
 	using Interpolations
 	using Parameters
 	using NLsolve # to find steady state
+	using TreeViews
 
 	using SparseArrays
 	using LinearAlgebra
@@ -31,10 +32,11 @@ module DiscreteDynamicProgramming
 	abstract type intermediate <: DDMIntDim end
 	const SA = StateAction
 
-	include("helpfunctions.jl")
+	include("utils.jl")
 
 	# type constructor
 	include("DiscreteDynamicProblem.jl")
+	include("DiscreteDynamicProblem_interface.jl")
 
 	# Neoclassical
 	include("models/Neoclassical.jl")
