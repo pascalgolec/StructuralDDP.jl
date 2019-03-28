@@ -15,7 +15,7 @@ _solve(p::DiscreteDynamicProblem{nStateVars, 1, T},
 			p.params.β)
 
 function _solve1(rewardfunc::Function, method::Type{T},
-				mTransition::Array{Float64,2}, mReward::Array{Float64,2},
+				mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 				disp::Bool, rewardmat::Symbol, monotonicity::Bool, concavity::Bool,
 				tStateVectors,#::NTuple{2,Vector{Float64}},
 				vChoices::Vector{Float64},

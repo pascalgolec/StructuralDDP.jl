@@ -4,7 +4,7 @@
 # 					Kint' = (1-δint)Kint + Iint
 # adjustment costs:
 #   - only convex, not fixed
-@with_kw struct IntangibleParams{R<:Real, I<:Int64} <: ModelParams
+@with_kw struct IntangibleParams{R<:Real, I<:Int} <: ModelParams
 	β ::R  = 0.96
 	α ::R = 0.67
 	γ ::R = 0.6
@@ -99,7 +99,7 @@ function Intangible(; kwargs...)
 
     # shocks
     vShocks, vWeights = qnwnorm(nShocks,0,1)
-    mShocks = vShocks' # need transpose because want row vector
+    mShocks = Array(vShocks') # need transpose because want row vector
 
 	# Intangible(params, tStateVectors, tChoiceVectors,
     #     bEndogStateVars, vWeights, mShocks)
@@ -147,15 +147,43 @@ function Intangible(; kwargs...)
 	    return (Output - adj - intx)*(1-τ) - capx + δ_K*τ*K
 	end
 
-	function mytransfunc(method::Type{separable}, vExogState, vShocksss::Vector{Float64})
-	    zprime  = ρ*vExogState[1] + σ * vShocksss[1];
-	    return  inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])
-	end
 
-	mytransfunc(method::Type{intermediate}, vState, vShocks) =
-	    mytransfunc(separable, vState[.!bEndogStateVars], vShocks)
-	mytransfunc(method::Type{SA}, vState, vChoice, vShock) =
-	    [vChoice..., mytransfunc(intermediate, vState, vShock)...]
+    function mytransfunc(method::Type{separable}, vExogState::Vector{Float64}, shock::Float64)
+        # @unpack ρ , σ = p.params
+        z = vExogState[1]
+        zprime  = ρ*z + σ * shock;
+        # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
+        return  inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])
+    end
+    function mytransfunc(method::Type{separable}, vExogState::Vector{Float64}, vShocksss::Vector{Float64})
+        # @unpack ρ , σ = p.params
+        z = vExogState[1]
+        zprime  = ρ*z + σ * vShocksss[1];
+        # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
+        return  inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])
+    end
+
+	# this is superflous, only for testing
+	function mytransfunc(method::Type{intermediate}, vState::Vector{Float64}, shock::Float64)
+        z = vState[3]
+        zprime  = ρ*z + σ * shock
+        return  inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])
+    end
+	function mytransfunc(method::Type{intermediate}, vState::Vector{Float64}, vShocksss::Vector{Float64})
+        z = vState[3]
+        zprime  = ρ*z + σ * vShocksss[1]
+        return  inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])
+    end
+
+	function mytransfunc(method::Type{SA}, vState::Vector{Float64}, vChoice::Vector{Float64}, vShocksss::Vector{Float64})
+        # @unpack ρ , σ = p.params
+		# @code_warntype vState[2]
+        z = vState[3]
+		# @code_warntype ρ*z + σ * vShocksss[1]
+        zprime  = ρ*z + σ * vShocksss[1]
+        # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
+        return  [vChoice[1], vChoice[2], inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])]
+    end
 
 	function initializationproblem(value::Float64, choiceone::Float64, choicetwo::Float64)
 	    K = choiceone
@@ -180,7 +208,7 @@ function Intangible(; kwargs...)
 
 	DiscreteDynamicProblem(myrewardfunc, mytransfunc, mygrossprofits,
 		initializationproblem, initialize,
-		params,
+		params, separable,
 		tStateVectors, tChoiceVectors,
         bEndogStateVars, vWeights, mShocks)
 end

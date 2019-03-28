@@ -10,6 +10,8 @@ struct DiscreteDynamicProblem{nStateVars, nChoiceVars, Intdim} <: DDM where K<:D
     # I think it should be possible to specify the number of inputs of the function
     rewardfunc::Function
     transfunc::Function
+
+    """The partial reward function."""
     grossprofits::Function
 
     # initializationproblem::Union{Function, Nothing} # this is bad, because type will always stay ambiguous!!

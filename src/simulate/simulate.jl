@@ -12,9 +12,9 @@
 # convenience wrappers
 simulate(p::DDM; kwargs...) =
 	_simulate(p, drawshocks(p); kwargs...)
-simulate(p::DDM, sol::DDPSolution; kwargs...) =
+simulate(p::DDM, sol::AbstractDDPSolution; kwargs...) =
 	_simulate(p, sol, drawshocks(p), p.transfunc; kwargs...)
-simulate(p::DDM, sol::DDPSolution, nPeriods::Int64, nFirms::Int64; kwargs...) =
+simulate(p::DDM, sol::AbstractDDPSolution, nPeriods::Int64, nFirms::Int64; kwargs...) =
 	_simulate(p, sol, drawshocks(p, nPeriods, nFirms), p.transfunc; kwargs...)
 simulate(p::DDM, shocks::DDPShocks; kwargs...) =
 	_simulate(p, solve(p), shocks, p.transfunc; kwargs...)
@@ -28,7 +28,7 @@ function initialize_simple(tStateVectors::NTuple{N, Vector{Float64}}) where N
 end
 
 # expand p structure
-_simulate(p::DDM, sol::DDPSolution, shocks::DDPShocks, transfunc::Function;
+_simulate(p::DDM, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function;
         initialize_exact::Bool = sol.tmeshPolFunZero != nothing) =
 		_simulate(sol, shocks, transfunc, p.intdim,
 				p.tStateVectors, p.tChoiceVectors, p.tStateVectors[.!p.bEndogStateVars],
@@ -38,7 +38,7 @@ _simulate(p::DDM, sol::DDPSolution, shocks::DDPShocks, transfunc::Function;
 
 
 # perhaps better to return a tuple of arrays rather than an array
-function _simulate(sol::DDPSolution, shocks::DDPShocks, transfunc::Function,
+function _simulate(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function,
 				intdim::Type{T},
 				# tStateVectors::NTuple{2,Vector{Float64}}, tChoiceVectors::NTuple{1,Vector{Float64}},
 				# tOtherStateVectors::Tuple{Vector{Float64}},
@@ -96,6 +96,8 @@ function _simulate(sol::DDPSolution, shocks::DDPShocks, transfunc::Function,
 	# simulate one firm at a time, so that can do in parallel later
 	# @sync @parallel for i = 1:nFirms
 
+	@show nChoiceVars
+
 	for i = 1:nFirms
 
 		vSim_i = fill!(zeros(nDim, nPeriods+1), NaN) # need NaN so that will register as exit
@@ -116,7 +118,7 @@ function _simulate(sol::DDPSolution, shocks::DDPShocks, transfunc::Function,
 			# use interpolator to get optimal policy
 			# policy = first state next period
 			# should not be necessary if interpolator does it's job properly
-
+			# @show t
 			function get_choice(vSim_it, itp_policy, minChoice, maxChoice, nChoiceVars)
 				[inbounds(itp_policy[n](vSim_it...), minChoice[n], maxChoice[n])
 					for n = 1:nChoiceVars]
@@ -135,12 +137,15 @@ function _simulate(sol::DDPSolution, shocks::DDPShocks, transfunc::Function,
 				vSim_it1[1+nChoiceVars:end] .= transfunc(intdim, vSim_it, mShocks_it)
 			end
 			function fill_it!(vSim_it1, vSim_it, transfunc, intdim::Type{separable}, vChoice, mShocks_it, nChoiceVars)
+				# @show "inside fillit"
 				vSim_it1[1:nChoiceVars] .= vChoice
 				vSim_it1[1+nChoiceVars:end] .= transfunc(intdim, vSim_it[1+nChoiceVars:end], mShocks_it)
+				# @show vSim_it1
 			end
-
-			fill_it!(vSim_i[:,t+1], vSim_i[:,t], transfunc, intdim, vChoice, mShocks_i[:,t], nChoiceVars)
-
+			# don't think this works, because it is a view of a bigger array
+			fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], transfunc, intdim, vChoice, mShocks_i[:,t], nChoiceVars)
+			# @show "outside fillit"
+			# @show vSim_i[:,t+1]
 
 			# if do_exog_exit
 			# 	if i/nFirms > (1-params.π)^max(t-2, 0)

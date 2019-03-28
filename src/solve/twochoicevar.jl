@@ -10,7 +10,7 @@ function getsecondchoice(rewardfunc::Function,
 						 ixI::NTuple{N,Int64} where N,
 						 intdim::Type{T},
 						 rewardmat::Symbol,
-						 concavity::Vector{Bool}) where
+						 concavity2::Bool) where
 						 	T <: Union{separable, intermediate}
                             # {act<:capitalaction}
 
@@ -61,7 +61,7 @@ function getsecondchoice(rewardfunc::Function,
         if valueProvisionalTwo >= valueHighSoFarTwo
            valueHighSoFarTwo = valueProvisionalTwo
            iChoice2 = lprime
-        elseif concavity[2]
+	    elseif concavity2
             break
         end
 
@@ -70,33 +70,42 @@ function getsecondchoice(rewardfunc::Function,
     return valueHighSoFarTwo, iChoice2
 end
 
-_solve2(p::DiscreteDynamicProblem{nStateVars, 2, T}, method::Type{T},
+_solve(p::DiscreteDynamicProblem{nStateVars, 2, T}, method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 		disp::Bool, rewardmat::Symbol, monotonicity::Vector{Bool}, concavity::Vector{Bool}) where
-			{T <: Union{separable, intermediate}, nStateVars} = _solve2(p.rewardfunc, method,
+			{nStateVars, T <: Union{separable, intermediate}} =
+		_solve2(p.rewardfunc, method,
 			mTransition, mReward,
-			disp, rewardmat, monotonicity, concavity,
-			p.tStateVectors, p.bEndogStateVars, p.params.β)
+			disp, rewardmat,
+			monotonicity[1], monotonicity[2],
+			concavity[1], concavity[2],
+			p.tStateVectors,
+			p.tStateVectors[p.bEndogStateVars],
+			p.tStateVectors[.!p.bEndogStateVars],
+			p.params.β)
 
 # function solve(p::TwoChoiceVar, method::Type{T},
 # 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 # 		disp::Bool, rewardmat::Symbol, monotonicity::Vector{Bool}, concavity::Vector{Bool}) where
 # 			T <: Union{separable, intermediate}
 function _solve2(rewardfunc::Function, method::Type{T},
-						mTransition, mReward,
-						disp, rewardmat, monotonicity, concavity,
-						tStateVectors, bEndogStateVars, β) where
+						mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
+						disp::Bool, rewardmat,
+						monotonicity1::Bool, monotonicity2::Bool,
+						concavity1::Bool, concavity2::Bool,
+						tStateVectors,#::NTuple{2,Vector{Float64}},
+						tChoiceVectors,
+						tOtherStateVectors, #::NTuple{1,Vector{Float64}}
+						β::Float64) where
 						T <: Union{separable, intermediate}
-	tChoiceVectors = tStateVectors[bEndogStateVars]
+
+
     (nChoiceOne, nChoiceTwo) = length.(tChoiceVectors)
-	nChoices = nChoiceOne * nChoiceTwo
     (vChoiceOne, vChoiceTwo) = tChoiceVectors
 
-    # nStochStates = size(mTransition,2)
-
+	nChoices = nChoiceOne * nChoiceTwo
     nStates = prod(length.(tStateVectors))
-	tOtherStates = tStateVectors[.!bEndogStateVars]
-    nOtherStates = prod(length.(tOtherStates))
+    nOtherStates = prod(length.(tOtherStateVectors))
 
     mValFun    = zeros((nChoices, nOtherStates))
     mValFunNew = zeros((nChoices, nOtherStates))
@@ -144,17 +153,17 @@ function _solve2(rewardfunc::Function, method::Type{T},
 
         # @inbounds
 		i = 0
-		for ix in CartesianIndices(length.(tOtherStates)) # other states
+		for ix in CartesianIndices(length.(tOtherStateVectors)) # other states
 			i = i + 1
 
-            if monotonicity[2]
+            if monotonicity2
                 vChoice2Start[:] .= 1
             end
 
             for l = 1:nChoiceTwo
 
                 # We start from previous choice (monotonicity of policy function)
-                if monotonicity[1]
+                if monotonicity1
                    iChoice1Start = 1
                 end
 
@@ -177,7 +186,7 @@ function _solve2(rewardfunc::Function, method::Type{T},
 														ix.I,
 														method,
 														rewardmat,
-														concavity)
+														concavity2)
 
                         valueProvisionalOne = valueHighSoFarTwo
 
@@ -185,10 +194,10 @@ function _solve2(rewardfunc::Function, method::Type{T},
                             valueHighSoFarOne = valueProvisionalOne
                             iChoice1 = jprime
                             iChoice2 = lprime
-                            if monotonicity[1]
+                            if monotonicity1
                 	          iChoice1Start = jprime
                             end
-                        elseif concavity[1]
+                        elseif concavity1
                             break # We break when we have achieved the max
                         end
 
@@ -215,7 +224,7 @@ function _solve2(rewardfunc::Function, method::Type{T},
                     mPolFunInd1[j + nChoiceOne * (l-1), i] = iChoice1
                     mPolFunInd2[j + nChoiceOne * (l-1), i] = iChoice2
 
-                    if monotonicity[2]
+                    if monotonicity2
                         vChoice2Start[j] = iChoice2
                     end
 
