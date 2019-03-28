@@ -99,7 +99,7 @@ function _solve1(rewardfunc::Function, method::Type{T},
 						reward = rewardfunc(mReward[j,i], vChoices[j], vChoices[jprime])
 					elseif rewardmat == :nobuild
 						# need to be VERY careful with order of state vars here.. could get fucked up..
-						# reward = rewardfunc(p, getindex.(tStateVectors, [j, ix.I...]), vChoices[jprime])
+						# this could be faster.. creating a new array every step.. not sure how to fix though
 						reward = rewardfunc(getindex.(tStateVectors, [j, ix.I...]), vChoices[jprime])
 					elseif rewardmat == :prebuild
 						reward = mReward[jprime, j + nChoices * (i-1)] # nChoices x nStates

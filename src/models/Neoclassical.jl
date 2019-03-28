@@ -164,7 +164,7 @@ function NeoClassicalSimple(; kwargs...)
 	initializationproblem(value::Float64, K::Float64) =
 		value - (1 + (1-β)/β + C0) * K
 
-	function initialize(dShock::Array{Float64, 1}, itp_K0)
+	function initialize(dShock::AbstractArray{Float64, 1}, itp_K0)
 	    z0 = dShock[1] * sqrt(σ^2 / (1-ρ^2))
 		z0 = inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
 	    K0 = itp_K0(z0)

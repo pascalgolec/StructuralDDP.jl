@@ -96,12 +96,14 @@ function _simulate(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Funct
 	# simulate one firm at a time, so that can do in parallel later
 	# @sync @parallel for i = 1:nFirms
 
-	@show nChoiceVars
 
 	for i = 1:nFirms
 
-		vSim_i = fill!(zeros(nDim, nPeriods+1), NaN) # need NaN so that will register as exit
-		vVal_i = fill!(zeros(nPeriods+1), NaN)
+		vSim_i = @view aSim[:,:,i]
+		vVal_i = @view mVal[1,:,i]
+
+		# vSim_i = fill!(zeros(nDim, nPeriods+1), NaN) # need NaN so that will register as exit
+		# vVal_i = fill!(zeros(nPeriods+1), NaN)
 
         if initialize_exact
             vSim_i[:,1] .= initializefunc(shocks.aInit[:,1,i], itp_policy0...)
@@ -111,7 +113,7 @@ function _simulate(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Funct
 
 		vVal_i[1] = itp_value(vSim_i[:,1]...)
 
-		mShocks_i = shocks.aSim[:,:,i]
+		mShocks_i = @view shocks.aSim[:,:,i]
 
 
 		for t = 1 : nPeriods
@@ -155,8 +157,8 @@ function _simulate(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Funct
 
 		end
 
-		aSim[:,:,i] = vSim_i
-		mVal[1,:,i] = vVal_i
+		# aSim[:,:,i] = vSim_i
+		# mVal[1,:,i] = vVal_i
 
 	end # firm loop
 
