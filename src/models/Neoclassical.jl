@@ -172,9 +172,23 @@ function NeoClassicalSimple(; kwargs...)
 		return [K0, z0]
 	end
 
-    DiscreteDynamicProblem(myrewardfunc, mytransfunc, mygrossprofits,
-		initializationproblem, initialize,
-		params, separable, # add intdim
-		tStateVectors, tChoiceVectors,
-        bEndogStateVars, vWeights, mShocks)
+	DiscreteDynamicProblem(	params,
+	            myrewardfunc,
+	            mytransfunc,
+	            separable,
+	            tStateVectors,
+	            tChoiceVectors,
+	            vWeights,
+	            mShocks;
+	            bEndogStateVars = bEndogStateVars,
+	            grossprofits = mygrossprofits,
+	            initializationproblem = initializationproblem,
+	            initializefunc = initialize,
+	            )
+
+    # DiscreteDynamicProblem(myrewardfunc, mytransfunc, mygrossprofits,
+	# 	initializationproblem, initialize,
+	# 	params, separable, # add intdim
+	# 	tStateVectors, tChoiceVectors,
+    #     bEndogStateVars, vWeights, mShocks)
 end

@@ -50,7 +50,9 @@ module DiscreteDynamicProgramming
 	# include("models/Intangible/rewardfunc.jl")
 	# include("models/Intangible/initialize.jl")
 
-	createmodel(sym_model::Symbol; kwargs...) = createmodel(eval(sym_model); kwargs...)
+	# for using createmodel syntax:
+	createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
+	# e.g. createmodel(:NeoClassicalSimple; nK = 30, nz=15)
 
 	# Solver
 	include("solve/constructors.jl")

@@ -50,6 +50,10 @@ function _simulate(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Funct
 	# transmethod = eval(intdim)
 	# transmethod <: Union{SA,intermediate,separable} || error("intdim does not fit simulate")
 
+	!(initialize_exact && !(typeof(sol) <: DDPSolutionZero)) || error(
+		"Solution does not contain intial policy -> rerun solver with `initialize_exact = true`")
+
+
 	nDim::Int64 = length(tStateVectors)
 	nChoiceVars::Int64 = length(sol.tmeshPolFun)
 

@@ -3,7 +3,7 @@
 function solve(p::DDM; mTransition::Union{Nothing, Array{Float64,2}} = nothing,
     disp::Bool = false,
     rewardmat::Symbol = :nobuild,
-    intdim::Symbol = :separable,
+    intdim::Symbol = :separable, # if want to override type in the model, mostly for testing
     monotonicity::Union{Bool,Vector{Bool}} = false,
     concavity::Union{Bool,Vector{Bool}} = false,
     initialize_exact::Bool = false)

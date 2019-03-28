@@ -206,9 +206,18 @@ function Intangible(; kwargs...)
 		return [K0, N0, z0]
 	end
 
-	DiscreteDynamicProblem(myrewardfunc, mytransfunc, mygrossprofits,
-		initializationproblem, initialize,
-		params, separable,
-		tStateVectors, tChoiceVectors,
-        bEndogStateVars, vWeights, mShocks)
+
+	DiscreteDynamicProblem(	params,
+	            myrewardfunc,
+	            mytransfunc,
+	            separable,
+	            tStateVectors,
+	            tChoiceVectors,
+	            vWeights,
+	            mShocks;
+	            bEndogStateVars = bEndogStateVars,
+	            grossprofits = mygrossprofits,
+	            initializationproblem = initializationproblem,
+	            initializefunc = initialize,
+	            )
 end

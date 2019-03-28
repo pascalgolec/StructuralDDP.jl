@@ -70,10 +70,10 @@ function getsecondchoice(rewardfunc::Function,
     return valueHighSoFarTwo, iChoice2
 end
 
-_solve(p::DiscreteDynamicProblem{nStateVars, 2, T}, method::Type{T},
+_solve(p::DiscreteDynamicProblem{nStateVars,2,E,G,IP,IF}, method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 		disp::Bool, rewardmat::Symbol, monotonicity::Vector{Bool}, concavity::Vector{Bool}) where
-			{nStateVars, T <: Union{separable, intermediate}} =
+			{nStateVars, T <: Union{separable, intermediate}, E,G,IP,IF} =
 		_solve2(p.rewardfunc, method,
 			mTransition, mReward,
 			disp, rewardmat,
