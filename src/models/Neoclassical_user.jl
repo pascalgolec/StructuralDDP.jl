@@ -1,38 +1,34 @@
 @with_kw struct NeoClassicalSimpleParams{R<:Float64, I<:Int64} <: ModelParams
-    α::R = 0.67
+	# parameters of the model, anything that might change in the future
+
+	α::R = 0.67
     β::R = 0.9
     ρ::R = 0.6
     σ::R = 0.3
     δ::R = 0.15
     γ::R = 2.0
-    F::R = 0.01
-    C0::R = 0.6
-    π::R = 0.
-    τ::R = 0.35
-    κ::R = 0.
 
     nK::I = 100
-    nz::I = 20
+    nz::I = 5
 
-    # nShocks::I = 3
+    nShocks::I = 3 # this is not really clear.. use to get transition matrix
+	# should belong to how model is solved...
     nPeriods::I = 120
     nFirms::I = 1000
 
-    # rewardmat::Symbol = :nobuild
-    # intdim::Symbol = :separable
-    # monotonicity::B = true
-    # concavity::B = true
 end
 
 function NeoClassicalSimple(; kwargs...)
 
-    # all userprovided parameters go in here
+	## parameters
+
+    # all userprovided parameters go in a structure called params
     params = NeoClassicalSimpleParams{Float64, Int64}(; kwargs...)
 
     # need to unpack to get default values if not provided
     @unpack_NeoClassicalSimpleParams params
 
-    # nNodes = collect((nK, nz))
+	## create state vectors
 
     # calculate Amin, Amax
     stdz = sqrt(σ^2/(1-ρ^2))
@@ -74,8 +70,8 @@ function NeoClassicalSimple(; kwargs...)
     bEndogStateVars = [true, false]
 
     # shocks
-    # vShocks, vWeights = qnwnorm(nShocks,0,1)
-    # mShocks = Array(vShocks')
+    vShocks, vWeights = qnwnorm(nShocks,0,1)
+    mShocks = Array(vShocks')
 
 	# need a vector for choices, so just make a conversion func
 
@@ -178,9 +174,8 @@ function NeoClassicalSimple(; kwargs...)
 	            separable,
 	            tStateVectors,
 	            tChoiceVectors,
-				Normal(); # give distribution of shocks: standard normal
-	            # vWeights,
-	            # mShocks;
+	            vWeights,
+	            mShocks;
 	            bEndogStateVars = bEndogStateVars,
 	            grossprofits = mygrossprofits,
 	            initializationproblem = initializationproblem,

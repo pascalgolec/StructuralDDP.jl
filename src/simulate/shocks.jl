@@ -12,10 +12,22 @@ end
 
 function drawshocks(p::DDM; nPeriods::Int64 = p.params.nPeriods,
 		nFirms::Int64 = p.params.nFirms)
-	# @unpack nFirms, nPeriods = p.params
-	dimShocks = size(p.mShocks,1)
-	aInit = randn((dimShocks, 1, nFirms))
-	aSim = randn((dimShocks, nPeriods, nFirms))
+
+	# dimShocks = size(p.mShocks,1)
+	# aInit = randn((dimShocks, 1, nFirms))
+	# aSim = randn((dimShocks, nPeriods, nFirms))
+
+	dimShocks = length(p.shockdist.μ)
+
+	aInit = zeros((dimShocks, 1, nFirms))
+	for f = 1:nFirms
+		aInit[:,1,f] .= rand(p.shockdist)
+	end
+
+	aSim = zeros((dimShocks, nPeriods, nFirms))
+	for t=1:nPeriods, f=1:nFirms
+		aSim[:,t,f] .= rand(p.shockdist)
+	end
 
 	return DDPShocks(aInit, aSim)
 end

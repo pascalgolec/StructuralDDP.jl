@@ -60,10 +60,10 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,E,G,IP,IF} <: DDM
     tStateVectors::NTuple{nStateVars, Vector{Float64}} #where N # can use NTuple{N, Vector{Float64}} where N
     tChoiceVectors::NTuple{nChoiceVars, Vector{Float64}}
 
-    # # quadrature for calculating expectations
-    # vWeights::Vector{Float64}
-    # mShocks::Array{Float64,2}
-    shockdist::Vector{Bool}
+    # distribution of shocks
+    # transitionmatrix() allows few univariate only normal multivariate for now
+    shockdist::Distribution  # for smm it's important though that the shock distribution stays the same, does not
+    # depend on parameters!!!
 
     # which state variables are endogenous
     bEndogStateVars::E
@@ -86,7 +86,7 @@ function DiscreteDynamicProblem(
             intdim::Type{I},
             tStateVectors::NTuple{S, Vector{Float64}},
             tChoiceVectors::NTuple{C, Vector{Float64}},
-            shockdist::Vector{Bool};
+            shockdist::Distribution;
             # vWeights::Vector{Float64},
             # mShocks::Array{Float64,2};
             bEndogStateVars::Union{Vector{Bool},Nothing} = nothing,

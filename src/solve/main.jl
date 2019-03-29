@@ -6,7 +6,7 @@ function solve(p::DDM; mTransition::Union{Nothing, Array{Float64,2}} = nothing,
     monotonicity::Union{Bool,Vector{Bool}} = false,
     concavity::Union{Bool,Vector{Bool}} = false,
     initialize_exact::Bool = false,
-    numquadnodes::Vector{Int} = 5*ones(Int64, length(p.shockdist)),
+    numquadnodes::Vector{Int} = 5*ones(Int64, length(p.shockdist.μ)),
     intdim::Symbol = :separable, # if want to override type in the model, mostly for testing
     )
 
