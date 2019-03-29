@@ -48,6 +48,7 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,E,G,IP,IF} <: DDM
     # can also add where F <: Union{Function, Nothing} later
 
     # params::NeoClassicalSimpleParams{Float64, Int64} # important to specify here for type stability
+    """The parameters of the model are inside the structure params. (which could change in the future)."""
     params::ModelParams # important to specify here for type stability
 
     # I think it should be possible to specify the number of inputs of the function
@@ -59,9 +60,10 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,E,G,IP,IF} <: DDM
     tStateVectors::NTuple{nStateVars, Vector{Float64}} #where N # can use NTuple{N, Vector{Float64}} where N
     tChoiceVectors::NTuple{nChoiceVars, Vector{Float64}}
 
-    # quadrature for calculating expectations
-    vWeights::Vector{Float64}
-    mShocks::Array{Float64,2}
+    # # quadrature for calculating expectations
+    # vWeights::Vector{Float64}
+    # mShocks::Array{Float64,2}
+    shockdist::Vector{Bool}
 
     # which state variables are endogenous
     bEndogStateVars::E
@@ -84,8 +86,9 @@ function DiscreteDynamicProblem(
             intdim::Type{I},
             tStateVectors::NTuple{S, Vector{Float64}},
             tChoiceVectors::NTuple{C, Vector{Float64}},
-            vWeights::Vector{Float64},
-            mShocks::Array{Float64,2};
+            shockdist::Vector{Bool};
+            # vWeights::Vector{Float64},
+            # mShocks::Array{Float64,2};
             bEndogStateVars::Union{Vector{Bool},Nothing} = nothing,
             grossprofits::Union{Function,Nothing} = nothing,
             initializationproblem::Union{Function,Nothing} = nothing,
@@ -100,8 +103,9 @@ function DiscreteDynamicProblem(
         intdim,
         tStateVectors,
         tChoiceVectors,
-        vWeights,
-        mShocks,
+        shockdist,
+        # vWeights,
+        # mShocks,
         bEndogStateVars,
         grossprofits,
         initializationproblem,

@@ -38,19 +38,9 @@ module DiscreteDynamicProgramming
 	include("DiscreteDynamicProblem.jl")
 	include("DiscreteDynamicProblem_interface.jl")
 
-	# Neoclassical
+	# Models
 	include("models/Neoclassical.jl")
-	# include("models/Neoclassical/constructor.jl")
-	# include("models/Neoclassical/rewardfunc.jl")
-	# include("models/Neoclassical/transfunc.jl")
-	# include("models/Neoclassical/initialize.jl")
-
-	#Intangible
-	include("models/Intangible.jl")
-	# include("models/Intangible/constructor.jl")
-	# include("models/Intangible/transfunc.jl")
-	# include("models/Intangible/rewardfunc.jl")
-	# include("models/Intangible/initialize.jl")
+	# include("models/Intangible.jl")
 
 	# for using createmodel syntax:
 	createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)

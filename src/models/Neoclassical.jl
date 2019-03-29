@@ -9,12 +9,12 @@
     C0::R = 0.6
     π::R = 0.
     τ::R = 0.35
-
     κ::R = 0.
+
     nK::I = 100
     nz::I = 20
 
-    nShocks::I = 3
+    # nShocks::I = 3
     nPeriods::I = 120
     nFirms::I = 1000
 
@@ -74,8 +74,8 @@ function NeoClassicalSimple(; kwargs...)
     bEndogStateVars = [true, false]
 
     # shocks
-    vShocks, vWeights = qnwnorm(nShocks,0,1)
-    mShocks = Array(vShocks')
+    # vShocks, vWeights = qnwnorm(nShocks,0,1)
+    # mShocks = Array(vShocks')
 
 	# need a vector for choices, so just make a conversion func
 
@@ -178,8 +178,9 @@ function NeoClassicalSimple(; kwargs...)
 	            separable,
 	            tStateVectors,
 	            tChoiceVectors,
-	            vWeights,
-	            mShocks;
+				[true]; # give distribution of shocks
+	            # vWeights,
+	            # mShocks;
 	            bEndogStateVars = bEndogStateVars,
 	            grossprofits = mygrossprofits,
 	            initializationproblem = initializationproblem,

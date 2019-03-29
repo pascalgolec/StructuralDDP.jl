@@ -1,34 +1,29 @@
 
-transitionmatrix(p::DDM; intdim::Symbol=:SA) = _transitionmatrix(p, eval(intdim))
+transitionmatrix(p::DDM; intdim::Symbol=:SA,
+    numquadnodes::Vector{Int} = 5*ones(Int64, length(p.shockdist))) =
+    _transitionmatrix(p, eval(intdim), numquadnodes)
 
-# if user only supplies separable, can still do the others with the help of these
-# transfunc(method::Type{intermediate}, vState, vShocks) =
-#     transfunc(separable, vState[.!p.bEndogStateVars], vShocks)
-# transfunc(method::Type{SA}, vState, vChoice, vShock) =
-#     [vChoice..., transfunc(intermediate, vState, vShock)...]
-
-# transfunc(p::DDM, method::Type{separable}, vState, vShock) =
-#     transfunc(p::DDM, vState, nothing, vShock)
-# transfunc(p::DDM, method::Type{intermediate}, vState, vShock) =
-#     transfunc(p::DDM, vState, nothing, vShock)
-
-_transitionmatrix(p::DDM, method::Type{T}) where T<:DDMIntDim =
-    _transitionmatrix(method, p.transfunc, p.tStateVectors, p.tChoiceVectors, p.bEndogStateVars,
-    p.vWeights, p.mShocks)
+# _transitionmatrix(p::DDM, method::Type{T}) where T<:DDMIntDim =
+#     _transitionmatrix(method, p.transfunc, p.tStateVectors, p.tChoiceVectors,
+#     p.bEndogStateVars,
+#     p.vWeights, p.mShocks)
 
 # expand structure, only use necessary inputs
-_transitionmatrix(p::DDM, method::Type{separable}) =
+_transitionmatrix(p::DDM, method::Type{separable}, numquadnodes::Vector{Int}) =
     _transitionmatrix(method, p.transfunc, p.tStateVectors[.!p.bEndogStateVars],
-    p.vWeights, p.mShocks)
+    p.shockdist, numquadnodes)
 function _transitionmatrix(method::Type{separable}, transfunc::Function,
     tStochStateVectors::NTuple{N,Vector{Float64}},
-    vWeights, mShocks) where N
+    shockdist, numquadnodes) where N
     # Calculates probability transition matrix, depending on integration dimension
     # - uses gaussian quadrature
     # - uses linear basis functions
     # - size of matrix is nInputStates x nOutputStates.
     #       - InputStates together with shocks affect the transition of OutputStates
     #       - so it is States_today x States_tomorrow, same dimension as QuantEcon.tauchen()
+
+    vShocks, vWeights = qnwnorm(numquadnodes,0,1)
+    mShocks = Array(vShocks')
 
     dimStochStates = length(tStochStateVectors)
     nStochStates = prod(length.(tStochStateVectors))
@@ -61,14 +56,17 @@ function _transitionmatrix(method::Type{separable}, transfunc::Function,
     return mG::SparseMatrixCSC{Float64,Int64}
 end
 
-_transitionmatrix(p::DDM, method::Type{intermediate}) =
+_transitionmatrix(p::DDM, method::Type{intermediate}, numquadnodes::Vector{Int}) =
     _transitionmatrix(method, p.transfunc,
     p.tStateVectors, p.tStateVectors[.!p.bEndogStateVars],
-    p.vWeights, p.mShocks)
+   p.shockdist, numquadnodes)
 function _transitionmatrix(method::Type{intermediate}, transfunc::Function,
     tStateVectors, tStochStateVectors,
-    vWeights, mShocks)
+    shockdist, numquadnodes)
     # mG is nStates x nStochStates
+
+    vShocks, vWeights = qnwnorm(numquadnodes,0,1)
+    mShocks = Array(vShocks')
 
     nStates = prod(length.(tStateVectors))
     mStates = gridmake(tStateVectors...)
@@ -99,14 +97,17 @@ function _transitionmatrix(method::Type{intermediate}, transfunc::Function,
     return mG::SparseMatrixCSC{Float64,Int64}
 end #getG
 
-_transitionmatrix(p::DDM, method::Type{SA}) =
+_transitionmatrix(p::DDM, method::Type{SA}, numquadnodes::Vector{Int}) =
     _transitionmatrix(method, p.transfunc,
     p.tStateVectors, p.tChoiceVectors,
-    p.vWeights, p.mShocks)
+    p.shockdist, numquadnodes)
 function _transitionmatrix(method::Type{SA}, transfunc::Function,
     tStateVectors, tChoiceVectors,
-    vWeights, mShocks)
+    shockdist, numquadnodes)
     # mG is nChoices*nStates x nStates
+
+    vShocks, vWeights = qnwnorm(numquadnodes,0,1)
+    mShocks = Array(vShocks')
 
     nStates = prod(length.(tStateVectors))
     dimStates = length(tStateVectors)
