@@ -6,15 +6,19 @@ The following figure shows the time time to solve a model with one choice varaib
 
 ![alt text](benchmark/compare.svg "Benchmarking acceleration")
 
+It used to be that for doing structural estimation, you needed a toolbox and be good at programming. This toolbox solves this problem, so you can focus on the economics.
+
 # To Do
 
 - [ ] streamline model constructor. Put myself into shoes of user, try to create a model. End user shouldn't have to deal with types
+	- rewardfunc vs rewardfunc_partial: how to implement for user?
 - [ ] get rid of DDM, use DDP
 - [ ] change name of grossprofits to rewardfunc_partial or something
 - [ ] make tChoiceVectors optional (only if use SA)
     - in the problem constructor, make optional
     - remove it in separable and intermediate solver functions and other functions
     - change name of bEndogStatevars, to choicevars
+- [ ] merge with master branch
 - [ ] write documentation
 - [ ] implement plotrecipe
 - [ ] think about whether should include accountingvars() into this package
@@ -42,6 +46,7 @@ The following figure shows the time time to solve a model with one choice varaib
 
 ## Concerning releasing it
 
+- Finalizing the package guide [here](http://www.stochasticlifestyle.com/finalizing-julia-package-documentation-testing-coverage-publishing/)
 - [ ] Ask people in the department if package could be useful, what kind of model they would like to see preprogrammed there
 - [ ] Could libraries be called DiscreteDynamicModels, DiscreteDynamicEconomicModelsLibrary, SMM?
 	- The DiscreteDynamicModels and Library is similar to QuantEcon actually, but with faster solvers and real-world economic models

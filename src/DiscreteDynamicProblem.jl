@@ -47,9 +47,11 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,E,G,IP,IF} <: DDM
     # with parameters, we create a family of types
     # can also add where F <: Union{Function, Nothing} later
 
-    # params::NeoClassicalSimpleParams{Float64, Int64} # important to specify here for type stability
-    """The parameters of the model are inside the structure params. (which could change in the future)."""
-    params::ModelParams # important to specify here for type stability
+    # # params::NeoClassicalSimpleParams{Float64, Int64} # important to specify here for type stability
+    # """The parameters of the model are inside the structure params. (which could change in the future)."""
+    # params::ModelParams # important to specify here for type stability
+
+    β::Real # important to specify here for type stability
 
     # I think it should be possible to specify the number of inputs of the function
     rewardfunc::Function
@@ -80,7 +82,8 @@ end
 
 
 function DiscreteDynamicProblem(
-            params::ModelParams,
+            # params::ModelParams,
+            β::Real,
             rewardfunc::Function,
             transfunc::Function,
             intdim::Type{I},
@@ -97,7 +100,9 @@ function DiscreteDynamicProblem(
 
     # can do stuff that the user does not interact with
 
-    DiscreteDynamicProblem(params,
+    DiscreteDynamicProblem(
+        β,
+        # params,
         rewardfunc,
         transfunc,
         intdim,

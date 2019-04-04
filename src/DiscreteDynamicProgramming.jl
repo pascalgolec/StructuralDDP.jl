@@ -35,7 +35,7 @@ module DiscreteDynamicProgramming
 
 	include("utils.jl")
 
-	# type constructor
+		# type constructor
 	include("DiscreteDynamicProblem.jl")
 	include("DiscreteDynamicProblem_interface.jl")
 

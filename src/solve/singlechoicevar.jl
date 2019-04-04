@@ -12,7 +12,7 @@ _solve(p::DiscreteDynamicProblem{nStateVars,1,E,G,IP,IF},
 			disp, rewardmat, monotonicity, concavity,
 			p.tStateVectors, p.tStateVectors[p.bEndogStateVars][1], p.tStateVectors[.!p.bEndogStateVars],
 			# p.bEndogStateVars,
-			p.params.β)
+			p.β)
 
 function _solve1(rewardfunc::Function, method::Type{T},
 				mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
