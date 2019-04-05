@@ -7,12 +7,12 @@ function solve(p::DDM; mTransition::Union{Nothing, Array{Float64,2}} = nothing,
     concavity::Union{Bool,Vector{Bool}} = false,
     initialize_exact::Bool = false,
     numquadnodes::Vector{Int} = 5*ones(Int64, length(p.shockdist.μ)),
-    intdim::Symbol = :separable, # if want to override type in the model, mostly for testing
-    )
+    intdim::Type{T} = p.intdim, # if want to override type in the model, mostly for testing
+    ) where T<:DDMIntDim
 
-    intdim in(:SA, :intermediate, :separable) || error("supplied wrong intdim")
+    # intdim in(:SA, :intermediate, :separable) || error("supplied wrong intdim")
 
-    if rewardmat == :prebuild || intdim == :SA
+    if rewardmat == :prebuild || intdim == SA
         mReward = rewardmatrix(p)
     elseif rewardmat == :prebuild_partial
         mReward = rewardmatrix_partial(p)
@@ -23,10 +23,10 @@ function solve(p::DDM; mTransition::Union{Nothing, Array{Float64,2}} = nothing,
     end
 
     if mTransition == nothing
-        mTransition = Array(transitionmatrix(p, intdim = intdim, numquadnodes = numquadnodes))
+        mTransition = Array(transitionmatrix(p, numquadnodes = numquadnodes))
     end
 
-    if intdim == :SA
+    if intdim == SA
         meshValFun, tmeshPolFun = _solve(p, eval(intdim), mTransition, mReward, disp)
     else
         # if typeof(p.tChoiceVectors) == Tuple{Vector{Float64}}

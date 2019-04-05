@@ -34,7 +34,7 @@ end
 _simulate(p::DDM, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function;
         initialize_exact::Bool = sol.tmeshPolFunZero != nothing) =
 		_simulate(sol, shocks, transfunc, p.intdim,
-				p.tStateVectors, p.tChoiceVectors, p.tStateVectors[.!p.bEndogStateVars],
+				p.tStateVectors, p.tChoiceVectors, getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
 				p.initializefunc, initialize_exact)
 
 
@@ -139,16 +139,16 @@ function _simulate(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Funct
 			# vSim_i[:,t+1] .= transfunc(SA, vSim_i[:,t], choice, mShocks_i[:,t])
 
 			function fill_it!(vSim_it1, vSim_it, transfunc, intdim::Type{SA}, vChoice, mShocks_it, nChoiceVars)
-				vSim_it1 .= transfunc(intdim, vSim_it, vChoice, mShocks_it)
+				vSim_it1 .= transfunc(vSim_it, vChoice, mShocks_it)
 			end
 			function fill_it!(vSim_it1, vSim_it, transfunc, intdim::Type{intermediate}, vChoice, mShocks_it, nChoiceVars)
 				vSim_it1[1:nChoiceVars] .= vChoice
-				vSim_it1[1+nChoiceVars:end] .= transfunc(intdim, vSim_it, mShocks_it)
+				vSim_it1[1+nChoiceVars:end] .= transfunc(vSim_it, mShocks_it)
 			end
 			function fill_it!(vSim_it1, vSim_it, transfunc, intdim::Type{separable}, vChoice, mShocks_it, nChoiceVars)
 				# @show "inside fillit"
 				vSim_it1[1:nChoiceVars] .= vChoice
-				vSim_it1[1+nChoiceVars:end] .= transfunc(intdim, vSim_it[1+nChoiceVars:end], mShocks_it)
+				vSim_it1[1+nChoiceVars:end] .= transfunc(vSim_it[1+nChoiceVars:end], mShocks_it)
 				# @show vSim_it1
 			end
 			# don't think this works, because it is a view of a bigger array

@@ -1,12 +1,4 @@
 
-transitionmatrix(p::DDM; intdim::Symbol=:SA,
-    numquadnodes::Vector{Int} = 5*ones(Int64, length(p.shockdist.μ))) =
-    _transitionmatrix(p, eval(intdim), numquadnodes)
-
-# _transitionmatrix(p::DDM, method::Type{T}) where T<:DDMIntDim =
-#     _transitionmatrix(method, p.transfunc, p.tStateVectors, p.tChoiceVectors,
-#     p.bEndogStateVars,
-#     p.vWeights, p.mShocks)
 
 function getquadrature(d::ContinuousUnivariateDistribution, numquadnodes::Vector{Int})
 	vShocks, vWeights = qnwdist(d, numquadnodes[1])
@@ -28,133 +20,70 @@ function getquadrature(d::LogNormal, numquadnodes::Vector{Int})
     mShocks = Array(vShocks')
     return mShocks, vWeights
 end
+
 getquadrature(d::MvNormal, numquadnodes::Vector{Int}) =
 	mShocks, vWeights = qnwnorm(numquadnodes, Vector(d.μ), Matrix(d.Σ))
 
+# split into intdims
+transitionmatrix(p::DDM;
+    numquadnodes::Vector{Int} = 5*ones(Int64, length(p.shockdist.μ))) =
+    _transitionmatrix(p, p.intdim, numquadnodes)
 
 
-# expand structure, only use necessary inputs
-_transitionmatrix(p::DDM, method::Type{separable}, numquadnodes::Vector{Int}) =
-    _transitionmatrix(method, p.transfunc, p.tStateVectors[.!p.bEndogStateVars],
+# expand structure, input out output vector tuples
+_transitionmatrix(p::DDM, method::Type{Separable_ExogStates}, numquadnodes::Vector{Int}) =
+    _transitionmatrix(p.transfunc,
+	getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
+	getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
     p.shockdist, numquadnodes)
-function _transitionmatrix(method::Type{separable}, transfunc::Function,
-    tStochStateVectors::NTuple{N,Vector{Float64}},
-    shockdist, numquadnodes) where N
-    # Calculates probability transition matrix, depending on integration dimension
-    # - uses gaussian quadrature
-    # - uses linear basis functions
-    # - size of matrix is nInputStates x nOutputStates.
-    #       - InputStates together with shocks affect the transition of OutputStates
-    #       - so it is States_today x States_tomorrow, same dimension as QuantEcon.tauchen()
+
+_transitionmatrix(p::DDM, method::Type{Separable_States}, numquadnodes::Vector{Int}) =
+    _transitionmatrix(p.transfunc,
+    p.tStateVectors,
+	getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
+   	p.shockdist, numquadnodes)
+
+_transitionmatrix(p::DDM, method::Type{Separable}, numquadnodes::Vector{Int}) =
+    _transitionmatrix(p.transfunc,
+	    p.tStateVectors, getchoicevars(p.tStateVectors, p.tChoiceVectors),
+		getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
+	    p.shockdist, numquadnodes)
+
+_transitionmatrix(p::DDM, method::Type{All}, numquadnodes::Vector{Int}) =
+	_transitionmatrix(p.transfunc,
+		p.tStateVectors, p.tChoiceVectors,
+		p.tStateVectors,
+		p.shockdist, numquadnodes)
+
+
+# for choices and states as input
+function _transitionmatrix(transfunc::Function,
+    tInputVectorsStates::NTuple{N1, Vector{T}},
+	tInputVectorsChoices::NTuple{N2, Vector{T}}, tOutputVectors,
+    shockdist, numquadnodes) where {N1, N2, T}
 
     mShocks, vWeights = getquadrature(shockdist, numquadnodes)
 
-    dimStochStates = length(tStochStateVectors)
-    nStochStates = prod(length.(tStochStateVectors))
+    nOutputStates = prod(length.(tOutputVectors))
+    dimOutputStates = length(tOutputVectors)
 
-    # all combinations of exogenous variables
-    mStochStates = gridmake(tStochStateVectors...)
-    if length(size(mStochStates)) == 1 # need to add dimension
-        mStochStates = addDim(mStochStates)
-    end
-    mStochStates = mStochStates'
+    # nChoices = prod(length.(tChoiceVectors))
+    # nChoices = prod(length.(tChoiceVectors))
+    nInputStates = prod(length.(tInputVectorsStates)) * prod(length.(tInputVectorsChoices))
 
-    g = zeros(dimStochStates, nStochStates)
-    mG = spzeros(nStochStates, nStochStates)
-    basisOutputStates = Basis(SplineParams.(tStochStateVectors,0,1))
+    g = zeros(dimOutputStates, nInputStates)
+    mG = spzeros(nInputStates, nOutputStates)
+    basisOutputStates = Basis(SplineParams.(tOutputVectors,0,1))
     PhiTemp = spzeros(size(mG)...)
 
-    # loop over all shock combinations
-    for i = 1 : length(vWeights)
-
-        # loop over all inputstates
-        for j = 1 : nStochStates
-            g[:,j] .= transfunc(method, mStochStates[:, j], mShocks[:,i])
-            # can speed up slightly if only have one shock
-            # g[:,j] .= transfunc(method, mStochStates[:, j], mShocks[1,i])
-        end
-
-        PhiTemp .= BasisMatrix(basisOutputStates, Expanded(), g', 0).vals[1]
-        mG .= mG + vWeights[i] * PhiTemp
-    end
-    return mG::SparseMatrixCSC{Float64,Int64}
-end
-
-_transitionmatrix(p::DDM, method::Type{intermediate}, numquadnodes::Vector{Int}) =
-    _transitionmatrix(method, p.transfunc,
-    p.tStateVectors, p.tStateVectors[.!p.bEndogStateVars],
-   p.shockdist, numquadnodes)
-function _transitionmatrix(method::Type{intermediate}, transfunc::Function,
-    tStateVectors, tStochStateVectors,
-    shockdist, numquadnodes)
-    # mG is nStates x nStochStates
-
-    mShocks, vWeights = getquadrature(shockdist, numquadnodes)
-
-    nStates = prod(length.(tStateVectors))
-    mStates = gridmake(tStateVectors...)
-    if length(size(mStates)) == 1 # need to add dimension
-        mStates = addDim(mStates)
-    end
-    mStates = mStates'
-
-    dimStochStates = length(tStochStateVectors)
-    nStochStates = prod(length.(tStochStateVectors))
-
-    g = zeros(dimStochStates, nStates)
-    mG = spzeros(nStates, nStochStates)
-    basisOutputStates = Basis(SplineParams.(tStochStateVectors,0,1))
-    PhiTemp = spzeros(size(mG)...)
+	iterator = zip(Iterators.product(tInputVectorsStates...), Iterators.product(tInputVectorsChoices...))
 
     # loop over all shock combinations
     for i = 1 : length(vWeights)
         # loop over all inputstates
-        for j = 1 : nStates
-            g[:,j] .= transfunc(method, mStates[:, j], mShocks[:,i])
-            # g[:,j] .= transfunc(method, mStates[:, j], mShocks[1,i])
+        for (j, (states, choices)) in enumerate(iterator)
+            g[:,j] .= transfunc(states, choices,  mShocks[:,i])
         end
-
-        PhiTemp .= BasisMatrix(basisOutputStates, Expanded(), g', 0).vals[1]
-        mG .= mG + vWeights[i] * PhiTemp
-    end
-    return mG::SparseMatrixCSC{Float64,Int64}
-end #getG
-
-_transitionmatrix(p::DDM, method::Type{SA}, numquadnodes::Vector{Int}) =
-    _transitionmatrix(method, p.transfunc,
-    p.tStateVectors, p.tChoiceVectors,
-    p.shockdist, numquadnodes)
-function _transitionmatrix(method::Type{SA}, transfunc::Function,
-    tStateVectors, tChoiceVectors,
-    shockdist, numquadnodes)
-    # mG is nChoices*nStates x nStates
-
-    mShocks, vWeights = getquadrature(shockdist, numquadnodes)
-
-    nStates = prod(length.(tStateVectors))
-    dimStates = length(tStateVectors)
-    nChoices = prod(length.(tChoiceVectors))
-    nInputStates = nStates * nChoices
-
-    mInputStates = gridmake(tStateVectors..., tChoiceVectors...)
-    mInputStates_states = mInputStates[:, 1:dimStates]
-    vInputStates_choices = mInputStates[:, dimStates+1 : end]
-
-    g = zeros(dimStates, nInputStates)
-    mG = spzeros(nInputStates, nStates)
-    basisOutputStates = Basis(SplineParams.(tStateVectors,0,1))
-    PhiTemp = spzeros(size(mG)...)
-
-    # loop over all shock combinations
-    for i = 1 : length(vWeights)
-        # loop over all inputstates
-        for j = 1 : nInputStates
-
-            g[:,j] .= transfunc(method, mInputStates_states[j, :],
-                vInputStates_choices[j, :],  mShocks[:,i])
-
-        end
-
         PhiTemp .= BasisMatrix(basisOutputStates, Expanded(), g', 0).vals[1]
         mG .= mG + vWeights[i] * PhiTemp
     end
@@ -166,3 +95,36 @@ function _transitionmatrix(method::Type{SA}, transfunc::Function,
     #  if gettransitionmatrix turns out to be a bottleneck, then I need to dig deeper into this
     return mG::SparseMatrixCSC{Float64,Int64}
 end #getG
+
+# for states as input
+function _transitionmatrix(transfunc::Function,
+    tInputVectors::NTuple{N, Vector{T}}, tOutputVectors,
+    shockdist, numquadnodes) where {N,T}
+
+	mShocks, vWeights = getquadrature(shockdist, numquadnodes)
+
+	nInputStates = prod(length.(tInputVectors))
+    dimOutputStates = length(tOutputVectors)
+    nOutputStates = prod(length.(tOutputVectors))
+
+    g = zeros(dimOutputStates, nInputStates)
+    mG = spzeros(nInputStates, nOutputStates)
+    basisOutputStates = Basis(SplineParams.(tOutputVectors,0,1))
+    PhiTemp = spzeros(size(mG)...)
+
+	iterator = Iterators.product(tInputVectors...)
+
+    # loop over all shock combinations
+    for i = 1 : length(vWeights)
+
+        # loop over all inputstates
+        for (j, states) in enumerate(iterator)
+            g[:,j] .= transfunc(states, mShocks[:,i])
+        end
+
+        PhiTemp .= BasisMatrix(basisOutputStates, Expanded(), g', 0).vals[1]
+        mG .= mG + vWeights[i] * PhiTemp
+    end
+    return mG::SparseMatrixCSC{Float64,Int64}
+
+end

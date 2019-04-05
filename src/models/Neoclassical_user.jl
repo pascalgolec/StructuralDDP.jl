@@ -50,9 +50,11 @@ function NeoClassicalSimple(; 	α = 0.67,
     # vMax = [exp(maxK_log), maxz]
 
     tStateVectors = (vK, vz) # tuple of basis vectors
-    tChoiceVectors = (vK,) # important to add the comma, otherwise not a tuple
 
-    bEndogStateVars = [true, false]
+	# tChoiceVectors = (vK,) # important to add the comma, otherwise not a tuple
+    tChoiceVectors = (1,)
+
+    # bEndogStateVars = [true, false]
 
 	# somehow this below is not type stable!
 	# myrewardfunc(vStateVars::Vector{Float64}, vChoices::Vector{Float64}) =
@@ -78,13 +80,53 @@ function NeoClassicalSimple(; 	α = 0.67,
 
 	mygrossprofits(vStateVars) = vStateVars[1]^α * exp(vStateVars[2])
 
-    function mytransfunc(method::Type{separable}, vExogState, vShocksss)
+
+	# intdim = :All
+    # function mytransfunc(vStates, vChoices, vShocksss)
+    #     # @unpack ρ , σ = p.params
+    #     z = vStates[2]
+    #     zprime  = ρ*z + σ * vShocksss[1];
+    #     # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
+    #     return vStates[1], inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+    # end
+
+	# intdim = :Separable
+    # function mytransfunc(vStates, vChoices, vShocksss)
+    #     # @unpack ρ , σ = p.params
+    #     z = vStates[2]
+    #     zprime  = ρ*z + σ * vShocksss[1];
+    #     # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
+    #     return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+    # end
+
+	# intdim = :Separable_States
+    # function mytransfunc(vStates, vShocksss)
+    #     # @unpack ρ , σ = p.params
+    #     z = vStates[2]
+    #     zprime  = ρ*z + σ * vShocksss[1];
+    #     # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
+    #     return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+    # end
+
+	intdim = :Separable_ExogStates
+    function mytransfunc(vExogState, vShocksss)
         # @unpack ρ , σ = p.params
         z = vExogState[1]
         zprime  = ρ*z + σ * vShocksss[1];
         # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
-        return  inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+        return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
     end
+
+	# # specification is with endogchoicevars but SA
+	# function mytransfunc(vState::Vector{Float64}, vChoice::Vector{Float64}, vShocksss::Vector{Float64})
+    #     # @unpack ρ , σ = p.params
+	# 	# @code_warntype vState[2]
+    #     z = vState[2]
+	# 	# @code_warntype ρ*z + σ * vShocksss[1]
+    #     zprime  = ρ*z + σ * vShocksss[1]
+    #     # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
+    #     return  inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+    # end
 
 	initializationproblem(value::Float64, K::Float64) =
 		value - (1 + (1-β)/β + C0) * K
@@ -97,15 +139,15 @@ function NeoClassicalSimple(; 	α = 0.67,
 		return [K0, z0]
 	end
 
-	DiscreteDynamicProblem(
+	createDiscreteDynamicProblem(
 				β,
 	            myrewardfunc,
 	            mytransfunc,
-	            separable,
 	            tStateVectors,
 	            tChoiceVectors,
 				Normal(); # give distribution of shocks: standard normal
-	            bEndogStateVars = bEndogStateVars,
+				intdim = intdim,
+	            # bEndogStateVars = bEndogStateVars,
 	            grossprofits = mygrossprofits,
 	            initializationproblem = initializationproblem,
 	            initializefunc = initialize,

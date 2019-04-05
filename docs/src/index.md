@@ -2,6 +2,8 @@
 
 This package solves and simulates discrete dynamic choice models with value function iteration fast. By taking advantage of properties of the problem, a wide array of problems can be solved very fast without requiring parallelization.
 
+The solver is fast for problems where some of next periods state variables can be chosen directly.
+
 The general workflow is to define a problem, solve the problem, and then analyze the solution. The full code for solving and simulating the example is:
 
 ```julia
@@ -52,7 +54,7 @@ To code this model:
 
 ```julia
 β = 0.9 # discount factor
-α = 0.67 # returns to scale parameter 
+α = 0.67 # returns to scale parameter
 ρ = 0.6 # persistence of producitivity
 σ = 0.3 # volatility of productivity
 δ = 0.15 # deprectiation rate of capital
@@ -110,15 +112,29 @@ sol = solve(prob)
 
 There are different options available which make solving the model much faster.
 
-#### Options
+### Lower integration dimension
 
-`intdim`: specify the integration dimension of the problem. By default, we integrate over all dimensions of the state variables. Setermines over how many variables we integrate when calculating expectations. There are three possible options.
+By default, we integrate over all state variables, choice variables and shocks to get expectations of next periods states, i.e. ``s_{t+1} = \Phi(s_t, a_t, \varepsilon_{t+1})``. Many problems however don't require this.
 
-* `:SA`: integrate across each possible combination of state variables and choice variables. Assumes that shocks, current states and current choices affect transition probabilities of the stochastic variables, i.e. ``s_{t+1} = \Phi(s_t, a_t, \varepsilon_{t+1})``, where ``\varepsilon_{t+1} \sim \mathcal{N}(0,1)``. This is the most general but slow (is implemented by the QuantEcon library). It's good for testing with a small state-space.
+In the Neoclassical model, we can directly choose next period's `K` and don't need to integrate along that dimension.
+Formally, this is the case when the choice variable is equal to one of the state variables. Note: sometimes this requires slightly rewriting the model by redefing the action space.
 
-The other two options require that we can separate the state variables into two groups, exogenous and endogenous variables. The transition of the stochastic state variables ``s^s`` only depends on shocks and states but not actions, i.e.  ``s^s_{t+1} = \Phi(s_t, \varepsilon_{t+1})``. The transition of deterministic state variables ``s^d`` only depends on states and actions but not shocks, i.e.  ``s^d_{t+1} = \Phi(s_t, a_t)``. To operationalize this, we substitute the transition of deterministic state variables into the reward, i.e. ``r(s_t, a_t) = r(s_t, \Phi^{-1}(s_t, s^d_{t+1})) ``. In that sense, our choice is in terms of choosing the future deterministic state directly.
+In that case, we can provide that information when defining the problem by specifying which state variable is the choice variable, i.e. `vChoiceVectors = [true, false]`. We also need to rewrite the transition function to only return `z` (note that in principle `zprime` could depend on the choice of `Kprime`:
+```julia
+function transfunc(vStateVars, vChoices, vShocks)
+    z = vStateVars[2]
+    zprime  = ρ*z + σ * vShocks[1];
+    return  zprime
+end
+```
+We also need to mention in the problem definition which choice variable corresponds to the index of which tate variable.
 
-* `:intermediate`: only states, but not current choices affect the transition of the stochastic state variables. For example, in a version of the R&D model, the R&D stock inherited from last period affects the transition of productivity, but not current R&D expenditures. Change the transition function like so:
+
+Formally, we require that we can separate the state variables into two groups, endogenous and exogenous state variables, which correspond to `K` and `z` in the example.
+The transition of the endogenous state variables ``s^d`` only depends on states and actions but not shocks, i.e.  ``s^d_{t+1} = \Phi(s_t, a_t)``.
+The transition of the stochastic state variables ``s^s`` only depends on shocks and states but not actions, i.e.  ``s^s_{t+1} = \Phi(s_t, \varepsilon_{t+1})``. Note: sometimes this requires slightly rewriting the model by redefing the action space.
+
+If this separation is possible, then then change the transition function like so:
 ```julia
 function transfunc(vStateVars, vShocks)
     z = vStateVars[2]
@@ -126,19 +142,22 @@ function transfunc(vStateVars, vShocks)
     return  zprime
 end
 ```
-and mention in the options that `intdim = :intermediate`.
 
+and mention it in the model options, `intdim = :intermediate`.
 
-* `:separable`: is when neither deterministic state variables nor choices affect the transition of the stochastic state variables, i.e. ``s^s_{t+1} = \Phi(s^s_t, \varepsilon_{t+1})``. For example in the Neoclassical model, the capital stock does not affect future productivity. Change the transition function like so:
+The solver is even faster if additionally only the shocks and exogenous state variables, but not endgenous state variables, determine next period's exogenous state variables, i.e. ``s^s_{t+1} = \Phi(s^s_t, \varepsilon_{t+1})``. In that case, change the transition function like so (note the change in the index of `z`):
 ```julia
 function transfunc(vExogStateVars, vShocks)
-    z = vStateVars[1]
+    z = vExogStateVars[1]
     zprime  = ρ*z + σ * vShocks[1];
     return  zprime
 end
 ```
-and mention in the options that `intdim = :separable`.
+and mention in the model options, `intdim = :separable`.
 
+bEndogStateVars?
+
+### Monotonicity and concavity
 
 The options `monotonicity` and `concavity` exploit properties of the value function to speed up the VFI. They don't work with `:intdim = :SA`.
 
@@ -146,11 +165,16 @@ The options `monotonicity` and `concavity` exploit properties of the value funct
 
 `concavity`: exploit the concavity of the value function in the choice of next period's state. Put differently, if ``V(s^{d'}_{t+1}, s^d_t, s^s_t) < V(s^{d*}_{t+1}, s^d_t, s^s_t)``, then also ``V(s^d_{t+1}, s^d_t, s^s_t) < V(s^{d'}_{t+1}, s^d_t, s^s_t)`` for any ``s^d_{t+1} > s^{d'}_{t+1}``.
 
+
+### Prebuilding the reward matrix
+
 `rewardmat`: determines whether (part of) the reward for each state-action pair should be pre-built before the value function iteration. Prebuilding it requires more memory but less computations during the VFI. Some parts of it may never be used with concavity and monotonicity.
 
 * `:nobuild` means that the reward is calculated during the VFI. This requires little memory but more computations during the VFI.
 * `:prebuild_partial` means that part of the reward function is prebuilt, the one that does not depend on choices, but only states. From experience, this is the fastest.
 * `:prebuild` means prebuild the entire reward matrix for each possible combination of states and actions. This requires more memory but less computations during the VFI.
+
+### Providing your own transition matrix
 
 The solver calculates the transition matrix for you using Gaussian Quadrature. The user must supply the transition function. The shocks are assumed to be standard random normal. Optionally, the transition matrix can also be provided manually,
 
@@ -159,6 +183,8 @@ using QuantEcon: tauchen
 mTransition = tauchen(prob.params.nz, prob.params.ρ, prob.params.σ)
 sol = solve(prob, mTransition = mTransition)
 ```
+
+### Display
 
 The option `disp = true` determines whether the iterations should be printed in the REPL.
 

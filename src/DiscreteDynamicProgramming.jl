@@ -28,37 +28,39 @@ module DiscreteDynamicProgramming
 	# need this for transfunc
 	abstract type DDMIntegrationDimension end
 	const DDMIntDim = DDMIntegrationDimension
-	abstract type StateAction <: DDMIntDim end
-	abstract type separable <: DDMIntDim end
-	abstract type intermediate <: DDMIntDim end
-	const SA = StateAction
+	abstract type All <: DDMIntDim end
+	abstract type Separable <: DDMIntDim end
+	abstract type Separable_States <: DDMIntDim end
+	abstract type Separable_ExogStates <: DDMIntDim end
+	# const SA = StateAction
 
 	include("utils.jl")
 
 		# type constructor
 	include("DiscreteDynamicProblem.jl")
-	include("DiscreteDynamicProblem_interface.jl")
+	# include("DiscreteDynamicProblem_interface.jl")
 
 	# Models
-	include("models/Neoclassical.jl")
+	include("models/Neoclassical_user.jl")
+	# include("models/Intangible.jl")
 	# include("models/Intangible.jl")
 
 	# for using createmodel syntax:
 	createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
 	# e.g. createmodel(:NeoClassicalSimple; nK = 30, nz=15)
 
-	# Solver
-	include("solve/constructors.jl")
-	include("solve/main.jl")
-	include("solve/rewardmatrix.jl")
+	# # Solver
+	# include("solve/constructors.jl")
+	# include("solve/main.jl")
+	# include("solve/rewardmatrix.jl")
 	include("solve/transitionmatrix.jl")
-	include("solve/singlechoicevar.jl")
-	include("solve/twochoicevar.jl")
-	include("solve/state_action.jl")
-	include("solve/initialendogstatevars.jl")
-
-	# simulator
-	include("simulate/shocks.jl")
-	include("simulate/simulate.jl")
+	# include("solve/singlechoicevar.jl")
+	# include("solve/twochoicevar.jl")
+	# include("solve/state_action.jl")
+	# include("solve/initialendogstatevars.jl")
+	#
+	# # simulator
+	# include("simulate/shocks.jl")
+	# include("simulate/simulate.jl")
 
 end

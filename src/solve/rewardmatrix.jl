@@ -1,7 +1,11 @@
-rewardmatrix(p::DDM) =
-    _rewardmatrix(p.rewardfunc, p.tStateVectors, p.tChoiceVectors, p.bEndogStateVars)
+rewardmatrix(p::DDP{nStateVars,nChoiceVars,C,G,IP,IF}) where
+    {nStateVars,nChoiceVars,C<:Int64,G,IP,IF} =
+    _rewardmatrix(p.rewardfunc, p.tStateVectors, getindex(p.tStateVectors, collect(p.tChoiceVectors)))
+rewardmatrix(p::DDP{nStateVars,nChoiceVars,C,G,IP,IF}) where
+    {nStateVars,nChoiceVars,C<:Vector{Real},G,IP,IF} =
+    _rewardmatrix(p.rewardfunc, p.tStateVectors, p.tChoiceVectors)
 
-function _rewardmatrix(rewardfunc::Function, tStateVectors, tChoiceVectors, bEndogStateVars)
+function _rewardmatrix(rewardfunc::Function, tStateVectors, tChoiceVectors)
     # output dimension is nChoices x nStates
 
     mChoices = gridmake(tChoiceVectors...)::Array{Float64,2} # gridmake is not type stable

@@ -42,78 +42,80 @@ abstract type ModelParams end
 
 
 # <: DDM
-struct DiscreteDynamicProblem{nStateVars,nChoiceVars,E,G,IP,IF} <: DDM
-# struct DiscreteDynamicProblem#{E,G,IP,IF}
-    # with parameters, we create a family of types
-    # can also add where F <: Union{Function, Nothing} later
-
-    # # params::NeoClassicalSimpleParams{Float64, Int64} # important to specify here for type stability
-    # """The parameters of the model are inside the structure params. (which could change in the future)."""
-    # params::ModelParams # important to specify here for type stability
+struct DiscreteDynamicProblem{nStateVars,nChoiceVars,C,G,IP,IF} <: DDM
 
     β::Real # important to specify here for type stability
 
     # I think it should be possible to specify the number of inputs of the function
     rewardfunc::Function
     transfunc::Function
-
     intdim::Type{ID} where ID<:DDMIntDim # not really necessary, can just have it as a parameter in type...
 
     tStateVectors::NTuple{nStateVars, Vector{Float64}} #where N # can use NTuple{N, Vector{Float64}} where N
-    tChoiceVectors::NTuple{nChoiceVars, Vector{Float64}}
+    tChoiceVectors::NTuple{nChoiceVars, C}
 
     # distribution of shocks
-    # transitionmatrix() allows few univariate only normal multivariate for now
+    # allows few univariate only normal multivariate for now
     shockdist::Distribution  # for smm it's important though that the shock distribution stays the same, does not
     # depend on parameters!!!
 
     # which state variables are endogenous
-    bEndogStateVars::E
+    # bEndogStateVars::E
 
     """The partial reward function."""
     grossprofits::G
 
-    # initializationproblem::Union{Function, Nothing} # this is bad, because type will always stay ambiguous!!
-    # need to parametrize above
     initializationproblem::IP
     initializefunc::IF
 
 end
 
 
-function DiscreteDynamicProblem(
+function createDiscreteDynamicProblem(
             # params::ModelParams,
             β::Real,
             rewardfunc::Function,
             transfunc::Function,
-            intdim::Type{I},
             tStateVectors::NTuple{S, Vector{Float64}},
-            tChoiceVectors::NTuple{C, Vector{Float64}},
+            tChoiceVectors::NTuple{C, typeC},
             shockdist::Distribution;
             # vWeights::Vector{Float64},
             # mShocks::Array{Float64,2};
-            bEndogStateVars::Union{Vector{Bool},Nothing} = nothing,
+            intdim::Symbol = :All,
+            # bEndogStateVars::Union{Vector{Bool},Nothing} = nothing,
             grossprofits::Union{Function,Nothing} = nothing,
             initializationproblem::Union{Function,Nothing} = nothing,
             initializefunc::Union{Function,Nothing} = nothing,
-            ) where {I <: DDMIntDim, S, C}
+            ) where {I <: DDMIntDim, S, C, typeC<:Union{Vector{Float64}, Int64}}
 
     # can do stuff that the user does not interact with
+    # nStateVars = length(tStateVectors)
+
+    # tChoiceVectors =
+    #
+    # if typeof(tChoiceVectors) <: Vector{Bool}
+    #     nChoiceVars = sum(tChoiceVectors)
+    # else
+    #     nChoiceVars = length(tStateVectors)
+    # end
 
     DiscreteDynamicProblem(
         β,
-        # params,
         rewardfunc,
         transfunc,
-        intdim,
+        eval(intdim),
         tStateVectors,
         tChoiceVectors,
         shockdist,
         # vWeights,
         # mShocks,
-        bEndogStateVars,
+        # bEndogStateVars,
         grossprofits,
         initializationproblem,
         initializefunc,
         )
 end
+
+const DDP = DiscreteDynamicProblem
+
+separable(p::DDP) = typeof(p.tChoiceVectors) <: NTuple{N, Int} where N
