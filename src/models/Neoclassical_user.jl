@@ -14,7 +14,9 @@ function NeoClassicalSimple(; 	α = 0.67,
 								nz = 20,
 
 								nPeriods = 120,
-								nFirms = 1000) # solver is fast without type iformation here!
+								nFirms = 1000,
+
+								intdim = :Separable_ExogStates)
 
 
     # calculate Amin, Amax
@@ -52,7 +54,7 @@ function NeoClassicalSimple(; 	α = 0.67,
     tStateVectors = (vK, vz) # tuple of basis vectors
 
 	# tChoiceVectors = (vK,) # important to add the comma, otherwise not a tuple
-    tChoiceVectors = (1,)
+    # tChoiceVectors = (1,)
 
     # bEndogStateVars = [true, false]
 
@@ -66,7 +68,7 @@ function NeoClassicalSimple(; 	α = 0.67,
 		Kprime = vChoices[1]
 		capx = Kprime - (1-δ)*K
 		action = (Kprime != K)
-		oibdp = K^α * exp(z) - F*K*action + γ/2*(capx/K- δ)^2 * K
+		oibdp = K^α * exp(z) - F*K*action - γ/2*(capx/K- δ)^2 * K
 		return oibdp*(1-τ) + τ * δ * K - (1-κ*(capx<0))*capx
 	end
 
@@ -80,42 +82,50 @@ function NeoClassicalSimple(; 	α = 0.67,
 
 	mygrossprofits(vStateVars) = vStateVars[1]^α * exp(vStateVars[2])
 
+	if intdim == :All
 
-	# intdim = :All
-    # function mytransfunc(vStates, vChoices, vShocksss)
-    #     # @unpack ρ , σ = p.params
-    #     z = vStates[2]
-    #     zprime  = ρ*z + σ * vShocksss[1];
-    #     # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
-    #     return vStates[1], inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
-    # end
+	    transfunc = function mytransfunc(vStates, vChoices, vShocksss)
+	        # @unpack ρ , σ = p.params
+	        z = vStates[2]
+	        zprime  = ρ*z + σ * vShocksss[1];
+	        # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
+	        return vChoices[1], inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+	    end
+		tChoiceVectors = (vK,)
 
-	# intdim = :Separable
-    # function mytransfunc(vStates, vChoices, vShocksss)
-    #     # @unpack ρ , σ = p.params
-    #     z = vStates[2]
-    #     zprime  = ρ*z + σ * vShocksss[1];
-    #     # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
-    #     return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
-    # end
+	elseif intdim == :Separable
 
-	# intdim = :Separable_States
-    # function mytransfunc(vStates, vShocksss)
-    #     # @unpack ρ , σ = p.params
-    #     z = vStates[2]
-    #     zprime  = ρ*z + σ * vShocksss[1];
-    #     # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
-    #     return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
-    # end
+	    transfunc = function mytransfunc1(vStates, vChoices, vShocksss)
+	        # @unpack ρ , σ = p.params
+	        z = vStates[2]
+	        zprime  = ρ*z + σ * vShocksss[1];
+	        # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
+	        return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+	    end
+		tChoiceVectors = (1,)
 
-	intdim = :Separable_ExogStates
-    function mytransfunc(vExogState, vShocksss)
-        # @unpack ρ , σ = p.params
-        z = vExogState[1]
-        zprime  = ρ*z + σ * vShocksss[1];
-        # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
-        return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
-    end
+	elseif intdim == :Separable_States
+	    transfunc = function mytransfunc2(vStates, vShocksss)
+	        # @unpack ρ , σ = p.params
+	        z = vStates[2]
+	        zprime  = ρ*z + σ * vShocksss[1];
+	        # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
+	        return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+	    end
+		tChoiceVectors = (1,)
+
+	elseif intdim == :Separable_ExogStates
+	    transfunc = function mytransfunc3(vExogState, vShocksss)
+	        # @unpack ρ , σ = p.params
+	        z = vExogState[1]
+	        zprime  = ρ*z + σ * vShocksss[1];
+	        # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
+	        return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+	    end
+		tChoiceVectors = (1,)
+	else
+		error("$intdim wrong intdim")
+	end
 
 	# # specification is with endogchoicevars but SA
 	# function mytransfunc(vState::Vector{Float64}, vChoice::Vector{Float64}, vShocksss::Vector{Float64})
@@ -142,7 +152,7 @@ function NeoClassicalSimple(; 	α = 0.67,
 	createDiscreteDynamicProblem(
 				β,
 	            myrewardfunc,
-	            mytransfunc,
+	            transfunc,
 	            tStateVectors,
 	            tChoiceVectors,
 				Normal(); # give distribution of shocks: standard normal

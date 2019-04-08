@@ -1,19 +1,21 @@
 ########################
 ##### Solver ######
 ########################
-
-_solve(p::DiscreteDynamicProblem{nStateVars,1,E,G,IP,IF},
+_solve(p::DiscreteDynamicProblem{nStateVars,1,C,G,IP,IF},
 		method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 		disp::Bool, rewardmat::Symbol, monotonicity::Bool, concavity::Bool) where
-			{nStateVars, T <: Union{separable, intermediate}, E,G,IP,IF} =
+			{nStateVars, T <: Separable_Union, C,G,IP,IF} =
 		_solve1(p.rewardfunc, method,
 			mTransition, mReward,
 			disp, rewardmat, monotonicity, concavity,
-			p.tStateVectors, p.tStateVectors[p.bEndogStateVars][1], p.tStateVectors[.!p.bEndogStateVars],
+			p.tStateVectors,
+			getchoicevars(p.tStateVectors, p.tChoiceVectors)[1],
+			getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
 			# p.bEndogStateVars,
 			p.β)
 
+# precondition is separable. have EndogStatevectors and exogstatevectors
 function _solve1(rewardfunc::Function, method::Type{T},
 				mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 				disp::Bool, rewardmat::Symbol, monotonicity::Bool, concavity::Bool,
@@ -21,7 +23,7 @@ function _solve1(rewardfunc::Function, method::Type{T},
 				vChoices::Vector{Float64},
 				tOtherStateVectors, #::NTuple{1,Vector{Float64}}
 				β::Float64) where
-				T <: Union{separable, intermediate}
+				T <: Separable_Union
 
     nChoices = length(vChoices)
 
@@ -105,10 +107,12 @@ function _solve1(rewardfunc::Function, method::Type{T},
 						reward = mReward[jprime, j + nChoices * (i-1)] # nChoices x nStates
 					end
 
-                    if method == separable
-	                    valueProvisional = reward + mβEV[jprime, i] # mβEV is already discounted
-                    else # method == intermediate
-                        valueProvisional = reward + mβEV[jprime, j + nChoices *(i-1)] # mβEV is already discounted
+                    if method == Separable_ExogStates
+	                    valueProvisional = reward + mβEV[jprime, i] # mβEV is nChoices x nExogStates
+                    elseif method == Separable_States
+						valueProvisional = reward + mβEV[jprime, j + nChoices *(i-1)] # mβEV is nChoices x nStates
+                    else # method == Separable
+						valueProvisional = reward + mβEV[jprime, jprime + nChoices*(j-1 + nChoices *(i-1))] # mβEV is nChoices x (nStates * nChoices)
                     end
 
 	                if (valueProvisional>=valueHighSoFar)

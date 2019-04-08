@@ -12,7 +12,7 @@ function solve(p::DDM; mTransition::Union{Nothing, Array{Float64,2}} = nothing,
 
     # intdim in(:SA, :intermediate, :separable) || error("supplied wrong intdim")
 
-    if rewardmat == :prebuild || intdim == SA
+    if rewardmat == :prebuild || intdim == All
         mReward = rewardmatrix(p)
     elseif rewardmat == :prebuild_partial
         mReward = rewardmatrix_partial(p)
@@ -26,7 +26,7 @@ function solve(p::DDM; mTransition::Union{Nothing, Array{Float64,2}} = nothing,
         mTransition = Array(transitionmatrix(p, numquadnodes = numquadnodes))
     end
 
-    if intdim == SA
+    if intdim == All
         meshValFun, tmeshPolFun = _solve(p, eval(intdim), mTransition, mReward, disp)
     else
         # if typeof(p.tChoiceVectors) == Tuple{Vector{Float64}}

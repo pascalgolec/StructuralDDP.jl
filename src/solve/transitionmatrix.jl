@@ -30,25 +30,28 @@ transitionmatrix(p::DDM;
     _transitionmatrix(p, p.intdim, numquadnodes)
 
 
-# expand structure, input out output vector tuples
+"""Generate a nExogStates x nExogStates transition matrix."""
 _transitionmatrix(p::DDM, method::Type{Separable_ExogStates}, numquadnodes::Vector{Int}) =
     _transitionmatrix(p.transfunc,
 	getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
 	getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
     p.shockdist, numquadnodes)
 
+"""Generate a nStates x nExogStates transition matrix."""
 _transitionmatrix(p::DDM, method::Type{Separable_States}, numquadnodes::Vector{Int}) =
     _transitionmatrix(p.transfunc,
     p.tStateVectors,
 	getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
    	p.shockdist, numquadnodes)
 
+"""Generate a (nChoices*nStates) x nExogStates transition matrix."""
 _transitionmatrix(p::DDM, method::Type{Separable}, numquadnodes::Vector{Int}) =
     _transitionmatrix(p.transfunc,
 	    p.tStateVectors, getchoicevars(p.tStateVectors, p.tChoiceVectors),
 		getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
 	    p.shockdist, numquadnodes)
 
+"""Generate a (nChoices*nStates) x nStates transition matrix."""
 _transitionmatrix(p::DDM, method::Type{All}, numquadnodes::Vector{Int}) =
 	_transitionmatrix(p.transfunc,
 		p.tStateVectors, p.tChoiceVectors,
@@ -59,7 +62,8 @@ _transitionmatrix(p::DDM, method::Type{All}, numquadnodes::Vector{Int}) =
 # for choices and states as input
 function _transitionmatrix(transfunc::Function,
     tInputVectorsStates::NTuple{N1, Vector{T}},
-	tInputVectorsChoices::NTuple{N2, Vector{T}}, tOutputVectors,
+	tInputVectorsChoices::NTuple{N2, Vector{T}},
+	tOutputVectors,
     shockdist, numquadnodes) where {N1, N2, T}
 
     mShocks, vWeights = getquadrature(shockdist, numquadnodes)
@@ -76,13 +80,20 @@ function _transitionmatrix(transfunc::Function,
     basisOutputStates = Basis(SplineParams.(tOutputVectors,0,1))
     PhiTemp = spzeros(size(mG)...)
 
-	iterator = zip(Iterators.product(tInputVectorsStates...), Iterators.product(tInputVectorsChoices...))
+	# choices change faster than states
+	iterator = Iterators.product(Iterators.product(tInputVectorsChoices...), Iterators.product(tInputVectorsStates...))
+	# iterator = Iterators.product(Iterators.product(tInputVectorsStates...), Iterators.product(tInputVectorsChoices...))
 
-    # loop over all shock combinations
+	# loop over all shock combinations
     for i = 1 : length(vWeights)
         # loop over all inputstates
-        for (j, (states, choices)) in enumerate(iterator)
+        for (j, (choices, states)) in enumerate(iterator)
+        # for (j, (states, choices)) in enumerate(iterator)
+			# @show j
+			# @show choices
+			# @show states
             g[:,j] .= transfunc(states, choices,  mShocks[:,i])
+			# @show g[:,j]
         end
         PhiTemp .= BasisMatrix(basisOutputStates, Expanded(), g', 0).vals[1]
         mG .= mG + vWeights[i] * PhiTemp
