@@ -12,7 +12,8 @@ module DiscreteDynamicProgramming
 	using SparseArrays
 	using LinearAlgebra
 
-	export createmodel, solve, drawshocks, simulate
+	export createmodel, solve, drawshocks, simulate, transitionmatrix,
+		drawshocks
 	# export NeoClassicalSimple
 
 	# using DiscreteDynamicModels
@@ -58,10 +59,10 @@ module DiscreteDynamicProgramming
 	include("solve/singlechoicevar.jl")
 	# include("solve/twochoicevar.jl")
 	include("solve/state_action.jl")
-	# include("solve/initialendogstatevars.jl")
+	include("solve/initialendogstatevars.jl")
 
 	# # simulator
-	# include("simulate/shocks.jl")
-	# include("simulate/simulate.jl")
+	include("simulate/shocks.jl")
+	include("simulate/simulate.jl")
 
 end

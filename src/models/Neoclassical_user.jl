@@ -127,6 +127,8 @@ function NeoClassicalSimple(; 	α = 0.67,
 		error("$intdim wrong intdim")
 	end
 
+	tChoiceVectorsZero = (1,)
+
 	# # specification is with endogchoicevars but SA
 	# function mytransfunc(vState::Vector{Float64}, vChoice::Vector{Float64}, vShocksss::Vector{Float64})
     #     # @unpack ρ , σ = p.params
@@ -157,9 +159,9 @@ function NeoClassicalSimple(; 	α = 0.67,
 	            tChoiceVectors,
 				Normal(); # give distribution of shocks: standard normal
 				intdim = intdim,
-	            # bEndogStateVars = bEndogStateVars,
 	            grossprofits = mygrossprofits,
 	            initializationproblem = initializationproblem,
 	            initializefunc = initialize,
+				tChoiceVectorsZero = tChoiceVectorsZero,
 	            )
 end

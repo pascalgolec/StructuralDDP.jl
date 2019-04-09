@@ -42,7 +42,7 @@ abstract type ModelParams end
 
 
 # <: DDM
-struct DiscreteDynamicProblem{nStateVars,nChoiceVars,C,G,IP,IF} <: DDM
+struct DiscreteDynamicProblem{nStateVars,nChoiceVars,C,G,IP,IF,nChoiceVarsZero, C0} <: DDM
 
     β::Real # important to specify here for type stability
 
@@ -65,8 +65,13 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,C,G,IP,IF} <: DDM
     """The partial reward function."""
     grossprofits::G
 
+    """Objective function at t=0 to choose initial endogenous state variables."""
     initializationproblem::IP
+
+    """Function that maps initial shocks and initial policy into state variables."""
     initializefunc::IF
+
+    tChoiceVectorsZero::NTuple{nChoiceVarsZero, C0}
 
 end
 
@@ -86,7 +91,9 @@ function createDiscreteDynamicProblem(
             grossprofits::Union{Function,Nothing} = nothing,
             initializationproblem::Union{Function,Nothing} = nothing,
             initializefunc::Union{Function,Nothing} = nothing,
-            ) where {I <: DDMIntDim, S, C, typeC<:Union{Vector{Float64}, Int64}}
+            tChoiceVectorsZero::NTuple{C0, typeC0} = tChoiceVectors,
+            ) where {I <: DDMIntDim, S, C, typeC<:Union{Vector{Float64}, Int64},
+                C0, typeC0<:Union{Vector{Float64}, Int64}}
 
     # can do stuff that the user does not interact with
     # nStateVars = length(tStateVectors)
@@ -113,6 +120,7 @@ function createDiscreteDynamicProblem(
         grossprofits,
         initializationproblem,
         initializefunc,
+        tChoiceVectorsZero,
         )
 end
 

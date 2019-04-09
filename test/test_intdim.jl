@@ -1,6 +1,6 @@
 
 using DiscreteDynamicProgramming
-include("helpfunctions.jl")
+include("utils.jl")
 using Test
 mytol = 1e-4
 

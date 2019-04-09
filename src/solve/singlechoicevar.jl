@@ -12,7 +12,6 @@ _solve(p::DiscreteDynamicProblem{nStateVars,1,C,G,IP,IF},
 			p.tStateVectors,
 			getchoicevars(p.tStateVectors, p.tChoiceVectors)[1],
 			getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
-			# p.bEndogStateVars,
 			p.β)
 
 # precondition is separable. have EndogStatevectors and exogstatevectors

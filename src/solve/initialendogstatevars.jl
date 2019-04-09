@@ -8,29 +8,39 @@
 # to do:
 # - only works if choice vector is equal to state vector
 # - only works if first state is choice state?
-# note: could be more elegant to have a SIngleChoiceVar and a TwoChoiceVar subtype of DDM
+# note: could be more elegant to have a SingleChoiceVar and a TwoChoiceVar subtype of DDM
 # to allocate to method.. will depend on how user inputs stuff
-function initialendogstatevars(p::DDM, meshValFun::Array{Float64})
-    if typeof(p.tChoiceVectors) == Tuple{Vector{Float64}}
-        return meshValFunZero, tmeshPolFunZero = initialendogstatevars1(
-            p.initializationproblem, meshValFun, p.tStateVectors, p.bEndogStateVars)
-    elseif typeof(p.tChoiceVectors) == Tuple{Vector{Float64},Vector{Float64}}
-        return meshValFunZero, tmeshPolFunZero = initialendogstatevars2(
-            p.initializationproblem, meshValFun, p.tStateVectors, p.bEndogStateVars)
-    end
-end
+# function initialendogstatevars(p::DDM, meshValFun::Array{Float64})
+#     if typeof(p.tChoiceVectors) == Tuple{Vector{Float64}}
+#         return meshValFunZero, tmeshPolFunZero = initialendogstatevars1(
+#             p.initializationproblem, meshValFun,
+#             p.tStateVectors, getchoicevars(p), getnonchoicevars(p))
+#     elseif typeof(p.tChoiceVectors) == Tuple{Vector{Float64},Vector{Float64}}
+#         return meshValFunZero, tmeshPolFunZero = initialendogstatevars2(
+#             p.initializationproblem, meshValFun,
+#             p.tStateVectors, getchoicevars(p), getnonchoicevars(p))
+#     end
+# end
 
-function initialendogstatevars1(initializationproblem::Function, meshValFun::Array{Float64},
-    tStateVectors, bEndogStateVars)
+# initialendogstatevars(p::DDP{nStateVars,1,C,G,IP,IF},
+#     meshValFun::Array{Float64}) where {nStateVars,C,G,IP,IF} =
+#     initialendogstatevars1(
+#         p.initializationproblem, meshValFun,
+#         p.tStateVectors, getchoicevars(p), getnonchoicevars(p))
+initialendogstatevars(p::DDP, meshValFun::Array{Float64}) =
+    _initialendogstatevars(
+        p.initializationproblem, meshValFun,
+        p.tStateVectors, getchoicevarszero(p), getnonchoicevarszero(p))
 
-    tNodes = length.(tStateVectors)
-    exogtNodes = tNodes[.!bEndogStateVars]
+function _initialendogstatevars(initializationproblem::Function, meshValFun::Array{Float64},
+    tStateVectors, tEndogStateVectors::Tuple{Vector{Float64}}, tExogStateVectors)
+
+    exogtNodes = length.(tExogStateVectors)
 
     mV0 = zeros(exogtNodes)
     mChoice0 = zeros(exogtNodes)
 
-    # vActions = tStateVectors[1]
-    vActions::Vector{Real} = tStateVectors[bEndogStateVars][1]
+    vActions::Vector{Real} = tEndogStateVectors[1]
 
     for iexog in CartesianIndices(exogtNodes)
 
@@ -57,19 +67,18 @@ function initialendogstatevars1(initializationproblem::Function, meshValFun::Arr
 
 end
 
-function initialendogstatevars2(initializationproblem::Function, meshValFun::Array{Float64},
-    tStateVectors, bEndogStateVars)
+function initialendogstatevars(initializationproblem::Function, meshValFun::Array{Float64},
+    tStateVectors, tEndogStateVectors::NTuple{2,Vector{Float64}}, tExogStateVectors)
 
-    tNodes = length.(tStateVectors)
-    exogtNodes = tNodes[.!bEndogStateVars]
+    exogtNodes = length.(tExogStateVectors)
 
     mV0 = zeros(exogtNodes)
     mChoiceOne0 = zeros(exogtNodes)
     mChoiceTwo0 = zeros(exogtNodes)
 
-    # vActionsOne = tChoiceVectors[1]
-    # vActionsTwo = tChoiceVectors[2]
-    vActionsOne, vActionsTwo = tStateVectors[bEndogStateVars]
+    vActionsOne = tEndogStateVectors[1]
+    vActionsTwo = tEndogStateVectors[2]
+    # vActionsOne, vActionsTwo = tStateVectors[bEndogStateVars]
 
 
     for iexog in CartesianIndices(exogtNodes)

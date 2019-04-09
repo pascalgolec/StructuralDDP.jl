@@ -34,7 +34,8 @@ end
 _simulate(p::DDM, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function;
         initialize_exact::Bool = sol.tmeshPolFunZero != nothing) =
 		_simulate(sol, shocks, transfunc, p.intdim,
-				p.tStateVectors, p.tChoiceVectors, getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
+				p.tStateVectors, p.tChoiceVectors,
+				getnonchoicevarszero(p),
 				p.initializefunc, initialize_exact)
 
 
@@ -46,7 +47,7 @@ function _simulate(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Funct
 				# tStateVectors::NTuple{2,Vector{Float64}}, tChoiceVectors::NTuple{1,Vector{Float64}},
 				# tOtherStateVectors::Tuple{Vector{Float64}},
 				tStateVectors, tChoiceVectors,
-				tOtherStateVectors,
+				tOtherStateVectorsZero,
 				initializefunc::Function, initialize_exact::Bool) where T<:DDMIntDim
 
 	# @unpack intdim, nPeriods, nFirms = p.params
@@ -85,7 +86,7 @@ function _simulate(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Funct
 	itp_value = extrapolate(itp_value, Flat())
 
 	if initialize_exact
-        itp_policy0 = [interpolate(tOtherStateVectors, polfun, Gridded(Linear())) for polfun in sol.tmeshPolFunZero]
+        itp_policy0 = [interpolate(tOtherStateVectorsZero, polfun, Gridded(Linear())) for polfun in sol.tmeshPolFunZero]
         itp_policy0 = [extrapolate(itp, Flat()) for itp in itp_policy0]
     end
 
@@ -138,18 +139,20 @@ function _simulate(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Funct
 			# THIS BELOW LEADS TO TYPE INFERENCE PROBLEMS or is just slow
 			# vSim_i[:,t+1] .= transfunc(SA, vSim_i[:,t], choice, mShocks_i[:,t])
 
-			function fill_it!(vSim_it1, vSim_it, transfunc, intdim::Type{SA}, vChoice, mShocks_it, nChoiceVars)
+			function fill_it!(vSim_it1, vSim_it, transfunc, intdim::Type{All}, vChoice, mShocks_it, nChoiceVars)
 				vSim_it1 .= transfunc(vSim_it, vChoice, mShocks_it)
 			end
-			function fill_it!(vSim_it1, vSim_it, transfunc, intdim::Type{intermediate}, vChoice, mShocks_it, nChoiceVars)
+			function fill_it!(vSim_it1, vSim_it, transfunc, intdim::Type{Separable}, vChoice, mShocks_it, nChoiceVars)
+				vSim_it1[1:nChoiceVars] .= vChoice
+				vSim_it1[1+nChoiceVars:end] .= transfunc(vSim_it, vChoice, mShocks_it)
+			end
+			function fill_it!(vSim_it1, vSim_it, transfunc, intdim::Type{Separable_States}, vChoice, mShocks_it, nChoiceVars)
 				vSim_it1[1:nChoiceVars] .= vChoice
 				vSim_it1[1+nChoiceVars:end] .= transfunc(vSim_it, mShocks_it)
 			end
-			function fill_it!(vSim_it1, vSim_it, transfunc, intdim::Type{separable}, vChoice, mShocks_it, nChoiceVars)
-				# @show "inside fillit"
+			function fill_it!(vSim_it1, vSim_it, transfunc, intdim::Type{Separable_ExogStates}, vChoice, mShocks_it, nChoiceVars)
 				vSim_it1[1:nChoiceVars] .= vChoice
 				vSim_it1[1+nChoiceVars:end] .= transfunc(vSim_it[1+nChoiceVars:end], mShocks_it)
-				# @show vSim_it1
 			end
 			# don't think this works, because it is a view of a bigger array
 			fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], transfunc, intdim, vChoice, mShocks_i[:,t], nChoiceVars)

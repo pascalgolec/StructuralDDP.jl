@@ -95,30 +95,14 @@ T_neo_sep_exogstates = transitionmatrix(p_neo_sep_exogstates)
 			T_sep_exogstates = T_neo_sep_exogstates
 
 			# compare All and Separable
-			tT_test = [reshape(T_all,(nK*nK*nz,nK, nz))[:,j,:] for j = 1 : 5]
-			@test all([T_sep == T_test for T_test in tT_test])
+			# to do
 
 			# compare Separable and Separable_States
-			tT_test = [reshape(T_sep,(nK*nz, nK, nz))[:,j,:] for j = 1 : 5]
-			@test all([T_sep_states == T_test for T_test in tT_test])
-
+			# to do
 
 			# compare Separable_States and Separable_ExogStates
 			tT_test = [reshape(T_sep_states,(nK, nz, nz))[j,:,:] for j = 1 : 5]
 			@test all([T_sep_exogstates == T_test for T_test in tT_test])
-
-			# # compare seperable with intermediate
-			# T_test = reshape(T_neoclassical_int,(100, 20, 20))[2,:,:]
-			# @test all(T_neoclassical_sep == T_test)
-			# T_test = reshape(T_neoclassical_int,(100, 20, 20))[10,:,:]
-			# @test all(T_neoclassical_sep == T_test)
-			#
-			# # contract SA to get intermediate
-			# test = T_neoclassical_SA[1:100*20,:]
-			# test = Matrix(reshape(test, (100*20, 100, 20))[:,1,:])
-			# @test test  ≈ Matrix(T_neoclassical_int) rtol=mytol
-			#
-			# # expand intermediate to get SA?
 
 		end
 

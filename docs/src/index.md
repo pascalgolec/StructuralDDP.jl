@@ -202,11 +202,32 @@ sim = simulate(prob, sol, nPeriods, nFirms)
 If `nPeriods` and `nFirms` are contained in the `prob.params` structure, then we can simulate directly with `simulate(prob, sol)` (if the information is provided, then it is overridden). It is also possible to simulate a model or variations thereof (e.g. for different parameters) using the same draw of shocks:
 
 ```julia
-nPeriods = 120
-nFirms = 1000
-shocks = drawshocks(prob, nPeriods, nFirms)
+shocks = drawshocks(prob, nPeriods = 120, nFirms = 1000)
 sim = simulate(prob, sol, shocks)
 ```
+
+### Initialization
+
+The default setting how the initial state variables are drawn at t=0 is the burn-in method. Here, each firm starts with states that are the median values of the state space. The idea is to simulate the model for more periods than necessary and then only analyse the simulated values after 60 periods or so on, depending on the model.
+
+There is also an option for more sophisticated initialization, where the initial endogenous state variables are chosen by the firm subject to a loss function and the exogenous ones are predetermined or random. For the neoclassical model, this entails coding the following functions as an additional input into the problem:
+
+```julia
+initprob(value::Float64, K::Float64) = value - (1 + (1-β)/β + C0) * K
+function init(dShock::AbstractArray{Float64, 1}, itp_K0)
+    z0 = dShock[1] * sqrt(σ^2 / (1-ρ^2))
+    z0 = inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
+    K0 = itp_K0(z0)
+    K0 = inbounds(K0, tStateVectors[1][1], tStateVectors[1][end])
+    return [K0, z0]
+end
+createDiscreteDynamicProblem(<other variables>,
+    initializationproblem = initprob,
+    initializefunc = init)
+```
+
+If we have a problem where our choice variables are not exacly equal to some of the state variables, then we need to specify additionally which state variables the firm chooses at t=0. This is achieved with the option `tChoiceVectorsZero`, i.e. `tChoiceVectorsZero = (1,)` for the neoclassical model. If `tChoiceVectorsZero` is not specified, then the solver/simulator uses indices of the choice variables for the dynamic optimization.
+
 
 # notes
 
@@ -215,8 +236,3 @@ sim = simulate(prob, sol, shocks)
 - state variables are always forced to stay within bounds
 - for `intermediate` and `separable`, can choose directly the state variable
 - order of state variables is first the endogenous state variable, then exogenous
-
-## Reserved parameters
-
-- discount factor beta
-- solver options
