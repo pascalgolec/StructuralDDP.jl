@@ -67,7 +67,7 @@ function _initialendogstatevars(initializationproblem::Function, meshValFun::Arr
 
 end
 
-function initialendogstatevars(initializationproblem::Function, meshValFun::Array{Float64},
+function _initialendogstatevars(initializationproblem::Function, meshValFun::Array{Float64},
     tStateVectors, tEndogStateVectors::NTuple{2,Vector{Float64}}, tExogStateVectors)
 
     exogtNodes = length.(tExogStateVectors)

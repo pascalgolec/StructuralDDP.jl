@@ -4,18 +4,28 @@ using Test
 mytol = 1e-4
 
 model = :NeoClassicalSimple
-nK = 100
-nz = 20
-dipar = Dict(:nK => nK, :nz => nz, :β => 0.9, :ρ => 0.6, :σ => 0.3)
-p_neo_all = createmodel(model; dipar..., intdim = :All)
-p_neo_sep = createmodel(model; dipar..., intdim = :Separable)
-p_neo_sep_states = createmodel(model; dipar..., intdim = :Separable_States)
-p_neo_sep_exogstates = createmodel(model; dipar..., intdim = :Separable_ExogStates)
+dipar_neo = Dict(:nK => 100, :nz => 20, :β => 0.9, :ρ => 0.6, :σ => 0.3)
+p_neo_all = createmodel(model; dipar_neo..., intdim = :All)
+p_neo_sep = createmodel(model; dipar_neo..., intdim = :Separable)
+p_neo_sep_states = createmodel(model; dipar_neo..., intdim = :Separable_States)
+p_neo_sep_exogstates = createmodel(model; dipar_neo..., intdim = :Separable_ExogStates)
 
 T_neo_all = transitionmatrix(p_neo_all)
 T_neo_sep = transitionmatrix(p_neo_sep)
 T_neo_sep_states = transitionmatrix(p_neo_sep_states)
 T_neo_sep_exogstates = transitionmatrix(p_neo_sep_exogstates)
+
+model = :Intangible
+dipar_int = Dict(:nK => 20, :nN=>15, :nz => 3, :β => 0.9, :ρ => 0.6, :σ => 0.3)
+p_int_all = createmodel(model; dipar_int..., intdim = :All)
+p_int_sep = createmodel(model; dipar_int..., intdim = :Separable)
+p_int_sep_states = createmodel(model; dipar_int..., intdim = :Separable_States)
+p_int_sep_exogstates = createmodel(model; dipar_int..., intdim = :Separable_ExogStates)
+
+T_int_all = transitionmatrix(p_int_all)
+T_int_sep = transitionmatrix(p_int_sep)
+T_int_sep_states = transitionmatrix(p_int_sep_states)
+T_int_sep_exogstates = transitionmatrix(p_int_sep_exogstates)
 
 #
 # p_intangible_sep = createmodel(NeoClassicalIntangible, intdim = :separable,
@@ -94,6 +104,9 @@ T_neo_sep_exogstates = transitionmatrix(p_neo_sep_exogstates)
 			T_sep_states = T_neo_sep_states
 			T_sep_exogstates = T_neo_sep_exogstates
 
+			nK = dipar_neo[:nK]
+			nz = dipar_neo[:nz]
+
 			# compare All and Separable
 			# to do
 
@@ -106,17 +119,32 @@ T_neo_sep_exogstates = transitionmatrix(p_neo_sep_exogstates)
 
 		end
 
-		# @testset "Intangible" begin
-        # 	T_test = reshape(T_intangible_int,(20, 15, 3, 3))[2, 4, :,:]
-		# 	@test all(T_intangible_sep == T_test)
-		# 	T_test = reshape(T_intangible_int,(20, 15, 3, 3))[10, 5, :,:]
-		# 	@test all(T_intangible_sep == T_test)
-		#
-		# 	# contract SA to get intermediate
-		# 	test = T_intangible_SA[1:20*15*3,:]
-		# 	test = Matrix(reshape(test, (20*15*3, 20, 15, 3))[:,1,1,:])
-		# 	@test test  ≈ Matrix(T_intangible_int) rtol=mytol
-		# end
+		@testset "Intangible" begin
+
+			T_all = T_int_all
+			T_sep = T_int_sep
+			T_sep_states = T_int_sep_states
+			T_sep_exogstates = T_int_sep_exogstates
+
+			nK = dipar_int[:nK]
+			nN = dipar_int[:nN]
+			nz = dipar_int[:nz]
+
+			# compare All and Separable
+			# to do
+
+			# compare Separable and Separable_States
+			# to do
+
+			# compare Separable_States and Separable_ExogStates
+			tT_test = [reshape(T_sep_states, (nK,nN,nz,nz))[j,j,:,:] for j = 1 : 5]
+			@test all([T_sep_exogstates == T_test for T_test in tT_test])
+
+			# # contract SA to get intermediate
+			# test = T_intangible_SA[1:20*15*3,:]
+			# test = Matrix(reshape(test, (20*15*3, 20, 15, 3))[:,1,1,:])
+			# @test test  ≈ Matrix(T_intangible_int) rtol=mytol
+		end
 		#
         # @testset "Financing" begin
 		# 	# contract intermediate to get separate

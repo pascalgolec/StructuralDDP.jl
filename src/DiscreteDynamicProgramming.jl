@@ -45,7 +45,7 @@ module DiscreteDynamicProgramming
 	# Models
 	include("models/Neoclassical_user.jl")
 	# include("models/Intangible.jl")
-	# include("models/Intangible.jl")
+	include("models/Intangible_user.jl")
 
 	# for using createmodel syntax:
 	createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
@@ -57,7 +57,7 @@ module DiscreteDynamicProgramming
 	include("solve/rewardmatrix.jl")
 	include("solve/transitionmatrix.jl")
 	include("solve/singlechoicevar.jl")
-	# include("solve/twochoicevar.jl")
+	include("solve/twochoicevar.jl")
 	include("solve/state_action.jl")
 	include("solve/initialendogstatevars.jl")
 

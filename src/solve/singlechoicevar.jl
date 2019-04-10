@@ -1,11 +1,11 @@
 ########################
 ##### Solver ######
 ########################
-_solve(p::DiscreteDynamicProblem{nStateVars,1,C,G,IP,IF},
+_solve(p::DDP{nStateVars,1},
 		method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 		disp::Bool, rewardmat::Symbol, monotonicity::Bool, concavity::Bool) where
-			{nStateVars, T <: Separable_Union, C,G,IP,IF} =
+			{nStateVars, T <: Separable_Union} =
 		_solve1(p.rewardfunc, method,
 			mTransition, mReward,
 			disp, rewardmat, monotonicity, concavity,

@@ -33,22 +33,22 @@ transitionmatrix(p::DDM;
 """Generate a nExogStates x nExogStates transition matrix."""
 _transitionmatrix(p::DDM, method::Type{Separable_ExogStates}, numquadnodes::Vector{Int}) =
     _transitionmatrix(p.transfunc,
-	getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
-	getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
+	getnonchoicevars(p),
+	getnonchoicevars(p),
     p.shockdist, numquadnodes)
 
 """Generate a nStates x nExogStates transition matrix."""
 _transitionmatrix(p::DDM, method::Type{Separable_States}, numquadnodes::Vector{Int}) =
     _transitionmatrix(p.transfunc,
     p.tStateVectors,
-	getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
+	getnonchoicevars(p),
    	p.shockdist, numquadnodes)
 
 """Generate a (nChoices*nStates) x nExogStates transition matrix."""
 _transitionmatrix(p::DDM, method::Type{Separable}, numquadnodes::Vector{Int}) =
     _transitionmatrix(p.transfunc,
-	    p.tStateVectors, getchoicevars(p.tStateVectors, p.tChoiceVectors),
-		getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
+	    p.tStateVectors, getchoicevars(p),
+		getnonchoicevars(p),
 	    p.shockdist, numquadnodes)
 
 """Generate a (nChoices*nStates) x nStates transition matrix."""

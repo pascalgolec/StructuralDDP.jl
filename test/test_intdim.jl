@@ -7,10 +7,7 @@ mytol = 1e-4
 # CHANGE TO F > 0
 
 model = :NeoClassicalSimple
-dipar = Dict(:nK => 40, :nz => 11, :γ => 0.5, :F => 0., :τ => 0.3)
-
-# intdims = [:All, :Separable, :Separable_States, :Separable_ExogStates]
-
+dipar = Dict(:nK => 40, :nz => 5, :γ => 0.5, :F => 0., :τ => 0.3)
 p_neoclassical_All = createmodel(model; dipar..., intdim = :All)
 p_neoclassical_Separable = createmodel(model; dipar..., intdim = :Separable)
 p_neoclassical_Separable_States = createmodel(model; dipar..., intdim = :Separable_States)
@@ -23,17 +20,36 @@ sol_neoclassical_Separable = solve(p_neoclassical_Separable; diopt...)
 sol_neoclassical_Separable_States = solve(p_neoclassical_Separable_States; diopt...)
 sol_neoclassical_Separable_ExogStates = solve(p_neoclassical_Separable_ExogStates; diopt...)
 
-# ptest = createmodel(:Intangible; nK = 15, nN = 10, nz = 3)
-# optdict = Dict(
-# 	:monotonicity=>[true,true],
-# 	:concavity=>[true,true],
-# 	:rewardmat=>:prebuild_partial,
-# 	)
-# sol_intan_SA = solve(ptest; intdim = :SA)
-# sol_intan_separable = solve(ptest; optdict..., intdim = :separable)
-# sol_intan_intermediate = solve(ptest; optdict..., intdim = :intermediate)
+
+model = :Intangible
+dipar = Dict(:nK => 10, :nN => 7, :nz => 3)
+p_int_All = createmodel(model; dipar..., intdim = :All)
+p_int_Sep = createmodel(model; dipar..., intdim = :Separable)
+p_int_Sep_States = createmodel(model; dipar..., intdim = :Separable_States)
+p_int_Sep_ExogStates = createmodel(model; dipar..., intdim = :Separable_ExogStates)
+
+optdict = Dict(
+	:monotonicity=>[false,false], :concavity=>[false,false],
+	:rewardmat=>:nobuild, :initialize_exact=>false)
+sol_intan_All = solve(p_int_All; optdict...)
+sol_intan_Separable = solve(p_int_Sep; optdict...)
+sol_intan_Separable_States = solve(p_int_Sep_States; optdict...)
+sol_intan_Separable_ExogStates = solve(p_int_Sep_ExogStates; optdict...)
+
 
 @testset "intdims" begin
+
+	@testset "compare solution methods" begin
+
+        compare_solutions("Neoclassical_1st_2nd", sol_neoclassical_All, sol_neoclassical_Separable, mytol)
+        compare_solutions("Neoclassical_2nd_3rd", sol_neoclassical_Separable, sol_neoclassical_Separable_States, mytol)
+        compare_solutions("Neoclassical_3rd_4th", sol_neoclassical_Separable_States, sol_neoclassical_Separable_ExogStates, mytol)
+
+		compare_solutions("Intangible_1st_2nd", sol_intan_All, sol_intan_Separable, mytol)
+		compare_solutions("Intangible_2nd_3rd", sol_intan_Separable, sol_intan_Separable_States, mytol)
+        compare_solutions("Intangible_3rd_4th", sol_intan_Separable_States, sol_intan_Separable_ExogStates, mytol)
+
+    end
 
     # @testset "SA" begin
     #
@@ -54,16 +70,6 @@ sol_neoclassical_Separable_ExogStates = solve(p_neoclassical_Separable_ExogState
     #     end
     # end # SA
 
-    @testset "compare solution methods" begin
 
-        compare_solutions("Neoclassical_1st_2nd", sol_neoclassical_All, sol_neoclassical_Separable)
-        compare_solutions("Neoclassical_2nd_3rd", sol_neoclassical_Separable, sol_neoclassical_Separable_States)
-        compare_solutions("Neoclassical_3rd_4th", sol_neoclassical_Separable_States, sol_neoclassical_Separable_ExogStates)
-
-		# compare_solutions("Intangible_SA_sep", sol_intan_SA, sol_intan_separable)
-        # compare_solutions("Intangible_SA_int", sol_intan_SA, sol_intan_intermediate)
-        # compare_solutions("Intangible_sep_int", sol_intan_separable, sol_intan_intermediate)
-
-    end
 
 end # intdims

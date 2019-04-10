@@ -8,10 +8,11 @@ function getsecondchoice(rewardfunc::Function,
                          nChoiceTwo::Int64, vChoiceTwo::Vector{Float64},
                          iChoice2Start::Int64,
 						 ixI::NTuple{N,Int64} where N,
+						 tStateVectors,
 						 intdim::Type{T},
 						 rewardmat::Symbol,
 						 concavity2::Bool) where
-						 	T <: Union{separable, intermediate}
+						 	T <: Separable_Union
                             # {act<:capitalaction}
 
 
@@ -50,11 +51,25 @@ function getsecondchoice(rewardfunc::Function,
 			reward = mReward[jprime + nChoiceOne * (lprime-1), j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1)] # nChoices x nStates
 		end
 
-        if intdim == separable # mβEV is nChoices x nStochStates
+        if intdim == Separable_ExogStates # mβEV is nChoices x nStochStates
             βEV = mβEV[jprime + nChoiceOne * (lprime-1), i] # mβEV is already discounted, jprime = j for inactive
-        elseif intdim == intermediate # mβEV is nChoices x nStates
+        elseif intdim == Separable_States # mβEV is nChoices x nStates
             βEV = mβEV[jprime + nChoiceOne * (lprime-1), j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1)]
+        else intdim == Separable # mβEV is mβEV is nChoices x (nChoices * nStates)
+            # error("separable not done yet")
+            βEV = mβEV[jprime + nChoiceOne * (lprime-1),
+				jprime + nChoiceOne * (lprime-1) + (nChoiceOne*nChoiceTwo) *
+					(-1 + j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1))
+				]
         end
+
+		# if method == Separable_ExogStates
+		# 	valueProvisional = reward + mβEV[jprime, i] # mβEV is nChoices x nExogStates
+		# elseif method == Separable_States
+		# 	valueProvisional = reward + mβEV[jprime, j + nChoices *(i-1)] # mβEV is nChoices x nStates
+		# else # method == Separable
+		# 	valueProvisional = reward + mβEV[jprime, jprime + nChoices*(j-1 + nChoices *(i-1))] # mβEV is nChoices x (nStates * nChoices)
+		# end
 
         valueProvisionalTwo = reward + βEV
 
@@ -70,19 +85,19 @@ function getsecondchoice(rewardfunc::Function,
     return valueHighSoFarTwo, iChoice2
 end
 
-_solve(p::DiscreteDynamicProblem{nStateVars,2,E,G,IP,IF}, method::Type{T},
+_solve(p::DDP{nStateVars,2}, method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 		disp::Bool, rewardmat::Symbol, monotonicity::Vector{Bool}, concavity::Vector{Bool}) where
-			{nStateVars, T <: Union{separable, intermediate}, E,G,IP,IF} =
+			{nStateVars, T <: Separable_Union} =
 		_solve2(p.rewardfunc, method,
 			mTransition, mReward,
 			disp, rewardmat,
 			monotonicity[1], monotonicity[2],
 			concavity[1], concavity[2],
 			p.tStateVectors,
-			p.tStateVectors[p.bEndogStateVars],
-			p.tStateVectors[.!p.bEndogStateVars],
-			p.params.β)
+			getchoicevars(p),
+			getnonchoicevars(p),
+			p.β)
 
 # function solve(p::TwoChoiceVar, method::Type{T},
 # 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
@@ -97,7 +112,7 @@ function _solve2(rewardfunc::Function, method::Type{T},
 						tChoiceVectors,
 						tOtherStateVectors, #::NTuple{1,Vector{Float64}}
 						β::Float64) where
-						T <: Union{separable, intermediate}
+						T <: Separable_Union
 
 
     (nChoiceOne, nChoiceTwo) = length.(tChoiceVectors)
@@ -184,6 +199,7 @@ function _solve2(rewardfunc::Function, method::Type{T},
                                                         nChoiceTwo, vChoiceTwo,
                                                         vChoice2Start[j],
 														ix.I,
+														tStateVectors,
 														method,
 														rewardmat,
 														concavity2)

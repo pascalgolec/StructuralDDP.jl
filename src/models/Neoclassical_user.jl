@@ -140,15 +140,15 @@ function NeoClassicalSimple(; 	α = 0.67,
     #     return  inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
     # end
 
-	initializationproblem(value::Float64, K::Float64) =
+	initializationproblem(value, K) =
 		value - (1 + (1-β)/β + C0) * K
 
-	function initialize(dShock::AbstractArray{Float64, 1}, itp_K0)
-	    z0 = dShock[1] * sqrt(σ^2 / (1-ρ^2))
+	function initialize(vShocks, itp_K0)
+	    z0 = vShocks[1] * sqrt(σ^2 / (1-ρ^2))
 		z0 = inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
 	    K0 = itp_K0(z0)
 		K0 = inbounds(K0, tStateVectors[1][1], tStateVectors[1][end])
-		return [K0, z0]
+		return [K0, z0] # CAN RETURN AS TUPLE INSTEAD? K0, z0
 	end
 
 	createDiscreteDynamicProblem(

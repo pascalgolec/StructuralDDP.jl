@@ -37,19 +37,35 @@ end
 
 
 
-# p_int = createmodel(:Intangible)
-# optdict = Dict(
-# 	:intdim=>:separable,
-# 	:monotonicity=>true,
-# 	:concavity=>true,
-# 	:rewardmat=>:prebuild_partial,
-# 	:initialize_exact=>true
-# 	)
-#
-# sol_int = solve(p_int; optdict...)
-# shocks_int = drawshocks(p_int, 20, 100)
-#
-# @testset "Simulate Intangible" begin
-# 	simulate(p_int, sol_int, shocks_int, initialize_exact=false)
-# 	simulate(p_int, sol_int, shocks_int, initialize_exact=true)
-# end
+model = :Intangible
+dipar = Dict(:nK => 15, :nN => 10, :nz => 5, :γ => 2., :τ => 0.0)
+p_int_all = createmodel(model; dipar..., :intdim=>:All)
+p_int_sep = createmodel(model; dipar..., :intdim=>:Separable)
+p_int_sep_states = createmodel(model; dipar..., :intdim=>:Separable_States)
+p_int_sep_exogstates = createmodel(model; dipar..., :intdim=>:Separable_ExogStates)
+
+optdict = Dict(
+	:monotonicity=>true,
+	:concavity=>true,
+	:rewardmat=>:prebuild_partial,
+	:initialize_exact=>true
+	)
+
+sol_int_all = solve(p_int_all; optdict...)
+sol_int_sep = solve(p_int_sep; optdict...)
+sol_int_sep_states = solve(p_int_sep_states; optdict...)
+sol_int_sep_exogstates = solve(p_int_sep_exogstates; optdict...)
+
+shocks_int = drawshocks(p_int_all, nPeriods=20, nFirms=100)
+
+@testset "Simulate Intangible" begin
+	simulate(p_int_all, sol_int_all, shocks_int, initialize_exact=false)
+	simulate(p_int_sep, sol_int_sep, shocks_int, initialize_exact=false)
+	simulate(p_int_sep_states, sol_int_sep_states, shocks_int, initialize_exact=false)
+	simulate(p_int_sep_exogstates, sol_int_sep_exogstates, shocks_int, initialize_exact=false)
+
+	simulate(p_int_all, sol_int_all, shocks_int, initialize_exact=true)
+	simulate(p_int_sep, sol_int_sep, shocks_int, initialize_exact=true)
+	simulate(p_int_sep_states, sol_int_sep_states, shocks_int, initialize_exact=true)
+	simulate(p_int_sep_exogstates, sol_int_sep_exogstates, shocks_int, initialize_exact=true)
+end
