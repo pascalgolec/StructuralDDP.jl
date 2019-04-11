@@ -5,28 +5,36 @@
 # abstract type passive <: capitalaction end
 # # only use capital action for multiplechoicevar. will try to code without
 
-struct DDPSolution
+abstract type AbstractDDPSolution end
 
-   meshValFun::Array{Float64}
-   tmeshPolFun::NTuple{N,Array{Float64}} where N
-   meshValFunZero::Union{Array{Float64}, Nothing}
-   tmeshPolFunZero::Union{NTuple{N,Array{Float64}}, Nothing} where N
+# how to have an optional meshzero while preserving type stability?
+struct DDPSolution{nStateVars,nChoiceVars} <: AbstractDDPSolution
+
+   meshValFun::Array{Float64,nStateVars}
+   tmeshPolFun::NTuple{nChoiceVars,Array{Float64,nStateVars}}
 
 end
 
+# includes solution for exact initialization
+struct DDPSolutionZero{nStateVars,nChoiceVars,nExogVars} <: AbstractDDPSolution
+
+   meshValFun::Array{Float64,nStateVars}
+   tmeshPolFun::NTuple{nChoiceVars,Array{Float64,nStateVars}}
+   meshValFunZero::Array{Float64,nExogVars}
+   tmeshPolFunZero::NTuple{nChoiceVars,Array{Float64,nExogVars}}
+
+end
 
 function createsolution(p::DDM, meshValFun::Array{Float64},
                                 tmeshPolFun::NTuple{N,Array{Float64}},
                                 initialize_exact::Bool = false) where N
 
-   if initialize_exact
-      meshValFunZero, tmeshPolFunZero = initialendogstatevars(p, meshValFun)
+   if !initialize_exact
+      return DDPSolution(meshValFun, tmeshPolFun)
    else
-      meshValFunZero = nothing
-      tmeshPolFunZero = (nothing)
+      meshValFunZero, tmeshPolFunZero = initialendogstatevars(p, meshValFun)
+      return DDPSolutionZero(meshValFun, tmeshPolFun, meshValFunZero, tmeshPolFunZero)
    end
-
-   DDPSolution(meshValFun, tmeshPolFun, meshValFunZero, tmeshPolFunZero)
 end
 
 # abstract type DDPSolution end

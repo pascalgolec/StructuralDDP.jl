@@ -1,8 +1,4 @@
 
-####################
-# NeoClassical
-####################
-
 @with_kw struct NeoClassicalSimpleParams{R<:Real, I<:Int64}
     α::R = 0.67
     β::R = 0.9

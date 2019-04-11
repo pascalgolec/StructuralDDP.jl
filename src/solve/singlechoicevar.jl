@@ -1,19 +1,33 @@
 ########################
 ##### Solver ######
 ########################
-
-function solve(p::SingleChoiceVar, method::Type{T},
+_solve(p::DDP{nStateVars,1},
+		method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
-		disp::Bool, rewardmat, monotonicity, concavity) where
-			T <: Union{separable, intermediate}
+		disp::Bool, rewardmat::Symbol, monotonicity::Bool, concavity::Bool) where
+			{nStateVars, T <: Separable_Union} =
+		_solve1(p.rewardfunc, method,
+			mTransition, mReward,
+			disp, rewardmat, monotonicity, concavity,
+			p.tStateVectors,
+			getchoicevars(p.tStateVectors, p.tChoiceVectors)[1],
+			getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
+			p.β)
 
-    # our first state variable is also the choice variable
-    vChoices = p.tStateVectors[p.bEndogStateVars][1]
+# precondition is separable. have EndogStatevectors and exogstatevectors
+function _solve1(rewardfunc::Function, method::Type{T},
+				mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
+				disp::Bool, rewardmat::Symbol, monotonicity::Bool, concavity::Bool,
+				tStateVectors,#::NTuple{2,Vector{Float64}},
+				vChoices::Vector{Float64},
+				tOtherStateVectors, #::NTuple{1,Vector{Float64}}
+				β::Float64) where
+				T <: Separable_Union
+
     nChoices = length(vChoices)
 
-    nStates = prod(length.(p.tStateVectors))
-	tOtherStates = p.tStateVectors[.!p.bEndogStateVars]
-    nOtherStates = prod(length.(tOtherStates))
+    nStates = prod(length.(tStateVectors))
+    nOtherStates = prod(length.(tOtherStateVectors))
 
     mValFun    = zeros((nChoices, nOtherStates))
 	mValFunNew = zeros((nChoices, nOtherStates))
@@ -42,7 +56,7 @@ function solve(p::SingleChoiceVar, method::Type{T},
 	i::Int64 = 0 # outer loop for other state vars
 
 	# will need beta times transpose of transition matrix
-	mTransition_βT = p.params.β * transpose(mTransition)
+	mTransition_βT = β * transpose(mTransition)
 
     # VFI
     while maxDifference > tolerance
@@ -53,7 +67,7 @@ function solve(p::SingleChoiceVar, method::Type{T},
 	    # @inbounds
 		# for i = 1:nOtherStates # other states
 		i = 0
-		for ix in CartesianIndices(length.(tOtherStates)) # other states
+		for ix in CartesianIndices(length.(tOtherStateVectors)) # other states
 			i = i + 1
 
 	        # We start from previous choice (monotonicity of policy function)
@@ -83,21 +97,21 @@ function solve(p::SingleChoiceVar, method::Type{T},
 
 					# reward using prebuild_partial output matrix
 					if rewardmat == :prebuild_partial
-						reward = rewardfunc(p, mReward[j,i], vChoices[j], vChoices[jprime])
+						reward = rewardfunc(mReward[j,i], vChoices[j], vChoices[jprime])
 					elseif rewardmat == :nobuild
 						# need to be VERY careful with order of state vars here.. could get fucked up..
-						reward = rewardfunc(p, getindex.(p.tStateVectors, [j, ix.I...]), vChoices[jprime])
-						# istatevars = [j, ix.I...]
-						# vstatevars = getindex.(p.tStateVectors, istatevars)
-						# reward = rewardfunc(p, vstatevars, vChoices[jprime])
+						# this could be faster.. creating a new array every step.. not sure how to fix though
+						reward = rewardfunc(getindex.(tStateVectors, [j, ix.I...]), vChoices[jprime])
 					elseif rewardmat == :prebuild
 						reward = mReward[jprime, j + nChoices * (i-1)] # nChoices x nStates
 					end
 
-                    if method == separable
-	                    valueProvisional = reward + mβEV[jprime, i] # mβEV is already discounted
-                    else # method == intermediate
-                        valueProvisional = reward + mβEV[jprime, j + nChoices *(i-1)] # mβEV is already discounted
+                    if method == Separable_ExogStates
+	                    valueProvisional = reward + mβEV[jprime, i] # mβEV is nChoices x nExogStates
+                    elseif method == Separable_States
+						valueProvisional = reward + mβEV[jprime, j + nChoices *(i-1)] # mβEV is nChoices x nStates
+                    else # method == Separable
+						valueProvisional = reward + mβEV[jprime, jprime + nChoices*(j-1 + nChoices *(i-1))] # mβEV is nChoices x (nStates * nChoices)
                     end
 
 	                if (valueProvisional>=valueHighSoFar)
@@ -177,8 +191,8 @@ function solve(p::SingleChoiceVar, method::Type{T},
 
         if iteration > 1000
             println("WARNING: maximum iterations exceeded")
-            println("Parameters used:")
-			println(p.params)
+            # println("Parameters used:")
+			# println(p.params)
             break
         end
 
@@ -189,7 +203,7 @@ function solve(p::SingleChoiceVar, method::Type{T},
 
     mPolFun = vChoices[mPolFunInd]
 
-    nNodes = length.(p.tStateVectors)
+    nNodes = length.(tStateVectors)
     meshPolFun = reshape(mPolFun, tuple(nNodes...))
     meshValFun = reshape(mValFun, tuple(nNodes...))
     # meshExit   = reshape(mExit, tuple(p.nNodes...))
@@ -198,10 +212,10 @@ function solve(p::SingleChoiceVar, method::Type{T},
 
 end # solve
 
-function mcqueen!(v, vold, beta)
-    b_l = beta /(1-beta) * minimum(v-vold);
-    b_u = beta /(1-beta) * maximum(v-vold);
-    # @show (b_l+b_u)/2
-    v[:] = v[:] + (b_l+b_u)/2;
-    nothing
-end
+# function mcqueen!(v, vold, beta)
+#     b_l = beta /(1-beta) * minimum(v-vold);
+#     b_u = beta /(1-beta) * maximum(v-vold);
+#     # @show (b_l+b_u)/2
+#     v[:] = v[:] + (b_l+b_u)/2;
+#     nothing
+# end

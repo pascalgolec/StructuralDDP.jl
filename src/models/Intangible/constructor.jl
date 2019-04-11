@@ -47,7 +47,8 @@ struct Intangible <: TwoChoiceVar
 end
 
 function createmodel(model::Type{Intangible}; kwargs...)
-	params = IntangibleParams(;kwargs...)
+
+    params = IntangibleParams{Float64, Int64}(; kwargs...)
     @unpack_IntangibleParams params
 
 	# initial standard deviation of transitiory shock

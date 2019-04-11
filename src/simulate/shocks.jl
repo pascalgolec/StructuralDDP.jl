@@ -8,13 +8,26 @@ struct DDPShocks
 	aSim ::Array{Float64,3}
 end
 
-drawshocks(p::DDM) = drawshocks(p, p.params.nPeriods, p.params.nFirms)
+# drawshocks(p::DDM) = drawshocks(p, p.params.nPeriods, p.params.nFirms)
 
-function drawshocks(p::DDM, nPeriods::Int64, nFirms::Int64)
-	# @unpack nFirms, nPeriods = p.params
-	dimShocks = size(p.mShocks,1)
-	aInit = randn((dimShocks, 1, nFirms))
-	aSim = randn((dimShocks, nPeriods, nFirms))
+function drawshocks(p::DDM; nPeriods::Int64 = p.params.nPeriods,
+		nFirms::Int64 = p.params.nFirms)
+
+	# dimShocks = size(p.mShocks,1)
+	# aInit = randn((dimShocks, 1, nFirms))
+	# aSim = randn((dimShocks, nPeriods, nFirms))
+
+	dimShocks = length(p.shockdist.μ)
+
+	aInit = zeros((dimShocks, 1, nFirms))
+	for f = 1:nFirms
+		aInit[:,1,f] .= rand(p.shockdist)
+	end
+
+	aSim = zeros((dimShocks, nPeriods, nFirms))
+	for t=1:nPeriods, f=1:nFirms
+		aSim[:,t,f] .= rand(p.shockdist)
+	end
 
 	return DDPShocks(aInit, aSim)
 end

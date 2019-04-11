@@ -1,16 +1,19 @@
 module DiscreteDynamicProgramming
 
 	using BasisMatrices: Basis, SplineParams, nodes, BasisMatrix, Expanded
-	using QuantEcon: qnwnorm, qnwunif, gridmake, DiscreteDP, VFI
+	using QuantEcon: qnwnorm, qnwunif, qnwlogn, gridmake, DiscreteDP, VFI
 	import QuantEcon: solve # import because will extend
 	using Interpolations
 	using Parameters
 	using NLsolve # to find steady state
+	using TreeViews
+	using Distributions
 
 	using SparseArrays
 	using LinearAlgebra
 
-	export createmodel, solve, drawshocks, simulate
+	export createmodel, solve, drawshocks, simulate, transitionmatrix,
+		drawshocks
 	# export NeoClassicalSimple
 
 	# using DiscreteDynamicModels
@@ -18,36 +21,37 @@ module DiscreteDynamicProgramming
 	# model definition and parameters
 	abstract type DiscreteDynamicModel end
 	const DDM = DiscreteDynamicModel
-	abstract type SingleChoiceVar <: DDM end
-	abstract type TwoChoiceVar <: DDM end
+
+	# abstract type NumChoiceVar end
+	# abstract type SingleChoiceVar <: NumChoiceVar end
+	# abstract type TwoChoiceVar <: NumChoiceVar end
 
 	# need this for transfunc
 	abstract type DDMIntegrationDimension end
 	const DDMIntDim = DDMIntegrationDimension
-	abstract type StateAction <: DDMIntDim end
-	abstract type separable <: DDMIntDim end
-	abstract type intermediate <: DDMIntDim end
-	const SA = StateAction
+	abstract type All <: DDMIntDim end
+	abstract type Separable <: DDMIntDim end
+	abstract type Separable_States <: DDMIntDim end
+	abstract type Separable_ExogStates <: DDMIntDim end
+	const Separable_Union = Union{Separable, Separable_States, Separable_ExogStates}
+	# const SA = StateAction
 
-	include("helpfunctions.jl")
+	include("utils.jl")
 
-	# Neoclassical
-	include("models/Neoclassical/constructor.jl")
-	include("models/Neoclassical/rewardfunc.jl")
-	include("models/Neoclassical/transfunc.jl")
-	include("models/Neoclassical/initialize.jl")
-	# include("models/Neoclassical/initialize.jl")
-	# include("models/Neoclassical/outputfunc.jl")
+		# type constructor
+	include("DiscreteDynamicProblem.jl")
+	# include("DiscreteDynamicProblem_interface.jl")
 
-	#Intangible
-	include("models/Intangible/constructor.jl")
-	include("models/Intangible/transfunc.jl")
-	include("models/Intangible/rewardfunc.jl")
-	include("models/Intangible/initialize.jl")
+	# Models
+	include("models/Neoclassical_user.jl")
+	# include("models/Intangible.jl")
+	include("models/Intangible_user.jl")
 
-	createmodel(sym_model::Symbol; kwargs...) = createmodel(eval(sym_model); kwargs...)
+	# for using createmodel syntax:
+	createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
+	# e.g. createmodel(:NeoClassicalSimple; nK = 30, nz=15)
 
-	# Solver
+	# # Solver
 	include("solve/constructors.jl")
 	include("solve/main.jl")
 	include("solve/rewardmatrix.jl")
@@ -57,7 +61,7 @@ module DiscreteDynamicProgramming
 	include("solve/state_action.jl")
 	include("solve/initialendogstatevars.jl")
 
-	# Simulator
+	# # simulator
 	include("simulate/shocks.jl")
 	include("simulate/simulate.jl")
 

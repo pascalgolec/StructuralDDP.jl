@@ -1,39 +1,58 @@
-function rewardmatrix(p::DDM)
+rewardmatrix(p::DDP{nStateVars,nChoiceVars,C,G,IP,IF}) where
+    {nStateVars,nChoiceVars,C<:Int64,G,IP,IF} =
+    _rewardmatrix(p.rewardfunc, p.tStateVectors, getchoicevars(p.tStateVectors, p.tChoiceVectors))
+
+rewardmatrix(p::DDP{nStateVars,nChoiceVars,C,G,IP,IF}) where
+    {nStateVars,nChoiceVars,C<:Vector{Float64},G,IP,IF} =
+    _rewardmatrix(p.rewardfunc, p.tStateVectors, p.tChoiceVectors)
+
+""" Return a nChoices x nStates reward matrix"""
+function _rewardmatrix(rewardfunc::Function, tStateVectors, tChoiceVectors)
     # output dimension is nChoices x nStates
 
-    tChoiceVectors = p.tStateVectors[p.bEndogStateVars]
-    # nChoices = prod(length.(tChoiceVectors))
-    mChoices = gridmake(tChoiceVectors...)
-    nChoices = size(mChoices, 1)
-
-    nStates  = prod(length.(p.tStateVectors))
-    mStates = gridmake(p.tStateVectors...)
-
+    nChoices = prod(length.(tChoiceVectors))
+    nStates = prod(length.(tStateVectors))
     mReward = zeros(Float64, nChoices, nStates)
-    for i = 1 : nStates # state i
-           for j = 1 : nChoices # choice j
-               mReward[j,i] = rewardfunc(p, mStates[i,:], mChoices[j,:])
+
+    iterator_states = Iterators.product(tStateVectors...)
+    iterator_choices = Iterators.product(tChoiceVectors...)
+
+    for (i, states) in enumerate(iterator_states)
+           for (j, choices) in enumerate(iterator_choices)
+               mReward[j,i] = rewardfunc(states, choices)
            end
     end
 
     return mReward
 end
 
+rewardmatrix_partial(p::DDM) = _rewardmatrix_partial(p.grossprofits,
+    getchoicevars(p.tStateVectors, p.tChoiceVectors),
+    getnonchoicevars(p.tStateVectors, p.tChoiceVectors))
 
-function rewardmatrix_partial(p::DDM)
+"""Return a nEndogStates x nExogStates reward matrix."""
+function _rewardmatrix_partial(grossprofits::Function,
+    tEndogStateVectors, tExogStateVectors)
     # output dimension is nEndogStates x nExogStates
 
-    # IMPORTANT THAT ENDOGENOUS STATE VARIABLES COME FIRST IN tStateVectors
-    nEndogStates = prod(length.(p.tStateVectors[p.bEndogStateVars]))
-    nExogStates = prod(length.(p.tStateVectors[.!p.bEndogStateVars]))
+    # julia does not know dim of endog state vars from this expression
+    nEndogStates::Int64 = prod(length.(tEndogStateVectors))
+    nExogStates::Int64 = prod(length.(tExogStateVectors))
 
-    mStates = gridmake(p.tStateVectors...)
+    # mStates::Array{Float64,2} = gridmake(tStateVectors...)
 
     mReward = zeros(Float64, nEndogStates, nExogStates)
-    for i = 1 : nExogStates # state i
-           for j = 1 : nEndogStates # choice j
-               # PROBABLY NEED TO CHANGE THIS, USE SOME CARTESIAN INDEXER
-               mReward[j,i] = grossprofits(p, mStates[j + nEndogStates *(i-1),:])
+
+    iterator_endogstates = Iterators.product(tEndogStateVectors...)
+    iterator_exogstates = Iterators.product(tExogStateVectors...)
+
+    # for i = 1 : nExogStates # state i
+    for (i, exogstates) in enumerate(iterator_exogstates)
+           # for j = 1 : nEndogStates # choice j
+           for (j, endogstates) in enumerate(iterator_endogstates)
+               # COULD CHANGE THIS, USE SOME CARTESIAN INDEXER
+               # mReward[j,i] = grossprofits(mStates[j + nEndogStates *(i-1),:])
+               mReward[j,i] = grossprofits((endogstates..., exogstates...))
            end
     end
 

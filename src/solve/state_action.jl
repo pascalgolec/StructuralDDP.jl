@@ -4,7 +4,7 @@
 ####################################################
 
 # this function sets up the state-action pairs and feeds them into the QuantEcon solver
-function solve(p::DDM, method::Type{SA},  mTransition, mReward, disp::Bool)
+function _solve(p::DDM, method::Type{All},  mTransition, mReward, disp::Bool)
 
     # ONLY PROGRAMMED FOR SINGLECHOICEVAR SO FAR!
 
@@ -19,13 +19,16 @@ function solve(p::DDM, method::Type{SA},  mTransition, mReward, disp::Bool)
     # tAll = (tNodes..., nChoices)
     # mSA = gridmake(p.tStateVectors..., p.vChoiceVector)
 
-    mSA_coord = gridmake(1:prod(tNodes), 1:nChoices)
-    mS_coord = mSA_coord[:,1:1]
-    mA_coord = mSA_coord[:,2:2]
+    # mSA_coord = gridmake(1:prod(tNodes), 1:nChoices)
+    mSA_coord = gridmake(1:nChoices,1:prod(tNodes))
+    # mS_coord = mSA_coord[:,1:1]
+    # mA_coord = mSA_coord[:,2:2]
+    mS_coord = mSA_coord[:,2:2]
+    mA_coord = mSA_coord[:,1:1]
 
     # rewardmatrix gives choices x states, want states x choices
-    R = mReward' # is choices x states
-    # R_sa = addDim(R[:]) # can convert into state-action repr
+    # R = mReward' # is choices x states
+    R = mReward
     R_sa = R[:]
 
     # get transition matrix, which elements are allowed?
@@ -51,7 +54,7 @@ function solve(p::DDM, method::Type{SA},  mTransition, mReward, disp::Bool)
     # Q = transition probability array
     # mS_coord: Action Indices
     # mA_coord: Action Index Pointers
-    ddp = DiscreteDP(R_sa, Q, p.params.β, mS_coord, mA_coord)
+    ddp = DiscreteDP(R_sa, Q, p.β, mS_coord, mA_coord)
 
     results = solve(ddp, VFI)
 
