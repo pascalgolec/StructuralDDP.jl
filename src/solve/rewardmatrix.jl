@@ -15,12 +15,19 @@ function _rewardmatrix(rewardfunc::Function, tStateVectors, tChoiceVectors)
     mReward = zeros(Float64, nChoices, nStates)
 
     iterator_states = Iterators.product(tStateVectors...)
-    iterator_choices = Iterators.product(tChoiceVectors...)
+
+    if length(tChoiceVectors) > 1
+        iterator_choices = Iterators.product(tChoiceVectors...)
+    else # don't want a tuple of choices if only one
+        iterator_choices = tChoiceVectors[1]
+    end
 
     for (i, states) in enumerate(iterator_states)
-           for (j, choices) in enumerate(iterator_choices)
-               mReward[j,i] = rewardfunc(states, choices)
-           end
+        for (j, choices) in enumerate(iterator_choices)
+           # @show choices
+           mReward[j,i] = rewardfunc(states, choices)
+           # error("stop")
+        end
     end
 
     return mReward
@@ -46,14 +53,10 @@ function _rewardmatrix_partial(grossprofits::Function,
     iterator_endogstates = Iterators.product(tEndogStateVectors...)
     iterator_exogstates = Iterators.product(tExogStateVectors...)
 
-    # for i = 1 : nExogStates # state i
     for (i, exogstates) in enumerate(iterator_exogstates)
-           # for j = 1 : nEndogStates # choice j
-           for (j, endogstates) in enumerate(iterator_endogstates)
-               # COULD CHANGE THIS, USE SOME CARTESIAN INDEXER
-               # mReward[j,i] = grossprofits(mStates[j + nEndogStates *(i-1),:])
-               mReward[j,i] = grossprofits((endogstates..., exogstates...))
-           end
+        for (j, endogstates) in enumerate(iterator_endogstates)
+           mReward[j,i] = grossprofits((endogstates..., exogstates...))
+        end
     end
 
     return mReward

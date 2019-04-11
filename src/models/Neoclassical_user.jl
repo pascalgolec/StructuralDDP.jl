@@ -1,22 +1,20 @@
-function NeoClassicalSimple(; 	α = 0.67,
-								β = 0.9,
-								ρ = 0.6,
-								σ = 0.3,
-								δ = 0.15,
-								γ = 2.0,
-								F = 0.01,
-								C0 = 0.6,
-								π = 0.,
-								τ = 0.35,
-								κ = 0.,
+function NeoClassicalSimple(;
+	α = 0.67,
+	β = 0.9,
+	ρ = 0.6,
+	σ = 0.3,
+	δ = 0.15,
+	γ = 2.0,
+	F = 0.01,
+	C0 = 0.6,
+	π = 0.,
+	τ = 0.35,
+	κ = 0.,
 
-								nK = 100,
-								nz = 20,
+	nK = 100,
+	nz = 20,
 
-								nPeriods = 120,
-								nFirms = 1000,
-
-								intdim = :Separable_ExogStates)
+	intdim = :Separable_ExogStates)
 
 
     # calculate Amin, Amax
@@ -43,29 +41,12 @@ function NeoClassicalSimple(; 	α = 0.67,
     maxK_log = steadystate(3*stdz).zero[2]
     vK   = exp.(collect(LinRange(minK_log, maxK_log, nK)))
 
-    # is incorrect
-    # K_ss_analytical(z) = (α * (1-τ) * exp(z)/ ((1-β)/β*(1+γ*δ) + δ)) ^ (1/(1-α))
-    # @show log(K_ss_analytical(minz))
-    # @show log(K_ss_analytical(maxz))
-
-    # vMin = [exp(minK_log), minz]
-    # vMax = [exp(maxK_log), maxz]
-
     tStateVectors = (vK, vz) # tuple of basis vectors
-
-	# tChoiceVectors = (vK,) # important to add the comma, otherwise not a tuple
-    # tChoiceVectors = (1,)
-
-    # bEndogStateVars = [true, false]
-
-	# somehow this below is not type stable!
-	# myrewardfunc(vStateVars::Vector{Float64}, vChoices::Vector{Float64}) =
-	#     myrewardfunc(vStateVars, vChoices[1])
 
 	function myrewardfunc(vStateVars, vChoices)
 		(K, z) = vStateVars
-		# Kprime = vChoiceVars[1]
-		Kprime = vChoices[1]
+		# Kprime = vChoices[1]
+		Kprime = vChoices
 		capx = Kprime - (1-δ)*K
 		action = (Kprime != K)
 		oibdp = K^α * exp(z) - F*K*action - γ/2*(capx/K- δ)^2 * K
@@ -73,11 +54,10 @@ function NeoClassicalSimple(; 	α = 0.67,
 	end
 
 	# including output, i.e. partial rewardfunc
-	# function myrewardfunc(Output::Float64, K::Float64, Kprime::Float64)
-	function myrewardfunc(Output, K, Kprime)
+	function myrewardfunc(Output, vStateVars, Kprime)
+        K = vStateVars[1]
 	    capx = Kprime - (1-δ)K
 	    out = (1-τ)*(Output - F*K - γ/2*(capx/K- δ)^2 * K) - (1-κ*(capx<0))*capx + τ * δ * K
-	    # dont have condition on F in here!!!!
 	end
 
 	mygrossprofits(vStateVars) = vStateVars[1]^α * exp(vStateVars[2])

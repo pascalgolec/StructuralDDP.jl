@@ -82,26 +82,13 @@ function _solve1(rewardfunc::Function, method::Type{T},
 
 	            for jprime = iChoiceStart:nChoices
 
-					# if typeof(p) == NeoClassicalVolatilityAge
-					# 	age = mgridstateother[i,2]
-                    # 	reward = rewardfunc(p, mReward[j,i], vChoices[j], vChoices[jprime], age)
-					# elseif typeof(p) == LearningKVolatilityAge
-					# 	age = mgridstateother[i,3]
-                    # 	reward = rewardfunc(p, mReward[j,i], vChoices[j], vChoices[jprime], age)
-					# elseif typeof(p) == NewIdeasAge
-					# 	age = mgridstateother[i,3]
-                    # 	reward = rewardfunc(p, mReward[j,i], vChoices[j], vChoices[jprime], age)
-					# else
-                    # 	reward = rewardfunc(p, mReward[j,i], vChoices[j], vChoices[jprime])
-					# end
-
 					# reward using prebuild_partial output matrix
 					if rewardmat == :prebuild_partial
-						reward = rewardfunc(mReward[j,i], vChoices[j], vChoices[jprime])
+						# reward = rewardfunc(mReward[j,i], vChoices[j], vChoices[jprime])
+						reward = rewardfunc(mReward[j,i], getindex.(tStateVectors, (j, ix.I...)), vChoices[jprime])
 					elseif rewardmat == :nobuild
 						# need to be VERY careful with order of state vars here.. could get fucked up..
-						# this could be faster.. creating a new array every step.. not sure how to fix though
-						reward = rewardfunc(getindex.(tStateVectors, [j, ix.I...]), vChoices[jprime])
+						reward = rewardfunc(getindex.(tStateVectors, (j, ix.I...)), vChoices[jprime])
 					elseif rewardmat == :prebuild
 						reward = mReward[jprime, j + nChoices * (i-1)] # nChoices x nStates
 					end

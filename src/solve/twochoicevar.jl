@@ -113,12 +113,12 @@ function _solve2(rewardfunc::Function, method::Type{T},
             						# reward using prebuild_partial output matrix
             						if rewardmat == :prebuild_partial
             							  reward = rewardfunc(mReward[j + nChoiceOne*(l-1),i],
-            												  vChoiceOne[j], vChoiceOne[jprime],
-            												  vChoiceTwo[l], vChoiceTwo[lprime])
+	  					                                     getindex.(tStateVectors, (j, l, ix.I...)),
+														     (vChoiceOne[jprime], vChoiceTwo[lprime]))
             						elseif rewardmat == :nobuild
             							  # need to be VERY careful with order of state vars here.. could get fucked up..
-            							  reward = rewardfunc(getindex.(tStateVectors, [j, l, ix.I...]),
-            												  [vChoiceOne[jprime], vChoiceTwo[lprime]])
+            							  reward = rewardfunc(getindex.(tStateVectors, (j, l, ix.I...)),
+            												  (vChoiceOne[jprime], vChoiceTwo[lprime]))
             						elseif rewardmat == :prebuild
             							  # jprime is first choice var, changes faster
             							  reward = mReward[jprime + nChoiceOne * (lprime-1), j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1)] # nChoices x nStates

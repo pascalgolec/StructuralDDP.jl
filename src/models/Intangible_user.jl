@@ -89,7 +89,9 @@ function Intangible(;
 		return oibdp*(1-τ) + τ*δ_K*K - capx
 	end
 
-	function myrewardfunc(Output, K, Kprime, N, Nprime)
+	function myrewardfunc(Output, vStateVars, vChoices)
+		K, N = vStateVars
+		Kprime, Nprime = vChoices
 	    capx = Kprime - (1-δ_K)*K
 	    intx = Nprime - (1-δ_N)*N
 	    adj = myadjustcosts(Kprime, K, Nprime, N)
