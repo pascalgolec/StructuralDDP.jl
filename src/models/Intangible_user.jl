@@ -100,37 +100,38 @@ function Intangible(;
 
 	if intdim == :All
 
-	    transfunc = function mytransfunc(vStates, vChoices, vShocksss)
+	    transfunc = function mytransfunc(vStates, vChoices, Shock)
 	        z = vStates[3]
-	        zprime  = ρ*z + σ * vShocksss[1]
+	        zprime  = ρ*z + σ * Shock
 	        return vChoices[1], vChoices[2], inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])
 	    end
 		tChoiceVectors = (vK, vN)
 
 	elseif intdim == :Separable
 
-	    transfunc = function mytransfunc1(vStates, vChoices, vShocksss)
+	    transfunc = function mytransfunc1(vStates, vChoices, Shock)
 	        z = vStates[3]
-	        zprime  = ρ*z + σ * vShocksss[1];
+	        zprime  = ρ*z + σ * Shock
 	        return inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])
 	    end
 		tChoiceVectors = (1, 2)
 
 	elseif intdim == :Separable_States
-	    transfunc = function mytransfunc2(vStates, vShocksss)
+	    transfunc = function mytransfunc2(vStates, Shock)
 	        z = vStates[3]
-	        zprime  = ρ*z + σ * vShocksss[1];
+	        zprime  = ρ*z + σ * Shock
 	        return inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])
 	    end
 		tChoiceVectors = (1, 2)
 
 	elseif intdim == :Separable_ExogStates
-	    transfunc = function mytransfunc3(vExogState, vShocksss)
+	    transfunc = function mytransfunc3(vExogState, Shock)
 	        z = vExogState[1]
-	        zprime  = ρ*z + σ * vShocksss[1];
+	        zprime  = ρ*z + σ * Shock
 	        return inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])
 	    end
 		tChoiceVectors = (1, 2)
+
 	else
 		error("$intdim wrong intdim")
 	end

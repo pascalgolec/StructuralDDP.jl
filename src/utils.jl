@@ -1,4 +1,5 @@
-inbounds(x::Float64, xmin::Float64, xmax::Float64) = max(xmin, min(x, xmax))
+inbounds(x::T1, xmin::T2, xmax::T3) where {T1<:Real, T2<:Real, T3<:Real} =
+	max(xmin, min(x, xmax))
 
 # from DifferentialEquations.jl
 macro CSI_str(str)

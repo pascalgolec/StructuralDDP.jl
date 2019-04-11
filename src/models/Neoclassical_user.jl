@@ -64,46 +64,39 @@ function NeoClassicalSimple(;
 
 	if intdim == :All
 
-	    transfunc = function mytransfunc(vStates, vChoices, vShocksss)
-	        # @unpack ρ , σ = p.params
+	    transfunc = function mytransfunc(vStates, K, Shock)
 	        z = vStates[2]
-	        zprime  = ρ*z + σ * vShocksss[1];
-	        # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
-	        return vChoices[1], inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+	        zprime  = ρ*z + σ * Shock;
+	        return K, inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
 	    end
 		tChoiceVectors = (vK,)
 
 	elseif intdim == :Separable
 
-	    transfunc = function mytransfunc1(vStates, vChoices, vShocksss)
-	        # @unpack ρ , σ = p.params
+	    transfunc = function mytransfunc1(vStates, vChoices, Shock)
 	        z = vStates[2]
-	        zprime  = ρ*z + σ * vShocksss[1];
-	        # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
+	        zprime  = ρ*z + σ * Shock;
 	        return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
 	    end
 		tChoiceVectors = (1,)
 
 	elseif intdim == :Separable_States
-	    transfunc = function mytransfunc2(vStates, vShocksss)
-	        # @unpack ρ , σ = p.params
+	    transfunc = function mytransfunc2(vStates, Shock)
 	        z = vStates[2]
-	        zprime  = ρ*z + σ * vShocksss[1];
-	        # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
+	        zprime  = ρ*z + σ * Shock;
 	        return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
 	    end
 		tChoiceVectors = (1,)
 
 	elseif intdim == :Separable_ExogStates
-	    transfunc = function mytransfunc3(vExogState, vShocksss)
-	        # @unpack ρ , σ = p.params
+	    transfunc = function mytransfunc3(vExogState, shock)
 	        z = vExogState[1]
-	        zprime  = ρ*z + σ * vShocksss[1];
-	        # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
+	        zprime  = ρ*z + σ * shock;
 	        return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
 	    end
 		tChoiceVectors = (1,)
 	else
+
 		error("$intdim wrong intdim")
 	end
 

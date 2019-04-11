@@ -17,7 +17,7 @@ function drawshocks(p::DDM; nPeriods::Int64 = p.params.nPeriods,
 	# aInit = randn((dimShocks, 1, nFirms))
 	# aSim = randn((dimShocks, nPeriods, nFirms))
 
-	dimShocks = length(p.shockdist.μ)
+	dimShocks = length(p.shockdist)
 
 	aInit = zeros((dimShocks, 1, nFirms))
 	for f = 1:nFirms

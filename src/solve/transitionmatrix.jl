@@ -2,23 +2,23 @@
 
 function getquadrature(d::ContinuousUnivariateDistribution, numquadnodes::Vector{Int})
 	vShocks, vWeights = qnwdist(d, numquadnodes[1])
-    mShocks = Array(vShocks')
-    return mShocks, vWeights
+    # mShocks = Array(vShocks')
+    # return mShocks, vWeights
 end
 function getquadrature(d::Normal, numquadnodes::Vector{Int})
     vShocks, vWeights = qnwnorm(numquadnodes[1], mean(d), std(d)^2)
-    mShocks = Array(vShocks')
-    return mShocks, vWeights
+    # mShocks = Array(vShocks')
+    # return mShocks, vWeights
 end
 function getquadrature(d::Uniform, numquadnodes::Vector{Int})
     vShocks, vWeights = qnwunif(numquadnodes[1], params(d)...)
-    mShocks = Array(vShocks')
-    return mShocks, vWeights
+    # mShocks = Array(vShocks')
+    # return mShocks, vWeights
 end
 function getquadrature(d::LogNormal, numquadnodes::Vector{Int})
     vShocks, vWeights = qnwlogn(numquadnodes[1], meanlogx(d), varlogx(d))
-    mShocks = Array(vShocks')
-    return mShocks, vWeights
+    # mShocks = Array(vShocks')
+    # return mShocks, vWeights
 end
 
 getquadrature(d::MvNormal, numquadnodes::Vector{Int}) =
@@ -66,13 +66,12 @@ function _transitionmatrix(transfunc::Function,
 	tOutputVectors,
     shockdist, numquadnodes) where {N1, N2, T}
 
-    mShocks, vWeights = getquadrature(shockdist, numquadnodes)
+    Shocks, vWeights = getquadrature(shockdist, numquadnodes)
+	dimshocks = length(shockdist)
 
     nOutputStates = prod(length.(tOutputVectors))
     dimOutputStates = length(tOutputVectors)
 
-    # nChoices = prod(length.(tChoiceVectors))
-    # nChoices = prod(length.(tChoiceVectors))
     nInputStates = prod(length.(tInputVectorsStates)) * prod(length.(tInputVectorsChoices))
 
     g = zeros(dimOutputStates, nInputStates)
@@ -81,19 +80,22 @@ function _transitionmatrix(transfunc::Function,
     PhiTemp = spzeros(size(mG)...)
 
 	# choices change faster than states
-	iterator = Iterators.product(Iterators.product(tInputVectorsChoices...), Iterators.product(tInputVectorsStates...))
-	# iterator = Iterators.product(Iterators.product(tInputVectorsStates...), Iterators.product(tInputVectorsChoices...))
+	if length(tInputVectorsChoices) > 1
+        iterator_choices = Iterators.product(tInputVectorsChoices...)
+    else # don't want a tuple of choices if only one
+        iterator_choices = tInputVectorsChoices[1]
+    end
+	iterator = Iterators.product(iterator_choices, Iterators.product(tInputVectorsStates...))
 
 	# loop over all shock combinations
     for i = 1 : length(vWeights)
         # loop over all inputstates
         for (j, (choices, states)) in enumerate(iterator)
-        # for (j, (states, choices)) in enumerate(iterator)
-			# @show j
-			# @show choices
-			# @show states
-            g[:,j] .= transfunc(states, choices,  mShocks[:,i])
-			# @show g[:,j]
+			if dimshocks > 1
+            	g[:,j] .= transfunc(states, choices,  Shocks[:,i])
+			else
+				g[:,j] .= transfunc(states, choices,  Shocks[i])
+			end
         end
         PhiTemp .= BasisMatrix(basisOutputStates, Expanded(), g', 0).vals[1]
         mG .= mG + vWeights[i] * PhiTemp
@@ -112,7 +114,8 @@ function _transitionmatrix(transfunc::Function,
     tInputVectors::NTuple{N, Vector{T}}, tOutputVectors,
     shockdist, numquadnodes) where {N,T}
 
-	mShocks, vWeights = getquadrature(shockdist, numquadnodes)
+	Shocks, vWeights = getquadrature(shockdist, numquadnodes)
+	dimshocks = length(shockdist)
 
 	nInputStates = prod(length.(tInputVectors))
     dimOutputStates = length(tOutputVectors)
@@ -127,12 +130,14 @@ function _transitionmatrix(transfunc::Function,
 
     # loop over all shock combinations
     for i = 1 : length(vWeights)
-
         # loop over all inputstates
         for (j, states) in enumerate(iterator)
-            g[:,j] .= transfunc(states, mShocks[:,i])
+			if dimshocks > 1
+            	g[:,j] .= transfunc(states, Shocks[:,i])
+        	else
+				g[:,j] .= transfunc(states, Shocks[i])
+			end
         end
-
         PhiTemp .= BasisMatrix(basisOutputStates, Expanded(), g', 0).vals[1]
         mG .= mG + vWeights[i] * PhiTemp
     end
