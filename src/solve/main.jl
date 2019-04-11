@@ -37,6 +37,8 @@ function solve(p::DDM; mTransition::Union{Nothing, Array{Float64,2}} = nothing,
 
         meshValFun, tmeshPolFun = _solve(p, intdim, mTransition, mReward, disp,
             rewardmat, monotonicity, concavity)
+        # @code_warntype _solve(p, intdim, mTransition, mReward, disp,
+        #     rewardmat, monotonicity, concavity)
     end
 
     createsolution(p, meshValFun, tmeshPolFun, initialize_exact)

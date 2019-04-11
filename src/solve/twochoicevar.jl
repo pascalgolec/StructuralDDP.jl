@@ -1,90 +1,3 @@
-
-function getsecondchoice(rewardfunc::Function,
-                         # action::Type{act},
-                         mReward::Union{Array{Float64,2},Nothing},
-                         mβEV::Array{Float64,2},
-                         i::Int64, j::Int64, l::Int64,
-                         nChoiceOne::Int64, vChoiceOne::Vector{Float64}, jprime::Int64,
-                         nChoiceTwo::Int64, vChoiceTwo::Vector{Float64},
-                         iChoice2Start::Int64,
-						 ixI::NTuple{N,Int64} where N,
-						 tStateVectors,
-						 intdim::Type{T},
-						 rewardmat::Symbol,
-						 concavity2::Bool) where
-						 	T <: Separable_Union
-                            # {act<:capitalaction}
-
-
-    # get optimal second choice variable conditional on first
-    valueHighSoFarTwo = -Inf
-    valueProvisionalTwo = -Inf
-    iChoice2  = 0
-
-    # iChoice2Start = vChoice2Start[j]
-
-    # find highest value for second state var
-    for lprime = iChoice2Start:nChoiceTwo
-
-        # if action == active
-		#
-        #     reward = rewardfunc(p, output, vChoiceOne[j], vChoiceOne[jprime],
-        #                         vChoiceTwo[l], vChoiceTwo[lprime])
-		#
-        # elseif action == passive
-        #     # second state variable does not affect output
-        #     reward = rewardfuncinaction(p, output, vChoiceOne[j],
-        #                                 vChoiceTwo[l], vChoiceTwo[lprime])
-        # end
-
-		# reward using prebuild_partial output matrix
-		if rewardmat == :prebuild_partial
-			reward = rewardfunc(mReward[j + nChoiceOne*(l-1),i],
-								vChoiceOne[j], vChoiceOne[jprime],
-	                            vChoiceTwo[l], vChoiceTwo[lprime])
-		elseif rewardmat == :nobuild
-			# need to be VERY careful with order of state vars here.. could get fucked up..
-			reward = rewardfunc(getindex.(tStateVectors, [j, l, ixI...]),
-								[vChoiceOne[jprime], vChoiceTwo[lprime]])
-		elseif rewardmat == :prebuild
-			# jprime is first choice var, changes faster
-			reward = mReward[jprime + nChoiceOne * (lprime-1), j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1)] # nChoices x nStates
-		end
-
-        if intdim == Separable_ExogStates # mβEV is nChoices x nStochStates
-            βEV = mβEV[jprime + nChoiceOne * (lprime-1), i] # mβEV is already discounted, jprime = j for inactive
-        elseif intdim == Separable_States # mβEV is nChoices x nStates
-            βEV = mβEV[jprime + nChoiceOne * (lprime-1), j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1)]
-        else intdim == Separable # mβEV is mβEV is nChoices x (nChoices * nStates)
-            # error("separable not done yet")
-            βEV = mβEV[jprime + nChoiceOne * (lprime-1),
-				jprime + nChoiceOne * (lprime-1) + (nChoiceOne*nChoiceTwo) *
-					(-1 + j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1))
-				]
-        end
-
-		# if method == Separable_ExogStates
-		# 	valueProvisional = reward + mβEV[jprime, i] # mβEV is nChoices x nExogStates
-		# elseif method == Separable_States
-		# 	valueProvisional = reward + mβEV[jprime, j + nChoices *(i-1)] # mβEV is nChoices x nStates
-		# else # method == Separable
-		# 	valueProvisional = reward + mβEV[jprime, jprime + nChoices*(j-1 + nChoices *(i-1))] # mβEV is nChoices x (nStates * nChoices)
-		# end
-
-        valueProvisionalTwo = reward + βEV
-
-        if valueProvisionalTwo >= valueHighSoFarTwo
-           valueHighSoFarTwo = valueProvisionalTwo
-           iChoice2 = lprime
-	    elseif concavity2
-            break
-        end
-
-    end # lprime
-
-    return valueHighSoFarTwo, iChoice2
-end
-
 _solve(p::DDP{nStateVars,2}, method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 		disp::Bool, rewardmat::Symbol, monotonicity::Vector{Bool}, concavity::Vector{Bool}) where
@@ -99,10 +12,7 @@ _solve(p::DDP{nStateVars,2}, method::Type{T},
 			getnonchoicevars(p),
 			p.β)
 
-# function solve(p::TwoChoiceVar, method::Type{T},
-# 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
-# 		disp::Bool, rewardmat::Symbol, monotonicity::Vector{Bool}, concavity::Vector{Bool}) where
-# 			T <: Union{separable, intermediate}
+
 function _solve2(rewardfunc::Function, method::Type{T},
 						mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 						disp::Bool, rewardmat,
@@ -161,6 +71,7 @@ function _solve2(rewardfunc::Function, method::Type{T},
 	# will need beta times transpose of transition matrix
 	mTransition_βT = β * transpose(mTransition)
 
+
     # VFI
     while maxDifference > tolerance
 
@@ -191,25 +102,58 @@ function _solve2(rewardfunc::Function, method::Type{T},
 
                     for jprime = iChoice1Start:nChoiceOne
 
-                        (valueHighSoFarTwo, lprime) =
-                                        getsecondchoice(rewardfunc,
-                                                        # active, # whether capital choice active or passive
-                                                        mReward, mβEV, i, j, l,
-                                                        nChoiceOne, vChoiceOne, jprime,
-                                                        nChoiceTwo, vChoiceTwo,
-                                                        vChoice2Start[j],
-														ix.I,
-														tStateVectors,
-														method,
-														rewardmat,
-														concavity2)
+        						# get optimal second choice variable conditional on first
+        						valueHighSoFarTwo = -Inf
+        						valueProvisionalTwo = -Inf
+        						iChoice2inner  = 0
+
+        						# find highest value for second state var
+        						for lprime = vChoice2Start[j]:nChoiceTwo
+
+            						# reward using prebuild_partial output matrix
+            						if rewardmat == :prebuild_partial
+            							  reward = rewardfunc(mReward[j + nChoiceOne*(l-1),i],
+            												  vChoiceOne[j], vChoiceOne[jprime],
+            												  vChoiceTwo[l], vChoiceTwo[lprime])
+            						elseif rewardmat == :nobuild
+            							  # need to be VERY careful with order of state vars here.. could get fucked up..
+            							  reward = rewardfunc(getindex.(tStateVectors, [j, l, ix.I...]),
+            												  [vChoiceOne[jprime], vChoiceTwo[lprime]])
+            						elseif rewardmat == :prebuild
+            							  # jprime is first choice var, changes faster
+            							  reward = mReward[jprime + nChoiceOne * (lprime-1), j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1)] # nChoices x nStates
+            						end
+
+					                if method == Separable_ExogStates # mβEV is nChoices x nStochStates
+            								βEV = mβEV[jprime + nChoiceOne * (lprime-1), i] # mβEV is already discounted, jprime = j for inactive
+        							elseif method == Separable_States # mβEV is nChoices x nStates
+            								βEV = mβEV[jprime + nChoiceOne * (lprime-1), j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1)]
+        							else method == Separable # mβEV is mβEV is nChoices x (nChoices * nStates)
+            								# error("separable not done yet")
+            								βEV = mβEV[jprime + nChoiceOne * (lprime-1),
+            								  jprime + nChoiceOne * (lprime-1) + (nChoiceOne*nChoiceTwo) *
+            									  (-1 + j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1)) ]
+        							end
+
+        							valueProvisionalTwo = reward + βEV
+
+        							if valueProvisionalTwo >= valueHighSoFarTwo
+            							   valueHighSoFarTwo = valueProvisionalTwo
+            							   iChoice2inner = lprime
+			                        elseif concavity2
+            							break
+        							end
+
+        						end # lprime
+
+        						# return valueHighSoFarTwo, iChoice2
 
                         valueProvisionalOne = valueHighSoFarTwo
 
                         if (valueProvisionalOne>=valueHighSoFarOne)
                             valueHighSoFarOne = valueProvisionalOne
                             iChoice1 = jprime
-                            iChoice2 = lprime
+                            iChoice2 = iChoice2inner
                             if monotonicity1
                 	          iChoice1Start = jprime
                             end
@@ -239,7 +183,6 @@ function _solve2(rewardfunc::Function, method::Type{T},
                     mValFunNew[j + nChoiceOne * (l-1), i] = valueHighSoFarOne
                     mPolFunInd1[j + nChoiceOne * (l-1), i] = iChoice1
                     mPolFunInd2[j + nChoiceOne * (l-1), i] = iChoice2
-
                     if monotonicity2
                         vChoice2Start[j] = iChoice2
                     end

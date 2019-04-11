@@ -44,7 +44,7 @@ abstract type ModelParams end
 # <: DDM
 struct DiscreteDynamicProblem{nStateVars,nChoiceVars,C,G,IP,IF,nChoiceVarsZero, C0} <: DDM
 
-    β::Real # important to specify here for type stability
+    β::Float64 # important to specify here for type stability
 
     # I think it should be possible to specify the number of inputs of the function
     rewardfunc::Function
