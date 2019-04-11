@@ -151,7 +151,7 @@ function Intangible(;
 		N0 = itp_N0(z0)
 		N0 = inbounds(N0, tStateVectors[2][1], tStateVectors[2][end])
 
-		return [K0, N0, z0] # CAN RETURN AS TUPLE INSTEAD? K0, N0, z0
+		return K0, N0, z0
 	end
 
 	createDiscreteDynamicProblem(

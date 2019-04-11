@@ -102,12 +102,17 @@ prob = DiscreteDynamicProblem(
             )
 ```
 
-The reward function is a function of state variables and choices. If there is only one choice variable, then you can also code it like this, instead of a vector (its actually slighlty faster):
+In some problems one may only have one shock or one choice variable. In this case, one can write the reward- and transition functions more concisely in terms as numbers as inputs as opposed to vectors (its actually slighlty faster):
 ```julia
 function rewardfunc(vStateVars, Kprime)
     (K, z) = vStateVars
     capx = Kprime - (1-δ)*K
     return K^α * exp(z) + γ/2*(capx/K- δ)^2 * K
+end
+function mytransfunc3(vExogState, shock)
+    z = vExogState[1]
+    zprime  = ρ*z + σ * shock;
+    return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
 end
 ```
 

@@ -96,16 +96,15 @@ function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 				vSim_it1 .= transfunc(vSim_it, vChoice, mShocks_it)
 			end
 			function fill_it!(vSim_it1, vSim_it, transfunc, intdim::Type{Separable}, vChoice, mShocks_it)
-				vSim_it1[1] .= vChoice
+				vSim_it1[1] = vChoice
 				vSim_it1[2:end] .= transfunc(vSim_it, vChoice, mShocks_it)
 			end
 			function fill_it!(vSim_it1, vSim_it, transfunc, intdim::Type{Separable_States}, vChoice, mShocks_it)
-				vSim_it1[1] .= vChoice
+				vSim_it1[1] = vChoice
 				vSim_it1[2:end] .= transfunc(vSim_it, mShocks_it)
 			end
 			function fill_it!(vSim_it1, vSim_it, transfunc, intdim::Type{Separable_ExogStates}, vChoice, mShocks_it)
-				# @show vChoice
-				vSim_it1[1] .= vChoice
+				vSim_it1[1] = vChoice
 				vSim_it1[2:end] .= transfunc(vSim_it[2:end], mShocks_it)
 			end
 

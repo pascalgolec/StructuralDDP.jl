@@ -43,10 +43,9 @@ function NeoClassicalSimple(;
 
     tStateVectors = (vK, vz) # tuple of basis vectors
 
-	function myrewardfunc(vStateVars, vChoices)
+	function myrewardfunc(vStateVars, choice)
 		(K, z) = vStateVars
-		# Kprime = vChoices[1]
-		Kprime = vChoices
+		Kprime = choice
 		capx = Kprime - (1-δ)*K
 		action = (Kprime != K)
 		oibdp = K^α * exp(z) - F*K*action - γ/2*(capx/K- δ)^2 * K
@@ -78,7 +77,7 @@ function NeoClassicalSimple(;
 	        zprime  = ρ*z + σ * Shock;
 	        return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
 	    end
-		tChoiceVectors = (1,)
+		tChoiceVectors = (1,) # the choice vector must in fact always be the first one
 
 	elseif intdim == :Separable_States
 	    transfunc = function mytransfunc2(vStates, Shock)
@@ -110,7 +109,7 @@ function NeoClassicalSimple(;
 		z0 = inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
 	    K0 = itp_K0(z0)
 		K0 = inbounds(K0, tStateVectors[1][1], tStateVectors[1][end])
-		return [K0, z0] # CAN RETURN AS TUPLE INSTEAD? K0, z0
+		return K0, z0
 	end
 
 	createDiscreteDynamicProblem(
