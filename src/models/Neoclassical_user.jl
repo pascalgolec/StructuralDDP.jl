@@ -129,17 +129,6 @@ function NeoClassicalSimple(; 	α = 0.67,
 
 	tChoiceVectorsZero = (1,)
 
-	# # specification is with endogchoicevars but SA
-	# function mytransfunc(vState::Vector{Float64}, vChoice::Vector{Float64}, vShocksss::Vector{Float64})
-    #     # @unpack ρ , σ = p.params
-	# 	# @code_warntype vState[2]
-    #     z = vState[2]
-	# 	# @code_warntype ρ*z + σ * vShocksss[1]
-    #     zprime  = ρ*z + σ * vShocksss[1]
-    #     # return  inbounds(zprime, p.tStateVectors[2][1], p.tStateVectors[2][end])
-    #     return  inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
-    # end
-
 	initializationproblem(value, K) =
 		value - (1 + (1-β)/β + C0) * K
 
