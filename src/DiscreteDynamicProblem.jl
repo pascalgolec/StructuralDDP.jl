@@ -1,6 +1,6 @@
 
 
-abstract type ModelParams end
+# abstract type ModelParams end
 
 #
 # struct DiscreteDynamicProblem{nStateVars, nChoiceVars, Intdim} <: DDM where K<:DDMIntDim # DiscreteDynamicModel
@@ -81,8 +81,8 @@ function createDiscreteDynamicProblem(
             β::Real,
             rewardfunc::Function,
             transfunc::Function,
-            tStateVectors::NTuple{S, Vector{Float64}},
-            tChoiceVectors::NTuple{C, typeC},
+            tStateVectors::NTuple{dimStates, Vector{Float64}},
+            tChoiceVectors::NTuple{dimChoices, typeC},
             shockdist::Distribution;
             # vWeights::Vector{Float64},
             # mShocks::Array{Float64,2};
@@ -92,19 +92,24 @@ function createDiscreteDynamicProblem(
             initializationproblem::Union{Function,Nothing} = nothing,
             initializefunc::Union{Function,Nothing} = nothing,
             tChoiceVectorsZero::NTuple{C0, typeC0} = tChoiceVectors,
-            ) where {I <: DDMIntDim, S, C, typeC<:Union{Vector{Float64}, Int64},
+            ) where {I <: DDMIntDim, dimStates, dimChoices, typeC<:Union{Vector{Float64}, Int64},
                 C0, typeC0<:Union{Vector{Float64}, Int64}}
 
     # can do stuff that the user does not interact with
     # nStateVars = length(tStateVectors)
 
-    # tChoiceVectors =
-    #
-    # if typeof(tChoiceVectors) <: Vector{Bool}
-    #     nChoiceVars = sum(tChoiceVectors)
-    # else
-    #     nChoiceVars = length(tStateVectors)
-    # end
+	intdim in (:All, :Separable, :Separable_ExogStates, :Separable_States) ||
+		error("Provided wrong integration dimension.")
+
+	!(eval(intdim) <: Separable_Union && typeC <: AbstractVector) || error(
+	"Provide a tuple of integers pointing towards the state variables instead of redefining the choice variables.")
+
+	# solver only supports correct order of endogenous state variables
+	!(eval(intdim) <: Separable_Union && tChoiceVectors[1] != 1) || error(
+	"The first state variable must be the (first) choice variable.")
+	!(eval(intdim) <: Separable_Union && dimChoices==2 && tChoiceVectors[2] != 2) || error(
+	"The second state variable must be the second choice variable.")
+
 
     DiscreteDynamicProblem(
         β,
@@ -127,3 +132,25 @@ end
 const DDP = DiscreteDynamicProblem
 
 separable(p::DDP) = typeof(p.tChoiceVectors) <: NTuple{N, Int} where N
+
+"""Retreive the state vectors that are not choice vectors from the state vector tuple."""
+getnonchoicevars(p::DDM) = getnonchoicevars(p.tStateVectors, p.tChoiceVectors)
+function getnonchoicevars(tStateVectors::NTuple{NS,T}, tchoicevars::NTuple{NC, Int64}) where {NS, T, NC}
+	allvars = tuple(1:NS...)
+	nonchoicevars = tuple(setdiff(Set(allvars), Set(tchoicevars))...)
+	return getindex(tStateVectors, collect(nonchoicevars))
+end
+getnonchoicevars(p::DDP{dimS,dimC,C}) where {dimS,dimC,C<:AbstractVector} = tuple() # i.e. intdim = :All
+getnonchoicevarszero(p::DDM) = getnonchoicevars(p.tStateVectors, p.tChoiceVectorsZero)
+
+
+"""Retreive the choice vectors from the state vector tuple."""
+getchoicevars(p::DDM) = getchoicevars(p.tStateVectors, p.tChoiceVectors)
+getchoicevars(tStateVectors::NTuple{NS,T}, tchoicevars::NTuple{NC, Int64}) where {NS, T, NC} =
+	getindex(tStateVectors, collect(tchoicevars))
+"""Retreive nothing if the choice vectors are provided."""
+getchoicevars(tStateVectors::NTuple{N1,T1}, tChoiceVectors::NTuple{N2,Vector{T2}}) where
+	{N1, T1, N2, T2} = tChoiceVectors
+
+"""Retreive the choice vectors to find policy at t=0."""
+getchoicevarszero(p::DDM) = getchoicevars(p.tStateVectors, p.tChoiceVectorsZero)
