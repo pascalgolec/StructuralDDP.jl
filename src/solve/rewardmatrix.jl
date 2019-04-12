@@ -1,9 +1,9 @@
-rewardmatrix(p::DDP{nStateVars,nChoiceVars,C,G,IP,IF}) where
-    {nStateVars,nChoiceVars,C<:Int64,G,IP,IF} =
+rewardmatrix(p::DDP{nStateVars,nChoiceVars,C}) where
+    {nStateVars,nChoiceVars,C<:Int} =
     _rewardmatrix(p.rewardfunc, p.tStateVectors, getchoicevars(p.tStateVectors, p.tChoiceVectors))
 
-rewardmatrix(p::DDP{nStateVars,nChoiceVars,C,G,IP,IF}) where
-    {nStateVars,nChoiceVars,C<:Vector{Float64},G,IP,IF} =
+rewardmatrix(p::DDP{nStateVars,nChoiceVars,C}) where
+    {nStateVars,nChoiceVars,C<:Vector{Float64}} =
     _rewardmatrix(p.rewardfunc, p.tStateVectors, p.tChoiceVectors)
 
 """ Return a nChoices x nStates reward matrix"""

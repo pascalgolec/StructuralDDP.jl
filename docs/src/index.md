@@ -131,9 +131,9 @@ There are different options available which make solving the model much faster.
 By default, we integrate over all state variables, choice variables and shocks to get expectations of next periods states, i.e. ``s_{t+1} = \Phi(s_t, a_t, \varepsilon_{t+1})``. Many problems however don't require this.
 
 In the Neoclassical model, we can directly choose next period's `K` and don't need to integrate along that dimension.
-Formally, this is the case when the choice variable is equal to one of the state variables. Note: sometimes this requires slightly rewriting the model by redefing the action space.
+Formally, this is the case when the choice variable is equal to one of the state variables. Note: sometimes this requires rewriting the model by redefing the action space.
 
-In that case, we can provide that information when defining the problem by specifying which state variable is the choice variable, i.e. `vChoiceVectors = [true, false]`. We also need to rewrite the transition function to only return `z` (note that in principle `zprime` could depend on the choice of `Kprime`:
+In that case, we can provide that information when defining the problem by specifying which state variable is the choice variable instead of defining directly the choice vectors, i.e. `tChoiceVectors = (1,)` which means that the first choice variable is equal to the first state variable. Important: when defining the state space `tStateVectors`, the endogenous state variable(s) must come first. We also need to rewrite the transition function to only return `z` (note that in principle `zprime` could depend on the choice of `Kprime`:
 ```julia
 function transfunc(vStateVars, vChoices, vShocks)
     z = vStateVars[2]

@@ -61,10 +61,10 @@ _transitionmatrix(p::DDM, method::Type{All}, numquadnodes::Vector{Int}) =
 
 # for choices and states as input
 function _transitionmatrix(transfunc::Function,
-    tInputVectorsStates::NTuple{N1, Vector{T}},
-	tInputVectorsChoices::NTuple{N2, Vector{T}},
+    tInputVectorsStates::NTuple{dimStates, Vector{T}},
+	tInputVectorsChoices::NTuple{dimChoices, Vector{T}},
 	tOutputVectors,
-    shockdist, numquadnodes) where {N1, N2, T}
+    shockdist, numquadnodes) where {dimStates, dimChoices, T}
 
     Shocks, vWeights = getquadrature(shockdist, numquadnodes)
 	dimshocks = length(shockdist)
@@ -79,12 +79,13 @@ function _transitionmatrix(transfunc::Function,
     basisOutputStates = Basis(SplineParams.(tOutputVectors,0,1))
     PhiTemp = spzeros(size(mG)...)
 
-	# choices change faster than states
-	if length(tInputVectorsChoices) > 1
+	if dimChoices > 1
         iterator_choices = Iterators.product(tInputVectorsChoices...)
     else # don't want a tuple of choices if only one
         iterator_choices = tInputVectorsChoices[1]
     end
+
+	# choices change faster than states
 	iterator = Iterators.product(iterator_choices, Iterators.product(tInputVectorsStates...))
 
 	# loop over all shock combinations
@@ -126,7 +127,11 @@ function _transitionmatrix(transfunc::Function,
     basisOutputStates = Basis(SplineParams.(tOutputVectors,0,1))
     PhiTemp = spzeros(size(mG)...)
 
-	iterator = Iterators.product(tInputVectors...)
+	if N > 1
+		iterator = Iterators.product(tInputVectors...)
+	else
+		iterator = tInputVectors[1]
+	end
 
     # loop over all shock combinations
     for i = 1 : length(vWeights)

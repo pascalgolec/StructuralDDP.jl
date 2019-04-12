@@ -63,6 +63,11 @@ function NeoClassicalSimple(;
 
 	if intdim == :All
 
+	    # transfunc = function mytransfunc(vStates, K, Shock)
+	    #     z = vStates[2]
+	    #     zprime  = ρ*z + σ * Shock[1];
+	    #     return K, inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+	    # end
 	    transfunc = function mytransfunc(vStates, K, Shock)
 	        z = vStates[2]
 	        zprime  = ρ*z + σ * Shock;
@@ -88,8 +93,8 @@ function NeoClassicalSimple(;
 		tChoiceVectors = (1,)
 
 	elseif intdim == :Separable_ExogStates
-	    transfunc = function mytransfunc3(vExogState, shock)
-	        z = vExogState[1]
+	    transfunc = function mytransfunc3(ExogState, shock)
+	        z = ExogState
 	        zprime  = ρ*z + σ * shock;
 	        return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
 	    end

@@ -99,7 +99,6 @@ function Intangible(;
 	end
 
 	if intdim == :All
-
 	    transfunc = function mytransfunc(vStates, vChoices, Shock)
 	        z = vStates[3]
 	        zprime  = ρ*z + σ * Shock
@@ -108,7 +107,6 @@ function Intangible(;
 		tChoiceVectors = (vK, vN)
 
 	elseif intdim == :Separable
-
 	    transfunc = function mytransfunc1(vStates, vChoices, Shock)
 	        z = vStates[3]
 	        zprime  = ρ*z + σ * Shock
@@ -125,8 +123,7 @@ function Intangible(;
 		tChoiceVectors = (1, 2)
 
 	elseif intdim == :Separable_ExogStates
-	    transfunc = function mytransfunc3(vExogState, Shock)
-	        z = vExogState[1]
+	    transfunc = function mytransfunc3(z, Shock)
 	        zprime  = ρ*z + σ * Shock
 	        return inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])
 	    end
