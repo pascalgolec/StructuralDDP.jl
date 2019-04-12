@@ -100,7 +100,7 @@ function NeoClassicalSimple(;
 	end
 
 
-	tChoiceVectorsZero = (1,)
+	tChoiceVectorsZero = (2,)
 
 	initializationproblem(value, choice) = value - (1 + (1-β)/β + C0) * choice
 
@@ -109,15 +109,6 @@ function NeoClassicalSimple(;
 		z0 = inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
 		return z0
 	end
-
-	# function initialize(shock, itp_K0)
-	# 	# in principle could also just let user intialize z0, itp_K0 done by program
-	#     z0 = shock * sqrt(σ^2 / (1-ρ^2))
-	# 	z0 = inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
-	#     K0 = itp_K0(z0)
-	# 	K0 = inbounds(K0, tStateVectors[1][1], tStateVectors[1][end])
-	# 	return K0, z0
-	# end
 
 	createDiscreteDynamicProblem(
 				β,

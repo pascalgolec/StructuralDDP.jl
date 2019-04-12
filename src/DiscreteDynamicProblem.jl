@@ -106,9 +106,12 @@ function createDiscreteDynamicProblem(
 
 	# solver only supports correct order of endogenous state variables
 	!(eval(intdim) <: Separable_Union && tChoiceVectors[1] != 1) || error(
-	"The first state variable must be the (first) choice variable.")
+	"Bad tChoiceVectors: the first state variable must be the (first) choice variable.")
 	!(eval(intdim) <: Separable_Union && dimChoices==2 && tChoiceVectors[2] != 2) || error(
-	"The second state variable must be the second choice variable.")
+	"tChoiceVectors: the second state variable must be the second choice variable.")
+
+	!(typeof(tChoiceVectorsZero) <: NTuple{C0,Int64} where C0 && tChoiceVectorsZero[1] != 1) || error(
+	"Bad tChoiceVectorsZero: the first state variable must be the (first) choice variable in the intialization problem.")
 
 
     DiscreteDynamicProblem(
@@ -119,9 +122,6 @@ function createDiscreteDynamicProblem(
         tStateVectors,
         tChoiceVectors,
         shockdist,
-        # vWeights,
-        # mShocks,
-        # bEndogStateVars,
         grossprofits,
         initializationproblem,
         initializefunc,

@@ -10,23 +10,7 @@
 # - only works if first state is choice state?
 # note: could be more elegant to have a SingleChoiceVar and a TwoChoiceVar subtype of DDM
 # to allocate to method.. will depend on how user inputs stuff
-# function initialendogstatevars(p::DDM, meshValFun::Array{Float64})
-#     if typeof(p.tChoiceVectors) == Tuple{Vector{Float64}}
-#         return meshValFunZero, tmeshPolFunZero = initialendogstatevars1(
-#             p.initializationproblem, meshValFun,
-#             p.tStateVectors, getchoicevars(p), getnonchoicevars(p))
-#     elseif typeof(p.tChoiceVectors) == Tuple{Vector{Float64},Vector{Float64}}
-#         return meshValFunZero, tmeshPolFunZero = initialendogstatevars2(
-#             p.initializationproblem, meshValFun,
-#             p.tStateVectors, getchoicevars(p), getnonchoicevars(p))
-#     end
-# end
 
-# initialendogstatevars(p::DDP{nStateVars,1,C,G,IP,IF},
-#     meshValFun::Array{Float64}) where {nStateVars,C,G,IP,IF} =
-#     initialendogstatevars1(
-#         p.initializationproblem, meshValFun,
-#         p.tStateVectors, getchoicevars(p), getnonchoicevars(p))
 initialendogstatevars(p::DDP, meshValFun::Array{Float64}) =
     _initialendogstatevars(
         p.initializationproblem, meshValFun,
