@@ -91,9 +91,9 @@ function createDiscreteDynamicProblem(
             grossprofits::Union{Function,Nothing} = nothing,
             initializationproblem::Union{Function,Nothing} = nothing,
             initializefunc::Union{Function,Nothing} = nothing,
-            tChoiceVectorsZero::NTuple{C0, typeC0} = tChoiceVectors,
+            tChoiceVectorsZero::Union{NTuple{C0,Int64},Nothing} = nothing,
             ) where {I <: DDMIntDim, dimStates, dimChoices, typeC<:Union{Vector{Float64}, Int64},
-                C0, typeC0<:Union{Vector{Float64}, Int64}}
+                C0}
 
     # can do stuff that the user does not interact with
     # nStateVars = length(tStateVectors)
@@ -141,6 +141,7 @@ function getnonchoicevars(tStateVectors::NTuple{NS,T}, tchoicevars::NTuple{NC, I
 	return getindex(tStateVectors, collect(nonchoicevars))
 end
 getnonchoicevars(p::DDP{dimS,dimC,C}) where {dimS,dimC,C<:AbstractVector} = tuple() # i.e. intdim = :All
+getnonchoicevars(tStateVectors, tChoiceVectors::Nothing) = nothing
 getnonchoicevarszero(p::DDM) = getnonchoicevars(p.tStateVectors, p.tChoiceVectorsZero)
 
 
@@ -151,6 +152,6 @@ getchoicevars(tStateVectors::NTuple{NS,T}, tchoicevars::NTuple{NC, Int64}) where
 """Retreive nothing if the choice vectors are provided."""
 getchoicevars(tStateVectors::NTuple{N1,T1}, tChoiceVectors::NTuple{N2,Vector{T2}}) where
 	{N1, T1, N2, T2} = tChoiceVectors
-
+getchoicevars(tStateVectors, tChoiceVectors::Nothing) = nothing
 """Retreive the choice vectors to find policy at t=0."""
 getchoicevarszero(p::DDM) = getchoicevars(p.tStateVectors, p.tChoiceVectorsZero)

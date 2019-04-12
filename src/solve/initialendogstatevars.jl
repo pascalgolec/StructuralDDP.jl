@@ -33,14 +33,14 @@ initialendogstatevars(p::DDP, meshValFun::Array{Float64}) =
         p.tStateVectors, getchoicevarszero(p), getnonchoicevarszero(p))
 
 function _initialendogstatevars(initializationproblem::Function, meshValFun::Array{Float64},
-    tStateVectors, tEndogStateVectors::Tuple{Vector{Float64}}, tExogStateVectors)
+    tStateVectors,
+    tChoiceVectors::Tuple{Vector{Float64}}, tExogStateVectors)
 
     exogtNodes = length.(tExogStateVectors)
-
     mV0 = zeros(exogtNodes)
     mChoice0 = zeros(exogtNodes)
 
-    vActions::Vector{Real} = tEndogStateVectors[1]
+    vActions::Vector{Real} = tChoiceVectors[1]
 
     for iexog in CartesianIndices(exogtNodes)
 
@@ -68,18 +68,14 @@ function _initialendogstatevars(initializationproblem::Function, meshValFun::Arr
 end
 
 function _initialendogstatevars(initializationproblem::Function, meshValFun::Array{Float64},
-    tStateVectors, tEndogStateVectors::NTuple{2,Vector{Float64}}, tExogStateVectors)
+    tStateVectors, tChoiceVectors::NTuple{2,Vector{Float64}}, tExogStateVectors)
 
     exogtNodes = length.(tExogStateVectors)
-
     mV0 = zeros(exogtNodes)
     mChoiceOne0 = zeros(exogtNodes)
     mChoiceTwo0 = zeros(exogtNodes)
 
-    vActionsOne = tEndogStateVectors[1]
-    vActionsTwo = tEndogStateVectors[2]
-    # vActionsOne, vActionsTwo = tStateVectors[bEndogStateVars]
-
+    vActionsOne, vActionsTwo = tChoiceVectors
 
     for iexog in CartesianIndices(exogtNodes)
 
@@ -90,7 +86,7 @@ function _initialendogstatevars(initializationproblem::Function, meshValFun::Arr
         for iChoiceOne = 1:length(vActionsOne), iChoiceTwo = 1:length(vActionsTwo)
 
                 value = initializationproblem(meshValFun[iChoiceOne, iChoiceTwo, iexog.I...],
-                            vActionsOne[iChoiceOne], vActionsTwo[iChoiceTwo])
+                            (vActionsOne[iChoiceOne], vActionsTwo[iChoiceTwo]))
 
                 if value > interimvalue
                     interimvalue = value

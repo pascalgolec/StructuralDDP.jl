@@ -135,21 +135,26 @@ function Intangible(;
 
 	tChoiceVectorsZero = (1,2)
 
-	initializationproblem(value, K, N) = value - (1+C0)*K - (1+C0)*N
+	initializationproblem(value, vChoices) = value - (1+C0)*vChoices[1] - (1+C0)*vChoices[2]
 
-	function initialize(vShocks, itp_K0, itp_N0)
-
-	    z0 = vShocks[1] * sqrt(σ^2 / (1-ρ^2))
+	function initialize(shock)
+	    z0 = shock * sqrt(σ^2 / (1-ρ^2))
 		z0 = inbounds(z0, tStateVectors[3][1], tStateVectors[3][end])
-
-		K0 = itp_K0(z0)
-		K0 = inbounds(K0, tStateVectors[1][1], tStateVectors[1][end])
-
-		N0 = itp_N0(z0)
-		N0 = inbounds(N0, tStateVectors[2][1], tStateVectors[2][end])
-
-		return K0, N0, z0
+		return z0
 	end
+	# function initialize(shock, itp_K0, itp_N0)
+	#
+	#     z0 = shock * sqrt(σ^2 / (1-ρ^2))
+	# 	z0 = inbounds(z0, tStateVectors[3][1], tStateVectors[3][end])
+	#
+	# 	K0 = itp_K0(z0)
+	# 	K0 = inbounds(K0, tStateVectors[1][1], tStateVectors[1][end])
+	#
+	# 	N0 = itp_N0(z0)
+	# 	N0 = inbounds(N0, tStateVectors[2][1], tStateVectors[2][end])
+	#
+	# 	return K0, N0, z0
+	# end
 
 	createDiscreteDynamicProblem(
 				β,

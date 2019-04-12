@@ -63,11 +63,6 @@ function NeoClassicalSimple(;
 
 	if intdim == :All
 
-	    # transfunc = function mytransfunc(vStates, K, Shock)
-	    #     z = vStates[2]
-	    #     zprime  = ρ*z + σ * Shock[1];
-	    #     return K, inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
-	    # end
 	    transfunc = function mytransfunc(vStates, K, Shock)
 	        z = vStates[2]
 	        zprime  = ρ*z + σ * Shock;
@@ -104,18 +99,25 @@ function NeoClassicalSimple(;
 		error("$intdim wrong intdim")
 	end
 
+
 	tChoiceVectorsZero = (1,)
 
-	initializationproblem(value, K) =
-		value - (1 + (1-β)/β + C0) * K
+	initializationproblem(value, choice) = value - (1 + (1-β)/β + C0) * choice
 
-	function initialize(vShocks, itp_K0)
-	    z0 = vShocks[1] * sqrt(σ^2 / (1-ρ^2))
+	function initialize(shock)
+	    z0 = shock * sqrt(σ^2 / (1-ρ^2))
 		z0 = inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
-	    K0 = itp_K0(z0)
-		K0 = inbounds(K0, tStateVectors[1][1], tStateVectors[1][end])
-		return K0, z0
+		return z0
 	end
+
+	# function initialize(shock, itp_K0)
+	# 	# in principle could also just let user intialize z0, itp_K0 done by program
+	#     z0 = shock * sqrt(σ^2 / (1-ρ^2))
+	# 	z0 = inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
+	#     K0 = itp_K0(z0)
+	# 	K0 = inbounds(K0, tStateVectors[1][1], tStateVectors[1][end])
+	# 	return K0, z0
+	# end
 
 	createDiscreteDynamicProblem(
 				β,

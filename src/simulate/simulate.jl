@@ -35,6 +35,7 @@ _simulate(p::DDP{NS,1}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::
         initialize_exact::Bool = typeof(sol) <: DDPSolutionZero) where NS =
 		_simulate1(sol, shocks, transfunc, p.intdim,
 				p.tStateVectors, getchoicevars(p), getnonchoicevars(p),
+                getchoicevarszero(p),
 				getnonchoicevarszero(p),
 				p.initializefunc, initialize_exact)
 
@@ -46,7 +47,8 @@ function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 				tChoiceVectors,
 				tExogStateVectors::NTuple{dimExogStates, AbstractVector},
 				# need information on dimension incase intdim=ExogStates and have only one exog varible
-				tOtherStateVectorsZero,
+				tChoiceVectorsZero,
+				tExogStateVectorsZero,
 				initializefunc::Function, initialize_exact::Bool) where
 				{T<:DDMIntDim, dimStates, dimExogStates}
 
@@ -69,8 +71,13 @@ function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 	itp_value = extrapolate(itp_value, Flat())
 
 	if initialize_exact
-        itp_policy0 = interpolate(tOtherStateVectorsZero, sol.tmeshPolFunZero[1], Gridded(Linear()))
+        itp_policy0 = interpolate(tExogStateVectorsZero, sol.tmeshPolFunZero[1], Gridded(Linear()))
         itp_policy0 = extrapolate(itp_policy0, Flat())
+
+		function initialize_choices(vExogStateVars0, itp_policy0)
+		    C0 = itp_policy0(vExogStateVars0...)
+			C0 = inbounds(C0, tChoiceVectorsZero[1][1], tChoiceVectorsZero[1][end])
+        end
     end
 
 	minChoice::Float64 = minimum(tChoiceVectors[1])
@@ -82,9 +89,16 @@ function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 		vVal_i = @view mVal[1,:,i]
 
         if initialize_exact
-            vSim_i[:,1] .= initializefunc(shocks.aInit[:,1,i], itp_policy0)
+			if dimShocks > 1
+				vSim_i[:,1] .= initializefunc(shocks.aInit[:,1,i])
+			else
+				vSim_i[2:end,1] .= initializefunc(shocks.aInit[1,1,i])
+			end
+            vSim_i[1,1] = initialize_choices(vSim_i[2:end,1], itp_policy0)
+
         else
             vSim_i[:,1] .= initialize_simple(tStateVectors) # stable
+
         end
 
 		vVal_i[1] = itp_value(vSim_i[:,1]...)
@@ -139,8 +153,9 @@ end # simulatemodel
 _simulate(p::DDP{NS,2}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function;
         initialize_exact::Bool = typeof(sol) <: DDPSolutionZero) where NS =
 		_simulate2(sol, shocks, transfunc, p.intdim,
-				p.tStateVectors, getchoicevars(p), getnonchoicevars(p),
-				getnonchoicevarszero(p),
+				p.tStateVectors,
+                getchoicevars(p), getnonchoicevars(p),
+                getchoicevarszero(p), getnonchoicevarszero(p),
 				p.initializefunc, initialize_exact)
 # perhaps better to return a tuple of arrays rather than an array
 function _simulate2(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function,
@@ -148,9 +163,10 @@ function _simulate2(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 				tStateVectors::NTuple{dimStates, AbstractVector},
 				tChoiceVectors::NTuple{dimChoices, AbstractVector},
 				tExogStateVectors::NTuple{dimExogStates, AbstractVector},
-				tOtherStateVectorsZero,
+                tChoiceVectorsZero::NTuple{dimChoicesZero, AbstractVector},
+				tExogStateVectorsZero,
 				initializefunc::Function, initialize_exact::Bool) where
-					{T<:DDMIntDim, dimStates, dimChoices, dimExogStates}
+					{T<:DDMIntDim, dimStates, dimChoices, dimExogStates, dimChoicesZero}
 
 	!(initialize_exact && !(typeof(sol) <: DDPSolutionZero)) || error(
 		"Solution does not contain intial policy -> rerun solver with `initialize_exact = true`")
@@ -179,8 +195,10 @@ function _simulate2(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 	itp_value = extrapolate(itp_value, Flat())
 
 	if initialize_exact
-        itp_policy0 = [interpolate(tOtherStateVectorsZero, polfun, Gridded(Linear())) for polfun in sol.tmeshPolFunZero]
+        itp_policy0 = [interpolate(tExogStateVectorsZero, polfun, Gridded(Linear())) for polfun in sol.tmeshPolFunZero]
         itp_policy0 = [extrapolate(itp, Flat()) for itp in itp_policy0]
+
+        initialize_choices(vExogStateVars0) = [itp(vExogStateVars0...) for itp in itp_policy0]
     end
 
 	# # for exogenous exit
@@ -204,7 +222,13 @@ function _simulate2(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 		# vVal_i = fill!(zeros(nPeriods+1), NaN)
 
         if initialize_exact
-            vSim_i[:,1] .= initializefunc(shocks.aInit[:,1,i], itp_policy0...)
+            # vSim_i[:,1] .= initializefunc(shocks.aInit[:,1,i], itp_policy0...)
+			if dimShocks > 1
+				vSim_i[1+dimChoicesZero:end,1] .= initializefunc(shocks.aInit[:,1,i])
+			else
+				vSim_i[1+dimChoicesZero:end,1] .= initializefunc(shocks.aInit[1,1,i])
+			end
+            vSim_i[1:dimChoicesZero,1] = initialize_choices(vSim_i[1+dimChoicesZero:end,1])
         else
             vSim_i[:,1] .= initialize_simple(tStateVectors) # stable
         end

@@ -227,7 +227,7 @@ The default setting how the initial state variables are drawn at t=0 is the burn
 There is also an option for more sophisticated initialization, where the initial endogenous state variables are chosen by the firm subject to a loss function and the exogenous ones are predetermined or random. For the neoclassical model, this entails coding the following functions as an additional input into the problem:
 
 ```julia
-initprob(value::Float64, K::Float64) = value - (1 + (1-β)/β + C0) * K
+initprob(value::Float64, vChoices) = value - (1 + (1-β)/β + C0) * vChoices[1]
 function init(dShock::AbstractArray{Float64, 1}, itp_K0)
     z0 = dShock[1] * sqrt(σ^2 / (1-ρ^2))
     z0 = inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
