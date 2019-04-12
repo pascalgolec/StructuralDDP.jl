@@ -66,7 +66,7 @@ function NeoClassicalSimple(;
 	    transfunc = function mytransfunc(vStates, K, Shock)
 	        z = vStates[2]
 	        zprime  = ρ*z + σ * Shock;
-	        return K, inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+	        return K, zprime
 	    end
 		tChoiceVectors = (vK,)
 
@@ -75,15 +75,15 @@ function NeoClassicalSimple(;
 	    transfunc = function mytransfunc1(vStates, vChoices, Shock)
 	        z = vStates[2]
 	        zprime  = ρ*z + σ * Shock;
-	        return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+	        return zprime
 	    end
-		tChoiceVectors = (1,) # the choice vector must in fact always be the first one
+		tChoiceVectors = (1,)
 
 	elseif intdim == :Separable_States
 	    transfunc = function mytransfunc2(vStates, Shock)
 	        z = vStates[2]
 	        zprime  = ρ*z + σ * Shock;
-	        return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+	        return zprime
 	    end
 		tChoiceVectors = (1,)
 
@@ -91,7 +91,7 @@ function NeoClassicalSimple(;
 	    transfunc = function mytransfunc3(ExogState, shock)
 	        z = ExogState
 	        zprime  = ρ*z + σ * shock;
-	        return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+	        return zprime
 	    end
 		tChoiceVectors = (1,)
 	else
@@ -100,13 +100,12 @@ function NeoClassicalSimple(;
 	end
 
 
-	tChoiceVectorsZero = (2,)
+	tChoiceVectorsZero = (1,)
 
 	initializationproblem(value, choice) = value - (1 + (1-β)/β + C0) * choice
 
 	function initialize(shock)
 	    z0 = shock * sqrt(σ^2 / (1-ρ^2))
-		z0 = inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
 		return z0
 	end
 

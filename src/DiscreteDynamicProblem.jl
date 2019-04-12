@@ -1,47 +1,4 @@
 
-
-# abstract type ModelParams end
-
-#
-# struct DiscreteDynamicProblem{nStateVars, nChoiceVars, Intdim} <: DDM where K<:DDMIntDim # DiscreteDynamicModel
-#     # with parameters, we create a family of types
-#     # can also add where F <: Union{Function, Nothing} later
-#
-#     # I think it should be possible to specify the number of inputs of the function
-#     rewardfunc::Function
-#     transfunc::Function
-#
-#     """The partial reward function."""
-#     grossprofits::Function
-#
-#     # initializationproblem::Union{Function, Nothing} # this is bad, because type will always stay ambiguous!!
-#     # need to parametrize above
-#     # initializefunc::Union{Function, Nothing}
-#     initializationproblem::Function
-#     initializefunc::Function
-#
-#     # params::NeoClassicalSimpleParams{Float64, Int64} # important to specify here for type stability
-#     params::ModelParams # important to specify here for type stability
-#
-#     intdim::Type{Intdim} # not really necessary, can just have it as a parameter in type...
-#
-#     # tStateVectors::NTuple{N, Vector{Float64}} where N # can use NTuple{N, Vector{Float64}} where N
-#     # tChoiceVectors::Union{Tuple{Vector{Float64}},Tuple{Vector{Float64},Vector{Float64}}}
-#
-#     tStateVectors::NTuple{nStateVars, Vector{Float64}} #where N # can use NTuple{N, Vector{Float64}} where N
-#     tChoiceVectors::NTuple{nChoiceVars, Vector{Float64}}
-#
-#     # which state variables are endogenous
-#     bEndogStateVars::Vector{Bool}
-#
-#     # quadrature for calculating expectations
-#     vWeights::Vector{Float64}
-#     mShocks::Array{Float64,2}
-#
-# end
-
-
-# <: DDM
 struct DiscreteDynamicProblem{nStateVars,nChoiceVars,C,G,IP,IF,nChoiceVarsZero, C0} <: DDM
 
     β::Float64 # important to specify here for type stability
@@ -59,8 +16,6 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,C,G,IP,IF,nChoiceVarsZero, 
     shockdist::Distribution  # for smm it's important though that the shock distribution stays the same, does not
     # depend on parameters!!!
 
-    # which state variables are endogenous
-    # bEndogStateVars::E
 
     """The partial reward function."""
     grossprofits::G
@@ -99,7 +54,7 @@ function createDiscreteDynamicProblem(
     # nStateVars = length(tStateVectors)
 
 	intdim in (:All, :Separable, :Separable_ExogStates, :Separable_States) ||
-		error("Provided wrong integration dimension.")
+		error("Provided wrong integration dimension $intdim.")
 
 	!(eval(intdim) <: Separable_Union && typeC <: AbstractVector) || error(
 	"Provide a tuple of integers pointing towards the state variables instead of redefining the choice variables.")

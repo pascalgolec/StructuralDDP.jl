@@ -102,7 +102,7 @@ function Intangible(;
 	    transfunc = function mytransfunc(vStates, vChoices, Shock)
 	        z = vStates[3]
 	        zprime  = ρ*z + σ * Shock
-	        return vChoices[1], vChoices[2], inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])
+	        return vChoices[1], vChoices[2], zprime
 	    end
 		tChoiceVectors = (vK, vN)
 
@@ -110,7 +110,7 @@ function Intangible(;
 	    transfunc = function mytransfunc1(vStates, vChoices, Shock)
 	        z = vStates[3]
 	        zprime  = ρ*z + σ * Shock
-	        return inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])
+	        return zprime
 	    end
 		tChoiceVectors = (1, 2)
 
@@ -118,14 +118,14 @@ function Intangible(;
 	    transfunc = function mytransfunc2(vStates, Shock)
 	        z = vStates[3]
 	        zprime  = ρ*z + σ * Shock
-	        return inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])
+	        return zprime
 	    end
 		tChoiceVectors = (1, 2)
 
 	elseif intdim == :Separable_ExogStates
 	    transfunc = function mytransfunc3(z, Shock)
 	        zprime  = ρ*z + σ * Shock
-	        return inbounds(zprime, tStateVectors[3][1], tStateVectors[3][end])
+	        return zprime
 	    end
 		tChoiceVectors = (1, 2)
 
@@ -139,7 +139,7 @@ function Intangible(;
 
 	function initialize(shock)
 	    z0 = shock * sqrt(σ^2 / (1-ρ^2))
-		z0 = inbounds(z0, tStateVectors[3][1], tStateVectors[3][end])
+		# z0 = inbounds(z0, tStateVectors[3][1], tStateVectors[3][end])
 		return z0
 	end
 

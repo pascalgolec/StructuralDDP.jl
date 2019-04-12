@@ -228,16 +228,14 @@ There is also an option for more sophisticated initialization, where the initial
 
 ```julia
 initprob(value::Float64, vChoices) = value - (1 + (1-β)/β + C0) * vChoices[1]
-function init(dShock::AbstractArray{Float64, 1}, itp_K0)
-    z0 = dShock[1] * sqrt(σ^2 / (1-ρ^2))
-    z0 = inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
-    K0 = itp_K0(z0)
-    K0 = inbounds(K0, tStateVectors[1][1], tStateVectors[1][end])
-    return [K0, z0]
+function init(vShocks)
+    z0 = vShocks[1] * sqrt(σ^2 / (1-ρ^2))
+    return inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
 end
 createDiscreteDynamicProblem(<other variables>,
     initializationproblem = initprob,
-    initializefunc = init)
+    initializefunc = init,
+    tChoiceVectorsZero = (1,))
 ```
 
 If we have a problem where our choice variables are not exacly equal to some of the state variables, then we need to specify additionally which state variables the firm chooses at t=0. This is achieved with the option `tChoiceVectorsZero`, i.e. `tChoiceVectorsZero = (1,)` for the neoclassical model. If `tChoiceVectorsZero` is not specified, then the solver/simulator uses indices of the choice variables for the dynamic optimization.
