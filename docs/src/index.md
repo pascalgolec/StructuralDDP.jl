@@ -115,20 +115,10 @@ prob = DiscreteDynamicProblem(
             )
 ```
 
-In some problems one may only have one shock or one choice variable. In this case, one can write the reward- and transition functions more concisely in terms as numbers as inputs as opposed to vectors (it's actually slighlty faster):
+For using shock distributions than standard normal, see the [Distributions.jl package](https://juliastats.github.io/Distributions.jl/stable/). The solver supports any type of univariate distribution distribution and multivariate-normal distributions at this moment.
 
-```julia
-function reward(vStateVars, Kprime)
-    (K, z) = vStateVars
-    capx = Kprime - (1-δ)*K
-    return K^α * exp(z) + γ/2*(capx/K- δ)^2 * K
-end
-function transition(vExogState, shock)
-    z = vExogState[1]
-    zprime  = ρ*z + σ * shock;
-    return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
-end
-```
+For more options on defining problems such as more concise notation, see the [problem options section](#Problem-Options-1).
+
 
 ## Step 2: solve problem
 
@@ -152,6 +142,8 @@ We can simulate a panel:
 sim = simulate(prob, sol, nPeriods = 120, nFirms = 10000)
 ```
 
+The simulation starts at the same point for all firms, more details about this are in the [simulator options section](#Simulator-Options-1).
+
 It is also possible to simulate a model or variations thereof using the identical draw of shocks:
 
 ```julia
@@ -161,25 +153,22 @@ sim = simulate(prob, sol, shocks)
 
 Note: the draw of shocks refers to the supplied shock distribution in the problem defintion. If the shock distribution is parametrized, for example by its variance, then one should not do comparative statics on those parameters.
 
-### Initialization
+# Problem Options
 
-The default setting how the initial state variables are drawn at t=0 is the burn-in method. Here, each firm starts with states that are the median values of the state space. The idea is to simulate the model for more periods than necessary and then only analyse the simulated values after 60 periods or so on, depending on the model.
-
-There is also an option for more sophisticated initialization, where the initial endogenous state variables are chosen by the firm subject to a loss function and the exogenous ones are predetermined or random. For the neoclassical model, this entails coding the following functions as an additional input into the problem:
+In some problems one may only have one shock or one choice variable. In this case, one can write the reward- and transition functions more concisely in terms as numbers as inputs as opposed to vectors (it's actually slighlty faster):
 
 ```julia
-initprob(value::Float64, vChoices) = value - (1 + (1-β)/β + C0) * vChoices[1]
-function init(vShocks)
-    z0 = vShocks[1] * sqrt(σ^2 / (1-ρ^2))
-    return inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
+function reward(vStateVars, Kprime)
+    (K, z) = vStateVars
+    capx = Kprime - (1-δ)*K
+    return K^α * exp(z) + γ/2*(capx/K- δ)^2 * K
 end
-createDiscreteDynamicProblem(<other variables>,
-    initializationproblem = initprob,
-    initializefunc = init,
-    tChoiceVectorsZero = (1,))
+function transition(vExogState, shock)
+    z = vExogState[1]
+    zprime  = ρ*z + σ * shock;
+    return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
+end
 ```
-
-If we have a problem where our choice variables are not exacly equal to some of the state variables, then we need to specify additionally which state variables the firm chooses at t=0. This is achieved with the option `tChoiceVectorsZero`, i.e. `tChoiceVectorsZero = (1,)` for the neoclassical model. If `tChoiceVectorsZero` is not specified, then the solver/simulator uses indices of the choice variables for the dynamic optimization.
 
 # Solver Options
 
@@ -275,6 +264,28 @@ sol = solve(prob, mTransition = tauchen(nz, ρ, σ))
 - `max_iter`: Maximum number of iterations before stopping. Defaults to 1e5.
 - `disp`: whether to display number of iterations and epsilon-convergence during solving. Default is false.
 - `disp_each_iter`: wait how many iterations for displaying status during solving. Default is 10.
+
+# Simulator Options
+
+## Initialization
+
+The default setting how the initial state variables are drawn at t=0 is the burn-in method. Here, each firm starts with states that are the median values of the state space. The idea is to simulate the model for more periods than necessary and then only analyse the simulated values after 60 periods or so on, depending on the model.
+
+There is also an option for more sophisticated initialization, where the initial endogenous state variables are chosen by the firm subject to a loss function and the exogenous ones are predetermined or random. For the neoclassical model, this entails coding the following functions as an additional input into the problem:
+
+```julia
+initprob(value::Float64, vChoices) = value - (1 + (1-β)/β + C0) * vChoices[1]
+function init(vShocks)
+    z0 = vShocks[1] * sqrt(σ^2 / (1-ρ^2))
+    return inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
+end
+createDiscreteDynamicProblem(<other variables>,
+    initializationproblem = initprob,
+    initializefunc = init,
+    tChoiceVectorsZero = (1,))
+```
+
+If we have a problem where our choice variables are not exacly equal to some of the state variables, then we need to specify additionally which state variables the firm chooses at t=0. This is achieved with the option `tChoiceVectorsZero`, i.e. `tChoiceVectorsZero = (1,)` for the neoclassical model. If `tChoiceVectorsZero` is not specified, then the solver/simulator uses indices of the choice variables for the dynamic optimization.
 
 # notes
 

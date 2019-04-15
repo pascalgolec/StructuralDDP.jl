@@ -31,6 +31,8 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,C,G,IP,IF,nChoiceVarsZero, 
     shockdist::Distribution  # for smm it's important though that the shock distribution stays the same, does not
     # depend on parameters!!!
 
+
+	# Options
     """The partial reward function."""
     grossprofits::G
 
@@ -54,10 +56,7 @@ function createDDP(
             tStateVectors::NTuple{dimStates, Vector{Float64}},
             tChoiceVectors::NTuple{dimChoices, typeC},
             shockdist::Distribution;
-            # vWeights::Vector{Float64},
-            # mShocks::Array{Float64,2};
             intdim::Symbol = :All,
-            # bEndogStateVars::Union{Vector{Bool},Nothing} = nothing,
             grossprofits::Union{Function,Nothing} = nothing,
             initializationproblem::Union{Function,Nothing} = nothing,
             initializefunc::Union{Function,Nothing} = nothing,
