@@ -1,11 +1,26 @@
 
+"""
+$(TYPEDEF)
+
+Defines an infinite-horizon discrete choice dynamic optimization problem.
+
+# Fields
+
+$(FIELDS)
+"""
 struct DiscreteDynamicProblem{nStateVars,nChoiceVars,C,G,IP,IF,nChoiceVarsZero, C0} <: DDM
 
+	"""The discount factor for future rewards."""
     β::Float64 # important to specify here for type stability
 
-    # I think it should be possible to specify the number of inputs of the function
+    """The reward function defining current period rewards as a function of states and choices."""
     rewardfunc::Function
+
+	"""The transition function of the state variables, depending on the
+	integration dimension as a function of states, choices and shocks."""
     transfunc::Function
+
+	"""The integration dimension of the transition function."""
     intdim::Type{ID} where ID<:DDMIntDim # not really necessary, can just have it as a parameter in type...
 
     tStateVectors::NTuple{nStateVars, Vector{Float64}} #where N # can use NTuple{N, Vector{Float64}} where N
@@ -15,7 +30,6 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,C,G,IP,IF,nChoiceVarsZero, 
     # allows few univariate only normal multivariate for now
     shockdist::Distribution  # for smm it's important though that the shock distribution stays the same, does not
     # depend on parameters!!!
-
 
     """The partial reward function."""
     grossprofits::G
@@ -30,8 +44,9 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,C,G,IP,IF,nChoiceVarsZero, 
 
 end
 
+const DDP = DiscreteDynamicProblem
 
-function createDiscreteDynamicProblem(
+function createDDP(
             # params::ModelParams,
             β::Real,
             rewardfunc::Function,
@@ -84,7 +99,7 @@ function createDiscreteDynamicProblem(
         )
 end
 
-const DDP = DiscreteDynamicProblem
+
 
 separable(p::DDP) = typeof(p.tChoiceVectors) <: NTuple{N, Int} where N
 

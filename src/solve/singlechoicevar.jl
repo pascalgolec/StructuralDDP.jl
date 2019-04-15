@@ -4,11 +4,13 @@
 _solve(p::DDP{nStateVars,1},
 		method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
-		disp::Bool, rewardmat::Symbol, monotonicity::Bool, concavity::Bool) where
+		disp::Bool, disp_each_iter::Int, max_iter::Int, epsilon::Float64,
+		rewardmat::Symbol, monotonicity::Bool, concavity::Bool) where
 			{nStateVars, T <: Separable_Union} =
 		_solve1(p.rewardfunc, method,
 			mTransition, mReward,
-			disp, rewardmat, monotonicity, concavity,
+			disp, disp_each_iter, max_iter, epsilon,
+			rewardmat, monotonicity, concavity,
 			p.tStateVectors,
 			getchoicevars(p.tStateVectors, p.tChoiceVectors)[1],
 			getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
@@ -17,7 +19,8 @@ _solve(p::DDP{nStateVars,1},
 # precondition is separable. have EndogStatevectors and exogstatevectors
 function _solve1(rewardfunc::Function, method::Type{T},
 				mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
-				disp::Bool, rewardmat::Symbol, monotonicity::Bool, concavity::Bool,
+				disp::Bool, disp_each_iter::Int, max_iter::Int, epsilon::Float64,
+				rewardmat::Symbol, monotonicity::Bool, concavity::Bool,
 				tStateVectors,#::NTuple{2,Vector{Float64}},
 				vChoices::Vector{Float64},
 				tOtherStateVectors, #::NTuple{1,Vector{Float64}}
@@ -37,20 +40,26 @@ function _solve1(rewardfunc::Function, method::Type{T},
     mβEV = zeros(nChoices, size(mTransition, 1)) # depends on intdim
 
     # VFI initialization
-    maxDifference::Float64 = 10000.0 # to initialize
-    tolerance = 1.E-8
+    maxDifference::Float64 = Inf # to initialize
     iteration::Int64 = 0 # initialize counter
+	if β == 0.0
+        tolerance = Inf
+    elseif β == 1.0
+        throw(ArgumentError("method invalid for beta = 1"))
+    else
+        tolerance = epsilon * (1-β) / (2*β)
+    end
 
     # initialize for less memory allocation
 	mValFunDiff = zeros(nChoices,nOtherStates)
     mValFunDiffAbs = zeros(nChoices,nOtherStates)
 
-    liquidationvalue::Float64 = -10000.
-    inactionvalue::Float64 = -10000.
-    reward::Float64 = -10000.
+    # liquidationvalue::Float64 = -10000.
+    # inactionvalue::Float64 = -10000.
+    reward::Float64 = -Inf
 
-	valueHighSoFar::Float64 = -1000.
-	valueProvisional::Float64 = -1000.
+	valueHighSoFar::Float64 = -Inf
+	valueProvisional::Float64 = -Inf
     iChoiceStart::Int16 = 1
     iChoice::Int16 = 1
 	i::Int64 = 0 # outer loop for other state vars
@@ -171,13 +180,11 @@ function _solve1(rewardfunc::Function, method::Type{T},
 	    iteration += 1
 
         if disp
-    	    if mod(iteration,10)==0 || iteration == 1
-    	        println(" Iteration = ", iteration, " Sup Diff = ", maxDifference)
-    	    end
+			display_iter(iteration, disp_each_iter, maxDifference)
         end
 
-        if iteration > 1000
-            println("WARNING: maximum iterations exceeded")
+        if iteration > max_iter
+            println("WARNING: $max_iter maximum iterations exceeded")
             # println("Parameters used:")
 			# println(p.params)
             break

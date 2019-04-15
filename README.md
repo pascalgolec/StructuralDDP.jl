@@ -14,11 +14,11 @@ It used to be that for doing structural estimation, you needed a toolbox and be 
 	- rewardfunc vs rewardfunc_partial: how to implement for user?
 - [ ] get rid of DDM, use DDP
 - [ ] change name of grossprofits to rewardfunc_partial or something
-- [ ] make tChoiceVectors optional (only if use SA)
+- [x] make tChoiceVectors optional (only if use SA)
     - in the problem constructor, make optional
     - remove it in separable and intermediate solver functions and other functions
     - change name of bEndogStatevars, to choicevars
-- [ ] merge with master branch
+- [x] merge with master branch
 - [ ] write documentation
 - [ ] implement plotrecipe
 - [ ] think about whether should include accountingvars() into this package
@@ -34,6 +34,7 @@ It used to be that for doing structural estimation, you needed a toolbox and be 
 	- simulate with small grid, then tighten the grid
 - [ ] Check ApproxFun.jl, whether can use algorhythm for any function approximation type (not just linear, but also Chebychev, Polynomial etc)
 	- at the moment the solver does not interpolate, the simulator uses linear interpolation
+- [ ] more transparent indexing in loops
 
 ## Models
 - [ ] index state variables as dict instead of position (`tStateVector[:K]` instead of `tStateVector[1]`)

@@ -4,7 +4,7 @@ module DiscreteDynamicProgramming
 	using QuantEcon: qnwnorm, qnwunif, qnwlogn, gridmake, DiscreteDP, VFI
 	import QuantEcon: solve # import because will extend
 	using Interpolations
-	using Parameters
+	# using Parameters
 	using NLsolve # to find steady state
 	using TreeViews
 	using Distributions
@@ -12,6 +12,9 @@ module DiscreteDynamicProgramming
 	using SparseArrays
 	using LinearAlgebra
 
+	using DocStringExtensions
+
+	export DiscreteDynamicProblem
 	export createmodel, solve, drawshocks, simulate, transitionmatrix,
 		drawshocks
 	# export NeoClassicalSimple
@@ -26,7 +29,7 @@ module DiscreteDynamicProgramming
 	# abstract type SingleChoiceVar <: NumChoiceVar end
 	# abstract type TwoChoiceVar <: NumChoiceVar end
 
-	# need this for transfunc
+	# rename to IntegrationDimension?
 	abstract type DDMIntegrationDimension end
 	const DDMIntDim = DDMIntegrationDimension
 	abstract type All <: DDMIntDim end

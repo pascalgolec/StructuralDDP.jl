@@ -109,7 +109,7 @@ function NeoClassicalSimple(;
 		return z0
 	end
 
-	createDiscreteDynamicProblem(
+	createDDP(
 				β,
 	            myrewardfunc,
 	            transfunc,
