@@ -1,6 +1,6 @@
 
 using DiscreteDynamicProgramming
-include("utils.jl")
+# include("utils.jl")
 using Test
 mytol = 1e-4
 
@@ -41,35 +41,14 @@ sol_intan_Separable_ExogStates = solve(p_int_Sep_ExogStates; optdict...)
 
 	@testset "compare solution methods" begin
 
-        compare_solutions("Neoclassical_1st_2nd", sol_neoclassical_All, sol_neoclassical_Separable, mytol)
-        compare_solutions("Neoclassical_2nd_3rd", sol_neoclassical_Separable, sol_neoclassical_Separable_States, mytol)
-        compare_solutions("Neoclassical_3rd_4th", sol_neoclassical_Separable_States, sol_neoclassical_Separable_ExogStates, mytol)
+        compare(sol_neoclassical_All, sol_neoclassical_Separable, str="Neoclassical_1st_2nd", tol=mytol)
+        compare(sol_neoclassical_Separable, sol_neoclassical_Separable_States, str="Neoclassical_2nd_3rd", tol=mytol)
+        compare(sol_neoclassical_Separable_States, sol_neoclassical_Separable_ExogStates, str="Neoclassical_3rd_4th", tol=mytol)
 
-		compare_solutions("Intangible_1st_2nd", sol_intan_All, sol_intan_Separable, mytol)
-		compare_solutions("Intangible_2nd_3rd", sol_intan_Separable, sol_intan_Separable_States, mytol)
-        compare_solutions("Intangible_3rd_4th", sol_intan_Separable_States, sol_intan_Separable_ExogStates, mytol)
+		compare(sol_intan_All, sol_intan_Separable, str="Intangible_1st_2nd", tol=mytol)
+		compare(sol_intan_Separable, sol_intan_Separable_States, str="Intangible_2nd_3rd", tol=mytol)
+        compare(sol_intan_Separable_States, sol_intan_Separable_ExogStates, str="Intangible_3rd_4th", tol=mytol)
 
     end
-
-    # @testset "SA" begin
-    #
-    #     @testset "NeoClassical" begin
-    #         @testset "policy" begin
-    #             @test sol_neoclassical_SA.meshValFun[1] ≈ 11.47959458057959 rtol=mytol
-    #             @test sol_neoclassical_SA.meshValFun[end] ≈ 96.85333912427213 rtol=mytol
-    #             @test sol_neoclassical_SA.meshPolFun[1] ≈ 2.5896937673964047 rtol=mytol
-    #             @test sol_neoclassical_SA.meshPolFun[end] ≈ 51.79387534792809 rtol=mytol
-    #         end
-    #
-    #         @testset "inital policy" begin
-    #             @test sol_neoclassical_SA.mV0[1] ≈ 7.336084552745342 rtol=mytol
-    #             @test sol_neoclassical_SA.mV0[end] ≈ 22.660418124491528 rtol=mytol
-    #             @test sol_neoclassical_SA.mPolFun0[1] ≈ 2.5896937673964047 rtol=mytol
-    #             @test sol_neoclassical_SA.mPolFun0[end] ≈ 19.081026821842094 rtol=mytol
-    #         end
-    #     end
-    # end # SA
-
-
 
 end # intdims

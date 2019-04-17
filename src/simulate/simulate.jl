@@ -10,17 +10,20 @@
 # end
 
 # convenience wrappers
-simulate(p::DDM; kwargs...) =
-	_simulate(p, drawshocks(p); kwargs...)
-simulate(p::DDM, sol::AbstractDDPSolution;
+simulate(sol::AbstractDDPSolution;
 			nPeriods::Int64 = 60,
 			nFirms::Int64 = 100, kwargs...) =
-	_simulate(p, sol, drawshocks(p, nPeriods=nPeriods, nFirms=nFirms),
-				p.transfunc; kwargs...)
+	_simulate(sol.prob, sol, drawshocks(p, nPeriods=nPeriods, nFirms=nFirms),
+				sol.prob.transfunc; kwargs...)
+simulate(sol::AbstractDDPSolution, shocks::DDPShocks; kwargs...) =
+	_simulate(sol.prob, sol, shocks, sol.prob.transfunc; kwargs...)
+
+simulate(p::DDM; kwargs...) =
+	_simulate(p, drawshocks(p); kwargs...)
 simulate(p::DDM, shocks::DDPShocks; kwargs...) =
 	_simulate(p, solve(p), shocks, p.transfunc; kwargs...)
-simulate(p::DDM, sol::AbstractDDPSolution, shocks::DDPShocks; kwargs...) =
-	_simulate(p, sol, shocks, p.transfunc; kwargs...)
+
+
 
 function initialize_simple(tStateVectors::NTuple{N, Vector{Float64}}) where N
 	# write a standard initialization function if want burn-in method

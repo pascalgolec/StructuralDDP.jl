@@ -1,5 +1,4 @@
 using DiscreteDynamicProgramming
-include("utils.jl")
 using Test
 mytol = 1e-4
 
@@ -22,9 +21,9 @@ sol_int_conc = solve(p_int; optdict..., monotonicity=[false,false], concavity=[t
 
 @testset "monotonicity concavity" begin
 
-    compare_solutions("Neoclassical_monotonicity", sol_neoclassical, sol_neoclassical_mon, mytol)
-    compare_solutions("Neoclassical_concavity", sol_neoclassical, sol_neoclassical_conc, mytol)
-    compare_solutions("Intangible_monotonicity", sol_int, sol_int_mon, mytol)
-    compare_solutions("Intangible_concavity", sol_int, sol_int_conc, mytol)
+    compare(sol_neoclassical, sol_neoclassical_mon, str="Neoclassical_monotonicity",  tol=mytol)
+    compare(sol_neoclassical, sol_neoclassical_conc, str="Neoclassical_concavity", tol=mytol)
+    compare(sol_int, sol_int_mon, str="Intangible_monotonicity", tol=mytol)
+    compare(sol_int, sol_int_conc, str="Intangible_concavity", tol=mytol)
 
 end

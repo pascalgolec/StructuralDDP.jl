@@ -25,15 +25,15 @@ shocks_neo = drawshocks(p_neo_all, nPeriods=40, nFirms=100)
 shocks_neo = drawshocks(p_neo_all, nPeriods=40, nFirms=10^4)
 
 @testset "Simulate Neoclassical" begin
-    simulate(p_neo_all, sol_neo_all, shocks_neo, initialize_exact=false)
-    simulate(p_neo_sep, sol_neo_sep, shocks_neo, initialize_exact=false)
-    simulate(p_neo_sep_states, sol_neo_sep_states, shocks_neo, initialize_exact=false)
-    simulate(p_neo_sep_exogstates, sol_neo_sep_exogstates, shocks_neo, initialize_exact=false)
+    simulate(sol_neo_all, shocks_neo, initialize_exact=false)
+    simulate(sol_neo_sep, shocks_neo, initialize_exact=false)
+    simulate(sol_neo_sep_states, shocks_neo, initialize_exact=false)
+    simulate(sol_neo_sep_exogstates, shocks_neo, initialize_exact=false)
 
-    simulate(p_neo_all, sol_neo_all, shocks_neo, initialize_exact=true)
-    simulate(p_neo_sep, sol_neo_sep, shocks_neo, initialize_exact=true)
-    simulate(p_neo_sep_states, sol_neo_sep_states, shocks_neo, initialize_exact=true)
-    simulate(p_neo_sep_exogstates, sol_neo_sep_exogstates, shocks_neo, initialize_exact=true)
+    simulate(sol_neo_all, shocks_neo, initialize_exact=true)
+    simulate(sol_neo_sep, shocks_neo, initialize_exact=true)
+    simulate(sol_neo_sep_states, shocks_neo, initialize_exact=true)
+    simulate(sol_neo_sep_exogstates, shocks_neo, initialize_exact=true)
 end
 
 
@@ -61,13 +61,13 @@ shocks_int = drawshocks(p_int_all, nPeriods=20, nFirms=10)
 shocks_int = drawshocks(p_int_all, nPeriods=60, nFirms=10^3)
 
 @testset "Simulate Intangible" begin
-    simulate(p_int_all, sol_int_all, shocks_int, initialize_exact=false)
-    simulate(p_int_sep, sol_int_sep, shocks_int, initialize_exact=false)
-    simulate(p_int_sep_states, sol_int_sep_states, shocks_int, initialize_exact=false)
-    simulate(p_int_sep_exogstates, sol_int_sep_exogstates, shocks_int, initialize_exact=false)
+    simulate(sol_int_all, shocks_int, initialize_exact=false)
+    simulate(sol_int_sep, shocks_int, initialize_exact=false)
+    simulate(sol_int_sep_states, shocks_int, initialize_exact=false)
+    simulate(sol_int_sep_exogstates, shocks_int, initialize_exact=false)
 
-    simulate(p_int_all, sol_int_all, shocks_int, initialize_exact=true)
-    simulate(p_int_sep, sol_int_sep, shocks_int, initialize_exact=true)
-    simulate(p_int_sep_states, sol_int_sep_states, shocks_int, initialize_exact=true)
-    simulate(p_int_sep_exogstates, sol_int_sep_exogstates, shocks_int, initialize_exact=true)
+    simulate(sol_int_all, shocks_int, initialize_exact=true)
+    simulate(sol_int_sep, shocks_int, initialize_exact=true)
+    simulate(sol_int_sep_states, shocks_int, initialize_exact=true)
+    simulate(sol_int_sep_exogstates, shocks_int, initialize_exact=true)
 end

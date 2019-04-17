@@ -1,27 +1,21 @@
 # DiscreteDynamicProgramming.jl Documentation
 
-This package solves and simulates discrete dynamic choice models with value function iteration. It has a simple and transparent syntax for defining a dynamic optimization problem and is optimized for speed.
+This package solves and simulates discrete dynamic choice models with value function iteration. It has a simple and transparent syntax for defining dynamic optimization problems and is optimized for speed. The available options take advantage of properties of the problem which can result in orders of a magnitude speedup without relying on parallelization.
 
-It includes options to take advantage of properties of the problem which can result in orders of a magnitude speedup. Solving the models fast without requiring parallelization is useful if one ultimately wants to simulate the model for different parameter values, as then one can parallelize across that dimension.
-
-The solver is fast for problems where some of next periods state variables can be chosen directly.
-
-The general workflow is to define a problem, solve the problem, and then analyze the solution. The full code for solving and simulating the example is:
+The general workflow is to define a problem, solve the problem, and then analyze the solution. The full code for solving and simulating an example is:
 
 ```julia
 using DiscreteDynamicProgramming
-prob = NeoClassical(nK=150, nz=15, ρ=0.5, σ=0.3, γ=2.)
-sol = solve(prob, intdim=:separable,
-    monotonicity=true, concavity=true,
-    rewardmat=:prebuild_partial)
-sim = simulate(prob, sol)
+prob = NeoClassical(nK=150, nz=15, ρ=0.5, σ=0.3, γ=2.) # define problem
+sol = solve(prob)
+sim = simulate(sol)
 ```
 
-where the pieces are described below.
+where the individual pieces are described below.
 
 ## Step 1: define problem
 
-Each discrete dynamic maximization problem has an objective function as follows
+Each infinite-horizon dynamic maximization problem has an objective function as follows
 
 ```math
 \mathbb{E} \sum_{t=0}^{\infty} \beta^t r(s_t, a_t)
@@ -29,11 +23,11 @@ Each discrete dynamic maximization problem has an objective function as follows
 
 where
 
-- ``r(s_t, a_t)`` is the current reward as a function of the state variables ``s_t`` and choice variable(s) ``a_t``
-- transition equation(s) for state variables ``s_{t+1}`` depending on ``(s_t, a_t)`` and i.i.d shocks ``\varepsilon_{t+1}``.
-- a discount factor ``β``
+- ``s_t`` are the state variables and ``a_t`` the choice variable(s).
+- ``r(s_t, a_t)`` is the current reward
+- ``β`` is the discount factor
 
-For a more formal definiton, see the QuantEcon lectures [here](https://lectures.quantecon.org/jl/discrete_dp.html#Discrete-DPs). We can write the problem in recursive form:
+The state variables evolve according to a transition function ``\Phi(s, a, \varepsilon')`` depending on ``(s_t, a_t)`` and i.i.d shocks ``\varepsilon_{t+1}``. For a more formal definiton, see the [QuantEcon lectures](https://lectures.quantecon.org/jl/discrete_dp.html#Discrete-DPs). We can write the problem in a recursive form:
 
 ```math
 V(s) = \max_a r(s, a) + \beta \mathbb{E} V(s') \\
@@ -41,8 +35,6 @@ V(s) = \max_a r(s, a) + \beta \mathbb{E} V(s') \\
 ```
 
 where ``s'`` corresponds to next period's state ``s_{t+1}``.
-
-Note: also mention closed action and state space. Look in notation of Acemoglu book.
 
 We will solve a capital investment model with convex adjustment costs as an example. It is defined as follows:
 
@@ -52,9 +44,9 @@ V(K,z) = \max_I K^\alpha e^z - I - \frac{\gamma}{2} \frac{I^2}{K} + \beta \mathb
 z' = \rho z + \sigma \varepsilon, \quad \varepsilon \sim \mathcal{N}(0,1)
 ```
 
-where ``K`` is current and ``K'`` next period's capital, ``I`` is capital investment. Capital depreciates at a rate ``\delta``. Investment ``I`` adds to the capital stock which becomes productive next period. The parameter ``\gamma`` determines the adjustment costs for investment, over and above the cost of capital ``I``. The productivity of capital is determined by ``z``, which follows an AR(1) process with autocorrelation ``\rho`` and volatility ``\sigma``. There are decreasing returns to scale for ``\alpha < 1``, so there is an optimal scale of the firm depending on ``z``. So the problem of the firm is to choose the optimal scale for next period, taking into account that ``z'`` is unknown and large adjustments are disproportianally costly.
+where ``K`` is current and ``K'`` next period's capital, ``I`` is capital investment. Capital depreciates at the rate ``\delta``. Investment ``I`` adds to the capital stock but takes a period to become productive. The parameter ``\gamma`` determines the adjustment costs for investment, over and above the cost of capital ``I``. The productivity of capital is determined by ``z``, which follows an AR(1) process with autocorrelation ``\rho`` and volatility ``\sigma``. There are decreasing returns to scale for ``\alpha < 1``, so there is an optimal scale of the firm depending on ``z``. So the problem of the firm is to choose the optimal scale for next period, taking into account that next period's productivity ``z'`` is not perfectly known and large adjustments are disproportianally costly.
 
-We define the problem as follows:
+We define the problem by providing the state and action space, the reward function, the transition function and the factor at which future rewards are discounted.
 
 ```julia
 β = 0.9 # discount factor
@@ -115,70 +107,52 @@ prob = DiscreteDynamicProblem(
             )
 ```
 
-For using shock distributions than standard normal, see the [Distributions.jl package](https://juliastats.github.io/Distributions.jl/stable/). The solver supports any type of univariate distribution distribution and multivariate-normal distributions at this moment.
+The solver supports any type of univariate distribution distribution and multivariate-normal distributions. The [Distributions.jl package](https://juliastats.github.io/Distributions.jl/stable/) contains the syntax for implementing these distributions.
 
-For more options on defining problems such as more concise notation, see the [problem options section](#Problem-Options-1).
-
+Note that in the problem definition above, the transition of the state variables is a function of states, choices and shocks. The solver will integrate over a high dimension of variables when calculating expectations, which is rather slow. The [problem options section](#Problem-Options-1) explains how to reformulate a large family of problems including the one above to gain orders of magnitude speedup.
 
 ## Step 2: solve problem
 
-Solving it with the following, which provides a mesh of the value function and policy function.
+We can solve the model with the function `solve`, which returns the (discrete) value and optimal policy for each point in the state-space.
 
 ```julia
 sol = solve(prob)
 ```
 
-The solver can be controlled using different options which are discribed in the [Solver Options section](#Solver-Options-1). For example, we can display the value function iterations with `disp`:
+The solver can be controlled using different options which are discribed in the [Solver Options section](#Solver-Options-1). For example, we can tell the solver to precompute the reward for the different combinations of states and choices before starting the value function iteration:
 
 ```julia
-sol = solve(prob; disp=true)
+sol = solve(prob; rewardmat=:prebuild)
 ```
+
+Experimenting with the solver options is essential if one wants to solve the model as fast as possible.
 
 ## Step 3: simulate the model
 
 We can simulate a panel:
 
 ```julia
-sim = simulate(prob, sol, nPeriods = 120, nFirms = 10000)
+sim = simulate(sol, nPeriods = 120, nFirms = 10000)
 ```
 
-The simulation starts at the same point for all firms, more details about this are in the [simulator options section](#Simulator-Options-1).
+By default, all firms start with the same state variables in the simulation. More details about this and more sophisticated starting points are in the [simulator options section](#Simulator-Options-1).
 
 It is also possible to simulate a model or variations thereof using the identical draw of shocks:
 
 ```julia
 shocks = drawshocks(prob, nPeriods = 120, nFirms = 1000)
-sim = simulate(prob, sol, shocks)
+sim = simulate(sol, shocks)
 ```
 
 Note: the draw of shocks refers to the supplied shock distribution in the problem defintion. If the shock distribution is parametrized, for example by its variance, then one should not do comparative statics on those parameters.
 
 # Problem Options
 
-In some problems one may only have one shock or one choice variable. In this case, one can write the reward- and transition functions more concisely in terms as numbers as inputs as opposed to vectors (it's actually slighlty faster):
+## Lower integration dimension for speed
 
-```julia
-function reward(vStateVars, Kprime)
-    (K, z) = vStateVars
-    capx = Kprime - (1-δ)*K
-    return K^α * exp(z) + γ/2*(capx/K- δ)^2 * K
-end
-function transition(vExogState, shock)
-    z = vExogState[1]
-    zprime  = ρ*z + σ * shock;
-    return inbounds(zprime, tStateVectors[2][1], tStateVectors[2][end])
-end
-```
+The solver must calculate expectations of future states. By default, it must integrate over all state variables, choice variables and shocks, i.e. ``s_{t+1} = \Phi(s_t, a_t, \varepsilon_{t+1})``. Many problems can be rewritten in a way such that we can integrate over fewer variables, which leads to orders of magnitude speedup.
 
-# Solver Options
-
-## For speed
-
-There are different options available which make solving the model much faster.
-
-### Lower integration dimension
-
-The solver is fast if we slightly rewrite the problem, where the action ``a`` of the firm is not investment but simply next period's capital stock ``K'``.
+The first step is to rewrite the problem such that the action is equal to the corresponding next period's state. In our example, the action ``a`` of the firm then is not investment but simply next period's capital stock ``K'``.
 
 ```math
 V(K,z) = \max_a K^\alpha e^z - (a - (1-\delta) K) - \frac{\gamma}{2} \frac{(a - (1-\delta) K)^2}{K} + \beta \mathbb{E} V(K', z') \\
@@ -186,66 +160,117 @@ V(K,z) = \max_a K^\alpha e^z - (a - (1-\delta) K) - \frac{\gamma}{2} \frac{(a - 
 z' = \rho z + \sigma \varepsilon, \quad \varepsilon \sim \mathcal{N}(0,1)
 ```
 
-The transition function generally is a function of the state variables, choices and shocks. In the captal investment example however where the action is equal to next period's state, we can sort the state variables into endogenous and exogenous state variables, ``K`` and ``z``. What's more, neither ``K`` nor the choice affects the transition of ``z``. Thus we can define the transition function in a compact manner as follows:
+By separating endogenous and exogenous state variables, resp. ``K`` and ``z``, this way, we can define the problem as follows:
 
-By default, we integrate over all state variables, choice variables and shocks to get expectations of next periods states, i.e. ``s_{t+1} = \Phi(s_t, a_t, \varepsilon_{t+1})``. Many problems however don't require this.
-
-In the Neoclassical model, we can directly choose next period's `K` and don't need to integrate along that dimension.
-Formally, this is the case when the choice variable is equal to one of the state variables. Note: sometimes this requires rewriting the model by redefing the action space.
-
-In that case, we can provide that information when defining the problem by specifying which state variable is the choice variable instead of defining directly the choice vectors, i.e. `tChoiceVectors = (1,)` which means that the first choice variable is equal to the first state variable. Important: when defining the state space `tStateVectors`, the endogenous state variable(s) must come first. We also need to rewrite the transition function to only return `z` (note that in principle `zprime` could depend on the choice of `Kprime`:
 ```julia
-function transfunc(vStateVars, vChoices, vShocks)
+tStateVectors = (vK, vz)
+tChoiceVectors = (1,) # specify which state corresponds to the choice
+function transfunc(vStates, vChoices, vShocks)
+    z = vStateVars[2]
+    zprime  = ρ*z + σ * vShocks[1];
+    return  zprime # only integrate z
+end
+prob = DiscreteDynamicProblem(...,
+            transfunc,
+            tChoiceVectors;
+            intdim = :Separable) # specify the integration dimension
+```
+
+We need to specify which state corresponds to the choice, only return ``z'`` in the transition function and specify that our integration dimension is of the type `:Separable`.
+
+In our example however we can do even better if we tell the solver that the choice of `Kprime` does not affect the transition of ``z``.
+
+```julia
+tStateVectors = (vK, vz)
+tChoiceVectors = (1,)
+function transfunc(vStates, vShocks) # no choices as input
     z = vStateVars[2]
     zprime  = ρ*z + σ * vShocks[1];
     return  zprime
 end
+prob = DiscreteDynamicProblem(...,
+            transfunc,
+            tChoiceVectors;
+            intdim = :Separable_States) # specify the integration dimension
 ```
-We also need to mention in the problem definition which choice variable corresponds to the index of which state variable.
 
-Formally, we require that we can separate the state variables into two groups, endogenous and exogenous state variables, which correspond to `K` and `z` in the example.
-The transition of the endogenous state variables ``s^d`` only depends on states and actions but not shocks, i.e.  ``s^d_{t+1} = \Phi(s_t, a_t)``.
-The transition of the stochastic state variables ``s^s`` only depends on shocks and states but not actions, i.e.  ``s^s_{t+1} = \Phi(s_t, \varepsilon_{t+1})``. Note: sometimes this requires slightly rewriting the model by redefing the action space.
+Note that the transition function only takes states and shocks as an input and that the integration dimension now is of the type `:Separable_States`. In our example however we can do even better if we tell the solver that also the endogenous state ``K`` does not affect the transition of ``z``.
 
-If this separation is possible, then then change the transition function like so:
 ```julia
-function transfunc(vStateVars, vShocks)
-    z = vStateVars[2]
+function transfunc(vExogStates, vShocks)
+    z = vExogStates[1] # note the different index for z
     zprime  = ρ*z + σ * vShocks[1];
     return  zprime
 end
+prob = DiscreteDynamicProblem(...,
+            transfunc,
+            tChoiceVectors;
+            intdim = :Separable_ExogStates) # specify the integration dimension
 ```
 
-and mention it in the model options, `intdim = :intermediate`.
+Note that the transition function only takes the exogenous states and shocks as an input and that the integration dimension now is of the type `:Separable_ExogStates`.
 
-The solver is even faster if additionally only the shocks and exogenous state variables, but not endgenous state variables, determine next period's exogenous state variables, i.e. ``s^s_{t+1} = \Phi(s^s_t, \varepsilon_{t+1})``. In that case, change the transition function like so (note the change in the index of `z`):
+
+The following summarises the four different types of integration dimensions:
+
+- `:All` - next period states as a function of states, actions and shocks, i.e. ``s' = \Phi(s, a, \varepsilon')``. This formulation is the slowest and corresponds to the baseline example.
+- `:Separable` - next period exogenous states as a function of all states, actions and shocks, i.e. ``s'_e = \Phi(s, a, \varepsilon')``.
+- `:Separable_States` - next period exogenous states as a function of all states and shocks, i.e. ``s'_e = \Phi(s, \varepsilon')``.
+- `:Separable_ExogStates` - next period exogenous states as a function of only exogenous states and shocks, i.e. ``s'_e = \Phi(s_e, \varepsilon')``.
+
+For the solver to be fast one should use the lowest possible dimension. For all separable integration dimensions one must specify which state vector corresponds to the choice vector, i.e. `tChoiceVectors = (1,)`. Important: when defining the state space `tStateVectors`, the endogenous state variable(s) must come first.
+
+## Concise notation
+
+In some problems one may only have one shock or one choice variable. In this case, one can write the reward- and transition functions more concisely in terms as numbers as inputs as opposed to vectors:
+
 ```julia
-function transfunc(vExogStateVars, vShocks)
-    z = vExogStateVars[1]
-    zprime  = ρ*z + σ * vShocks[1];
-    return  zprime
+function reward(vStateVars, Kprime)
+    (K, z) = vStateVars
+    capx = Kprime - (1-δ)*K
+    return K^α * exp(z) + γ/2*(capx/K- δ)^2 * K
+end
+function transition(z, shock)
+    return zprime  = ρ*z + σ * shock
 end
 ```
-and mention in the model options, `intdim = :separable`.
 
-bEndogStateVars?
+# Solver Options
+
+## For speed
+
+There are different options available which make solving the model faster. One should check whether one can lower the integration dimension of the problem first though, described in [the problem options section](#Problem-Options-1).
 
 ### Monotonicity and concavity
 
-The options `monotonicity` and `concavity` exploit properties of the value function to speed up the VFI. They don't work with `:intdim = :SA`.
+The `monotonicity` keyword allows the solver to exploit the monotonicity of the choice of next period's state in the current state. Put differently, if ``s^{d*}_{t+1}`` is the optimal choice for ``s^{d*}_t``, then the optimal choice for ``s^{d'}_t \geq s^{d*}_t`` is ``s^{d'}_{t+1} \geq s^{d*}_{t+1}`` (keeping fixed the other state variables). The default is `false`.
 
-`monotonicity`: exploit the monotonicity of the choice of next period's state in the current state. Put differently, if ``s^{d*}_{t+1}`` is the optimal choice for ``s^{d*}_t``, then the optimal choice for ``s^{d'}_t \geq s^{d*}_t`` is ``s^{d'}_{t+1} \geq s^{d*}_{t+1}`` (keeping fixed the other state variables).
+The `concavity` keyword allows the solver to exploit the concavity of the value function in the choice of next period's state. Put differently, if ``V(s^{d'}_{t+1}, s^d_t, s^s_t) < V(s^{d*}_{t+1}, s^d_t, s^s_t)``, then also ``V(s^d_{t+1}, s^d_t, s^s_t) < V(s^{d'}_{t+1}, s^d_t, s^s_t)`` for any ``s^d_{t+1} > s^{d'}_{t+1}``. The default is `false`.
 
-`concavity`: exploit the concavity of the value function in the choice of next period's state. Put differently, if ``V(s^{d'}_{t+1}, s^d_t, s^s_t) < V(s^{d*}_{t+1}, s^d_t, s^s_t)``, then also ``V(s^d_{t+1}, s^d_t, s^s_t) < V(s^{d'}_{t+1}, s^d_t, s^s_t)`` for any ``s^d_{t+1} > s^{d'}_{t+1}``.
+The `compare` function is a test that compares different solutions to check whether one can use monotonicity and concavity or not:
+
+```julia
+sol = solve(prob; concavity=false)
+sol_conc = solve(prob; concavity=true)
+compare(sol, sol_conc; tol=1e-4)
+```
+
+Note: `monotonicity` and `concavity` currently only work if the integration dimension is separable.
 
 
 ### Prebuilding the reward matrix
 
-`rewardmat`: determines whether (part of) the reward for each state-action pair should be pre-built before the value function iteration. Prebuilding it requires more memory but less computations during the VFI. Some parts of it may never be used with concavity and monotonicity.
+The `rewardmat` keyword determines whether (part of) the reward for each state-action pair should be precomputed before the value function iteration. Prebuilding requires more memory but less computations during the VFI.
 
 * `:nobuild` means that the reward is calculated during the VFI. This requires little memory but more computations during the VFI.
-* `:prebuild_partial` means that part of the reward function is prebuilt, the one that does not depend on choices, but only states. From experience, this is the fastest.
-* `:prebuild` means prebuild the entire reward matrix for each possible combination of states and actions. This requires more memory but less computations during the VFI.
+
+
+* `:prebuild_partial` means that part of the reward function that only depends on states, but not choices, is prebuilt. From experience, this option is the fastest when combined with monotonicity and concavity.
+
+To exploit this option, we must separately define the inner and outer part of the reward function.
+
+
+* `:prebuild` means precompute the reward matrix for each possible combination of states and actions. This requires more memory but less computations during the VFI.
 
 ## Transition matrix
 

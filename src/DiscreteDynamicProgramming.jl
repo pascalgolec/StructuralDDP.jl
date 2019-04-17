@@ -8,6 +8,7 @@ module DiscreteDynamicProgramming
 	using NLsolve # to find steady state
 	using TreeViews
 	using Distributions
+	using Test
 
 	using SparseArrays
 	using LinearAlgebra
@@ -17,6 +18,7 @@ module DiscreteDynamicProgramming
 	export DiscreteDynamicProblem
 	export createmodel, solve, drawshocks, simulate, transitionmatrix,
 		drawshocks
+	export compare
 	# export NeoClassicalSimple
 
 	# using DiscreteDynamicModels
@@ -39,9 +41,7 @@ module DiscreteDynamicProgramming
 	const Separable_Union = Union{Separable, Separable_States, Separable_ExogStates}
 	# const SA = StateAction
 
-	include("utils.jl")
-
-		# type constructor
+	# type constructor
 	include("DiscreteDynamicProblem.jl")
 	# include("DiscreteDynamicProblem_interface.jl")
 
@@ -54,7 +54,7 @@ module DiscreteDynamicProgramming
 	createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
 	# e.g. createmodel(:NeoClassicalSimple; nK = 30, nz=15)
 
-	# # Solver
+	# Solver
 	include("solve/constructors.jl")
 	include("solve/main.jl")
 	include("solve/rewardmatrix.jl")
@@ -64,8 +64,10 @@ module DiscreteDynamicProgramming
 	include("solve/state_action.jl")
 	include("solve/initialendogstatevars.jl")
 
-	# # simulator
+	# simulator
 	include("simulate/shocks.jl")
 	include("simulate/simulate.jl")
+
+	include("utils.jl")
 
 end

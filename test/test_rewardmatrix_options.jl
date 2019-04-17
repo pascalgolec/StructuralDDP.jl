@@ -1,5 +1,4 @@
 using DiscreteDynamicProgramming
-include("utils.jl")
 using Test
 mytol = 1e-4
 
@@ -18,12 +17,12 @@ sol_intan_nobuild = solve(p_intan; diopt..., rewardmat=:nobuild)
 
 @testset "reward matrix options" begin
 
-	compare_solutions("SingleChoiceVar & nobuild & prebuild_partial", sol_neo_nobuild, sol_neo_prebuild_partial, mytol)
-	compare_solutions("SingleChoiceVar & nobuild & prebuild", sol_neo_nobuild, sol_neo_prebuild, mytol)
-	compare_solutions("SingleChoiceVar & prebuild & prebuild_partial", sol_neo_prebuild, sol_neo_prebuild_partial, mytol)
+	compare(sol_neo_nobuild, sol_neo_prebuild_partial, str="SingleChoiceVar & nobuild & prebuild_partial", tol=mytol)
+	compare(sol_neo_nobuild, sol_neo_prebuild, str="SingleChoiceVar & nobuild & prebuild", tol=mytol)
+	compare(sol_neo_prebuild, sol_neo_prebuild_partial, str="SingleChoiceVar & prebuild & prebuild_partial", tol=mytol)
 
-	compare_solutions("TwoChoiceVar & nobuild & prebuild_partial", sol_intan_nobuild, sol_intan_prebuild_partial, mytol)
-	compare_solutions("TwoChoiceVar &nobuild & prebuild", sol_intan_nobuild, sol_intan_prebuild, mytol)
-	compare_solutions("TwoChoiceVar &prebuild & prebuild_partial", sol_intan_prebuild, sol_intan_prebuild_partial, mytol)
+	compare(sol_intan_nobuild, sol_intan_prebuild_partial, str="TwoChoiceVar & nobuild & prebuild_partial", tol=mytol)
+	compare(sol_intan_nobuild, sol_intan_prebuild, str="TwoChoiceVar &nobuild & prebuild", tol=mytol)
+	compare(sol_intan_prebuild, sol_intan_prebuild_partial, str="TwoChoiceVar &prebuild & prebuild_partial", tol=mytol)
 
 end
