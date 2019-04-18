@@ -45,7 +45,7 @@ InitializationOptions(problem::Function, func::Function,
 struct DiscreteDynamicProblemOptions{RFP<:FuncOrNothing}
 
 	"""The partial reward function."""
-	reward_partial::RFP
+	rewardfunc_partial::RFP
 
 	"""Options for exact initialization."""
 	initialize::Union{InitializationOptions, Nothing}
@@ -140,7 +140,7 @@ function DDP(
             shockdist::Distribution,
 			β::Real;
             intdim::Symbol = :All,
-            reward_partial::Union{Function,Nothing} = nothing,
+            rewardfunc_partial::Union{Function,Nothing} = nothing,
             initializationproblem::Union{Function,Nothing} = nothing,
             initializefunc::Union{Function,Nothing} = nothing,
             tChoiceVectorsZero::Union{NTuple{C0,Int64},Nothing} = nothing,
@@ -152,7 +152,7 @@ function DDP(
 
 	init_options = InitializationOptions(initializationproblem, initializefunc, tChoiceVectorsZero)
 
-	ddp_options = DDPOptions(reward_partial, init_options)
+	ddp_options = DDPOptions(rewardfunc_partial, init_options)
 
     DDP(tStateVectors,
         tChoiceVectors,

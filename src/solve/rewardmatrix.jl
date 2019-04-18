@@ -29,7 +29,7 @@ function _rewardmatrix(rewardfunc::Function, tStateVectors, tChoiceVectors)
     return mReward
 end
 
-rewardmatrix_partial(p::DDM) = _rewardmatrix_partial(p.options.rewardfunc_partial,
+rewardmatrix_partial(p::DDP) = _rewardmatrix_partial(p.options.rewardfunc_partial,
     getchoicevars(p.tStateVectors, p.tChoiceVectors),
     getnonchoicevars(p.tStateVectors, p.tChoiceVectors))
 

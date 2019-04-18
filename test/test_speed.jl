@@ -17,7 +17,7 @@ p_neoclassical_Separable = createmodel(model; dipar..., intdim = :Separable)
 p_neoclassical_Separable_States = createmodel(model; dipar..., intdim = :Separable_States)
 p_neoclassical_Separable_ExogStates = createmodel(model; dipar..., intdim = :Separable_ExogStates)
 
-diopt = Dict(:concavity => false, :monotonicity => false, :rewardmat=>:prebuild,
+diopt = Dict(:concavity => false, :monotonicity => false, :rewardcall=>:pre,
 	:initialize_exact=>false)
 
 solve(p_neoclassical_All; diopt...)
@@ -51,7 +51,7 @@ p_int_Sep_ExogStates = createmodel(model; dipar..., intdim = :Separable_ExogStat
 
 optdict = Dict(
 	:monotonicity=>[false,false], :concavity=>[false,false],
-	:rewardmat=>:nobuild, :initialize_exact=>false)
+	:rewardcall=>:jit, :initialize_exact=>false)
 
 val, t, bytes = @timed solve(p_int_All; diopt...)
 val, t, bytes = @timed solve(p_int_All; diopt...)

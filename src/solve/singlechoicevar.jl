@@ -5,12 +5,12 @@ _solve(p::DDP{nStateVars,1},
 		method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 		disp::Bool, disp_each_iter::Int, max_iter::Int, epsilon::Float64,
-		rewardmat::Symbol, monotonicity::Bool, concavity::Bool) where
+		rewardcall::Symbol, monotonicity::Bool, concavity::Bool) where
 			{nStateVars, T <: Separable_Union} =
 		_solve1(p.rewardfunc, method,
 			mTransition, mReward,
 			disp, disp_each_iter, max_iter, epsilon,
-			rewardmat, monotonicity, concavity,
+			rewardcall, monotonicity, concavity,
 			p.tStateVectors,
 			getchoicevars(p.tStateVectors, p.tChoiceVectors)[1],
 			getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
@@ -20,7 +20,7 @@ _solve(p::DDP{nStateVars,1},
 function _solve1(rewardfunc::Function, method::Type{T},
 				mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 				disp::Bool, disp_each_iter::Int, max_iter::Int, epsilon::Float64,
-				rewardmat::Symbol, monotonicity::Bool, concavity::Bool,
+				rewardcall::Symbol, monotonicity::Bool, concavity::Bool,
 				tStateVectors,#::NTuple{2,Vector{Float64}},
 				vChoices::Vector{Float64},
 				tOtherStateVectors, #::NTuple{1,Vector{Float64}}
@@ -91,14 +91,14 @@ function _solve1(rewardfunc::Function, method::Type{T},
 
 	            for jprime = iChoiceStart:nChoices
 
-					# reward using prebuild_partial output matrix
-					if rewardmat == :prebuild_partial
+					# reward using pre_partial output matrix
+					if rewardcall == :pre_partial
 						# reward = rewardfunc(mReward[j,i], vChoices[j], vChoices[jprime])
 						reward = rewardfunc(mReward[j,i], getindex.(tStateVectors, (j, ix.I...)), vChoices[jprime])
-					elseif rewardmat == :nobuild
+					elseif rewardcall == :jit
 						# need to be VERY careful with order of state vars here.. could get fucked up..
 						reward = rewardfunc(getindex.(tStateVectors, (j, ix.I...)), vChoices[jprime])
-					elseif rewardmat == :prebuild
+					elseif rewardcall == :pre
 						reward = mReward[jprime, j + nChoices * (i-1)] # nChoices x nStates
 					end
 

@@ -8,9 +8,9 @@ Solve the dynamic programming problem.
 - `;disp_each_iter::Int(10)`: how often to display output
 - `;max_iter::Int(500)`: Maximum number of iterations
 - `;epsilon::Float64(1e-3)`: Value for epsilon-optimality. A lower value means the solution will be more accurate.
-- `;rewardmat::Symbol(:nobuild)`:  Symbol specifying the handling of the reward in the VFI.
-	Acceptable arguments are `:nobuild` if the reward matrix should not be prebuilt,
-	`:prebuild` if it should be calculated beforehand, and `:prebuild_partial` if
+- `;rewardcall::Symbol(:jit)`:  Symbol specifying the handling of the reward in the VFI.
+	Acceptable arguments are `:jit` if the reward matrix should not be prebuilt,
+	`:pre` if it should be calculated beforehand, and `:pre_partial` if
 	only part of the reward matrix that only depends on states should be calculated beforehand.
 - `;monotonicity::Union{Bool,Vector{Bool}}(false)`: Option that can speed-up the solver
 if optimal actions are monotonically increasing in their respective state variable.
@@ -30,7 +30,7 @@ function solve(p::DDP;
     disp_each_iter::Int = 10,
     max_iter::Int = 500,
     epsilon::Float64 = 1e-3,
-    rewardmat::Symbol = :nobuild,
+    rewardcall::Symbol = :jit,
     monotonicity::Union{Bool,Vector{Bool}} = false,
     concavity::Union{Bool,Vector{Bool}} = false,
     initialize_exact::Bool = false,
@@ -39,14 +39,14 @@ function solve(p::DDP;
     intdim::Type{T} = p.intdim, # if want to override type in the model, mostly for testing
     ) where T<:IntDim
 
-    if rewardmat == :prebuild || intdim == All
+    if rewardcall == :pre || intdim == All
         mReward = rewardmatrix(p)
-    elseif rewardmat == :prebuild_partial
+    elseif rewardcall == :pre_partial
         mReward = rewardmatrix_partial(p)
-    elseif rewardmat == :nobuild
+    elseif rewardcall == :jit
         mReward = nothing
     else
-        error("supplied wrong rewardmat option")
+        error("supplied wrong rewardcall option")
     end
 
     if mTransition == nothing
@@ -64,7 +64,7 @@ function solve(p::DDP;
 
         meshValFun, tmeshPolFun = _solve(p, intdim, mTransition, mReward,
             disp, disp_each_iter, max_iter, epsilon,
-            rewardmat, monotonicity, concavity)
+            rewardcall, monotonicity, concavity)
     end
 
     createsolution(p, meshValFun, tmeshPolFun, initialize_exact)

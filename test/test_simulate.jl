@@ -12,7 +12,7 @@ p_neo_sep_exogstates = createmodel(:NeoClassicalSimple; dipar..., :intdim=>:Sepa
 optdict = Dict(
 	:monotonicity=>true,
 	:concavity=>true,
-	:rewardmat=>:prebuild_partial,
+	:rewardcall=>:pre_partial,
 	:initialize_exact=>true)
 
 
@@ -47,7 +47,7 @@ p_int_sep_exogstates = createmodel(model; dipar..., :intdim=>:Separable_ExogStat
 optdict = Dict(
 	:monotonicity=>true,
 	:concavity=>true,
-	:rewardmat=>:prebuild_partial,
+	:rewardcall=>:pre_partial,
 	:initialize_exact=>true
 	)
 

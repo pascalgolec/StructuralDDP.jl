@@ -57,7 +57,7 @@ We define the problem by providing the state and action space, the reward functi
 γ = 2.0 # convex adjustment cost parameter
 
 
-# create state variable vectors
+# define state and action space
 nz = 5 # number of nodes for z
 stdz = sqrt(σ^2/(1-ρ^2))
 minz = -3*stdz
@@ -108,6 +108,8 @@ prob = DiscreteDynamicProblem(
 
 The solver supports any type of univariate distribution distribution and multivariate-normal distributions. The [Distributions.jl package](https://juliastats.github.io/Distributions.jl/stable/) contains the syntax for implementing these distributions.
 
+The state space is strictly enforced - the state variables are always forced to stay within their bounds upper and lower bounds.
+
 Note that in the problem definition above, the transition of the state variables is a function of states, choices and shocks. The solver will integrate over a high dimension of variables when calculating expectations, which is rather slow. The [problem options section](#Problem-Options-1) explains how to reformulate a large family of problems including the one above to gain orders of magnitude speedup.
 
 ## Step 2: solve problem
@@ -126,7 +128,7 @@ sol = solve(prob; rewardmat=:prebuild)
 
 Experimenting with the solver options is essential if one wants to solve the model as fast as possible.
 
-## Step 3: simulate the model
+## Step 3: simulate
 
 We can simulate a panel:
 
@@ -246,7 +248,7 @@ The `monotonicity` keyword allows the solver to exploit the monotonicity of the 
 
 The `concavity` keyword allows the solver to exploit the concavity of the value function in the choice of next period's state. Put differently, if ``V(s^{d'}_{t+1}, s^d_t, s^s_t) < V(s^{d*}_{t+1}, s^d_t, s^s_t)``, then also ``V(s^d_{t+1}, s^d_t, s^s_t) < V(s^{d'}_{t+1}, s^d_t, s^s_t)`` for any ``s^d_{t+1} > s^{d'}_{t+1}``. The default is `false`.
 
-The `compare` function is a test that compares different solutions to check whether one can use monotonicity and concavity or not:
+A handy way to check whether the problem fulfils these conditions is the `compare` function. It checks whether tow different solutions are identical:
 
 ```julia
 sol = solve(prob; concavity=false)
@@ -259,13 +261,13 @@ Note: `monotonicity` and `concavity` currently only work if the integration dime
 
 ### Prebuilding the reward matrix
 
-The `rewardmat` keyword determines whether (part of) the reward for each state-action pair should be precomputed before the value function iteration. Prebuilding requires more memory but less computations during the VFI.
+The `rewardcall` keyword determines whether (part of) the reward for each state-action pair should be precomputed before the value function iteration. Prebuilding requires more memory but less computations during the VFI.
 
-`:nobuild` - the reward is calculated during the VFI whenever it is required, i.e. just in time. This requires little memory but more computations during the VFI. This is the default.
+`:jit` - the reward is calculated during the VFI whenever it is required, i.e. just in time. This requires little memory but more computations during the VFI. This is the default.
 
-`:prebuild` - precompute the reward matrix for each possible combination of states and actions before the VFI. This requires more memory but less computations during the VFI.
+`:pre` - precompute the reward for each possible combination of states and actions before the VFI. This requires more memory but less computations during the VFI.
 
-`:prebuild_partial` - precompute part of the reward function before the VFI that only depends on states, but not choices. From experience, this option is the fastest when combined with monotonicity and concavity. To exploit this option, we must separately define the inner and outer part of the reward function. The outer part is the same argument in `DDP` as the standard reward function and the partial reward function enters as a keyword arguement `rewardfunc_partial`. In the solver we must specify that the reward should be partially precomputed.
+`:pre_partial` - precompute part of the reward before the VFI that only depends on states, but not choices. From experience, this option is the fastest when combined with monotonicity and concavity. To exploit this option, we must supply the inner and outer part of the reward function when defining the problem. The outer part is the same argument in `DDP` as the standard reward function and the partial reward function enters as a keyword arguement `rewardfunc_partial`. In the solver we must then specify that the reward should be partially precomputed.
 
 ```julia
 function reward(Partial_Reward, vStateVars, Kprime)
@@ -283,7 +285,8 @@ prob = DiscreteDynamicProblem(
     shockdistribution,
     β;
     rewardfunc_partial = reward_partial)
-solve(prob, rewardmat = :prebuild_partial)
+    
+solve(prob, rewardcall = :pre_partial)
 ```
 
 
@@ -332,5 +335,4 @@ If we have a problem where our choice variables are not exacly equal to some of 
 ## Solver assumptions
 
 - state variables are always forced to stay within bounds
-- for `intermediate` and `separable`, can choose directly the state variable
 - order of state variables is first the endogenous state variable, then exogenous

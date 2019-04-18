@@ -1,12 +1,12 @@
 _solve(p::DDP{nStateVars,2}, method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 		disp::Bool, disp_each_iter::Int, max_iter::Int, epsilon::Float64,
-		rewardmat::Symbol, monotonicity::Vector{Bool}, concavity::Vector{Bool}) where
+		rewardcall::Symbol, monotonicity::Vector{Bool}, concavity::Vector{Bool}) where
 			{nStateVars, T <: Separable_Union} =
 		_solve2(p.rewardfunc, method,
 			mTransition, mReward,
 			disp, disp_each_iter, max_iter, epsilon,
-			rewardmat,
+			rewardcall,
 			monotonicity[1], monotonicity[2],
 			concavity[1], concavity[2],
 			p.tStateVectors,
@@ -18,7 +18,7 @@ _solve(p::DDP{nStateVars,2}, method::Type{T},
 function _solve2(rewardfunc::Function, method::Type{T},
 						mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 						disp::Bool, disp_each_iter::Int, max_iter::Int, epsilon::Float64,
-						rewardmat,
+						rewardcall,
 						monotonicity1::Bool, monotonicity2::Bool,
 						concavity1::Bool, concavity2::Bool,
 						tStateVectors,#::NTuple{2,Vector{Float64}},
@@ -119,16 +119,16 @@ function _solve2(rewardfunc::Function, method::Type{T},
         						# find highest value for second state var
         						for lprime = vChoice2Start[j]:nChoiceTwo
 
-            						# reward using prebuild_partial output matrix
-            						if rewardmat == :prebuild_partial
+            						# reward using pre_partial output matrix
+            						if rewardcall == :pre_partial
             							  reward = rewardfunc(mReward[j + nChoiceOne*(l-1),i],
 	  					                                     getindex.(tStateVectors, (j, l, ix.I...)),
 														     (vChoiceOne[jprime], vChoiceTwo[lprime]))
-            						elseif rewardmat == :nobuild
+            						elseif rewardcall == :jit
             							  # need to be VERY careful with order of state vars here.. could get fucked up..
             							  reward = rewardfunc(getindex.(tStateVectors, (j, l, ix.I...)),
             												  (vChoiceOne[jprime], vChoiceTwo[lprime]))
-            						elseif rewardmat == :prebuild
+            						elseif rewardcall == :pre
             							  # jprime is first choice var, changes faster
             							  reward = mReward[jprime + nChoiceOne * (lprime-1), j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1)] # nChoices x nStates
             						end

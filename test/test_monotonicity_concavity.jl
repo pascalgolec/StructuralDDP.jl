@@ -14,7 +14,7 @@ sol_neoclassical_conc = solve(p_neoclassical; monotonicity = false, concavity = 
 # two choice variables
 dipar = Dict(:nK => 10, :nN => 7, :nz => 3)
 p_int = createmodel(:Intangible; dipar..., intdim = :Separable_ExogStates)
-optdict = Dict(:rewardmat=>:nobuild)
+optdict = Dict(:rewardcall=>:jit)
 sol_int = solve(p_int; optdict..., monotonicity=[false,false], concavity=[false,false])
 sol_int_mon = solve(p_int; optdict..., monotonicity=[true,true], concavity=[false,false])
 sol_int_conc = solve(p_int; optdict..., monotonicity=[false,false], concavity=[true,true])
