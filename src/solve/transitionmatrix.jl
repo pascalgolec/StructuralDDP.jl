@@ -49,7 +49,6 @@ _transitionmatrix(p::DDM, method::Type{All}, numquadnodes::Vector{Int}) =
 		p.tStateVectors,
 		p.shockdist, numquadnodes)
 
-
 # for choices and states as input
 function _transitionmatrix(transfunc::Function,
     tInputVectorsStates::NTuple{dimStates, Vector{T1}},
@@ -70,11 +69,7 @@ function _transitionmatrix(transfunc::Function,
     basisOutputStates = Basis(SplineParams.(tOutputVectors,0,1))
     PhiTemp = spzeros(size(mG)...)
 
-	if dimChoices > 1
-        iterator_choices = Iterators.product(tInputVectorsChoices...)
-    else # don't want a tuple of choices if only one
-        iterator_choices = tInputVectorsChoices[1]
-    end
+	iterator_choices = getiterator(tInputVectorsChoices)
 
 	# choices change faster than states
 	iterator = Iterators.product(iterator_choices, Iterators.product(tInputVectorsStates...))
@@ -123,11 +118,7 @@ function _transitionmatrix(transfunc::Function,
     basisOutputStates = Basis(SplineParams.(tOutputVectors,0,1))
     PhiTemp = spzeros(size(mG)...)
 
-	if N > 1
-		iterator = Iterators.product(tInputVectors...)
-	else
-		iterator = tInputVectors[1]
-	end
+	iterator = getiterator(tInputVectors)
 
 	lowerbounds = minimum.(tOutputVectors)
 	upperbounds = maximum.(tOutputVectors)

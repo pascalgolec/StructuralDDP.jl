@@ -13,7 +13,7 @@
 
 initialendogstatevars(p::DDP, meshValFun::Array{Float64}) =
     _initialendogstatevars(
-        p.initializationproblem, meshValFun,
+        p.options.initialize.problem, meshValFun,
         p.tStateVectors, getchoicevarszero(p), getnonchoicevarszero(p))
 
 function _initialendogstatevars(initializationproblem::Function, meshValFun::Array{Float64},

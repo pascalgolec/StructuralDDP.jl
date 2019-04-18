@@ -39,7 +39,7 @@ _simulate(p::DDP{NS,1}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::
 				p.tStateVectors, getchoicevars(p), getnonchoicevars(p),
                 getchoicevarszero(p),
 				getnonchoicevarszero(p),
-				p.initializefunc, initialize_exact)
+				p.options.initialize.func, initialize_exact)
 
 
 # perhaps better to return a tuple of arrays rather than an array
@@ -52,7 +52,7 @@ function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 				tChoiceVectorsZero::NTuple{dimChoices0, AbstractVector{T}},
 				tExogStateVectorsZero::NTuple{dimExogStates0, AbstractVector{T}},
 				initializefunc::Function, initialize_exact::Bool) where
-				{T, ID<:DDMIntDim, dimStates, dimExogStates, dimChoices0, dimExogStates0}
+				{T, ID<:IntDim, dimStates, dimExogStates, dimChoices0, dimExogStates0}
 
 	!(initialize_exact && !(typeof(sol) <: DDPSolutionZero)) || error(
 		"Solution does not contain intial policy -> rerun solver with `initialize_exact = true`")
@@ -171,7 +171,7 @@ _simulate(p::DDP{NS,2}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::
 				p.tStateVectors,
                 getchoicevars(p), getnonchoicevars(p),
                 getchoicevarszero(p), getnonchoicevarszero(p),
-				p.initializefunc, initialize_exact)
+				p.options.initialize.func, initialize_exact)
 # perhaps better to return a tuple of arrays rather than an array
 function _simulate2(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function,
 				intdim::Type{ID},
@@ -181,7 +181,7 @@ function _simulate2(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
                 tChoiceVectorsZero::NTuple{dimChoices0, AbstractVector{T}},
 				tExogStateVectorsZero::NTuple{dimExogStates0, AbstractVector{T}},
 				initializefunc::Function, initialize_exact::Bool) where
-					{T, ID<:DDMIntDim, dimStates, dimChoices, dimExogStates, dimChoices0, dimExogStates0}
+					{T, ID<:IntDim, dimStates, dimChoices, dimExogStates, dimChoices0, dimExogStates0}
 
 	!(initialize_exact && !(typeof(sol) <: DDPSolutionZero)) || error(
 		"Solution does not contain intial policy -> rerun solver with `initialize_exact = true`")

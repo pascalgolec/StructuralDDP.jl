@@ -143,17 +143,16 @@ function Intangible(;
 		return z0
 	end
 
-	createDDP(
-				β,
-	            myrewardfunc,
-	            transfunc,
-	            tStateVectors,
-	            tChoiceVectors,
-				Normal(); # give distribution of shocks: standard normal
-				intdim = intdim,
-	            grossprofits = mygrossprofits,
-	            initializationproblem = initializationproblem,
-	            initializefunc = initialize,
-				tChoiceVectorsZero = tChoiceVectorsZero,
-	            )
+	DDP(tStateVectors,
+		tChoiceVectors,
+		myrewardfunc,
+        transfunc,
+		Normal(),
+		β; # give distribution of shocks: standard normal
+		intdim = intdim,
+        rewardfunc_partial = mygrossprofits,
+        initializationproblem = initializationproblem,
+        initializefunc = initialize,
+		tChoiceVectorsZero = tChoiceVectorsZero,
+        )
 end

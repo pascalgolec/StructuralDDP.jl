@@ -37,9 +37,7 @@ function solve(p::DDM;
     numquadnodes::Vector{Int} = 5*ones(Int64, length(p.shockdist.μ)),
 	mTransition::Union{Nothing, Array{Float64,2}} = nothing,
     intdim::Type{T} = p.intdim, # if want to override type in the model, mostly for testing
-    ) where T<:DDMIntDim
-
-    # intdim in(:SA, :intermediate, :separable) || error("supplied wrong intdim")
+    ) where T<:IntDim
 
     if rewardmat == :prebuild || intdim == All
         mReward = rewardmatrix(p)

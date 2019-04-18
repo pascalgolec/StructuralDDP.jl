@@ -23,23 +23,11 @@ module DiscreteDynamicProgramming
 
 	# using DiscreteDynamicModels
 
-	# model definition and parameters
-	abstract type DiscreteDynamicModel end
-	const DDM = DiscreteDynamicModel
+	include("utils.jl")
 
 	# abstract type NumChoiceVar end
 	# abstract type SingleChoiceVar <: NumChoiceVar end
 	# abstract type TwoChoiceVar <: NumChoiceVar end
-
-	# rename to IntegrationDimension?
-	abstract type DDMIntegrationDimension end
-	const DDMIntDim = DDMIntegrationDimension
-	abstract type All <: DDMIntDim end
-	abstract type Separable <: DDMIntDim end
-	abstract type Separable_States <: DDMIntDim end
-	abstract type Separable_ExogStates <: DDMIntDim end
-	const Separable_Union = Union{Separable, Separable_States, Separable_ExogStates}
-	# const SA = StateAction
 
 	# type constructor
 	include("DiscreteDynamicProblem.jl")
@@ -63,11 +51,12 @@ module DiscreteDynamicProgramming
 	include("solve/twochoicevar.jl")
 	include("solve/state_action.jl")
 	include("solve/initialendogstatevars.jl")
+	include("solve/compare.jl")
 
 	# simulator
 	include("simulate/shocks.jl")
 	include("simulate/simulate.jl")
 
-	include("utils.jl")
+
 
 end

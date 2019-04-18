@@ -16,11 +16,7 @@ function _rewardmatrix(rewardfunc::Function, tStateVectors, tChoiceVectors)
 
     iterator_states = Iterators.product(tStateVectors...)
 
-    if length(tChoiceVectors) > 1
-        iterator_choices = Iterators.product(tChoiceVectors...)
-    else # don't want a tuple of choices if only one
-        iterator_choices = tChoiceVectors[1]
-    end
+    iterator_choices = getiterator(tChoiceVectors)
 
     for (i, states) in enumerate(iterator_states)
         for (j, choices) in enumerate(iterator_choices)
@@ -33,12 +29,12 @@ function _rewardmatrix(rewardfunc::Function, tStateVectors, tChoiceVectors)
     return mReward
 end
 
-rewardmatrix_partial(p::DDM) = _rewardmatrix_partial(p.grossprofits,
+rewardmatrix_partial(p::DDM) = _rewardmatrix_partial(p.options.rewardfunc_partial,
     getchoicevars(p.tStateVectors, p.tChoiceVectors),
     getnonchoicevars(p.tStateVectors, p.tChoiceVectors))
 
 """Return a nEndogStates x nExogStates reward matrix."""
-function _rewardmatrix_partial(grossprofits::Function,
+function _rewardmatrix_partial(rewardfunc_partial::Function,
     tEndogStateVectors, tExogStateVectors)
     # output dimension is nEndogStates x nExogStates
 
@@ -55,7 +51,7 @@ function _rewardmatrix_partial(grossprofits::Function,
 
     for (i, exogstates) in enumerate(iterator_exogstates)
         for (j, endogstates) in enumerate(iterator_endogstates)
-           mReward[j,i] = grossprofits((endogstates..., exogstates...))
+           mReward[j,i] = rewardfunc_partial((endogstates..., exogstates...))
         end
     end
 

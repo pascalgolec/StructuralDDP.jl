@@ -22,7 +22,6 @@ sol_neo_sep_states = solve(p_neo_sep_states; optdict...)
 sol_neo_sep_exogstates = solve(p_neo_sep_exogstates; optdict...)
 
 shocks_neo = drawshocks(p_neo_all, nPeriods=40, nFirms=100)
-shocks_neo = drawshocks(p_neo_all, nPeriods=40, nFirms=10^4)
 
 @testset "Simulate Neoclassical" begin
     simulate(sol_neo_all, shocks_neo, initialize_exact=false)
