@@ -1,30 +1,21 @@
 
 
-function getquadrature(d::ContinuousUnivariateDistribution, numquadnodes::Vector{Int})
-	vShocks, vWeights = qnwdist(d, numquadnodes[1])
-    # mShocks = Array(vShocks')
-    # return mShocks, vWeights
-end
-function getquadrature(d::Normal, numquadnodes::Vector{Int})
-    vShocks, vWeights = qnwnorm(numquadnodes[1], mean(d), std(d)^2)
-    # mShocks = Array(vShocks')
-    # return mShocks, vWeights
-end
-function getquadrature(d::Uniform, numquadnodes::Vector{Int})
-    vShocks, vWeights = qnwunif(numquadnodes[1], params(d)...)
-    # mShocks = Array(vShocks')
-    # return mShocks, vWeights
-end
-function getquadrature(d::LogNormal, numquadnodes::Vector{Int})
-    vShocks, vWeights = qnwlogn(numquadnodes[1], meanlogx(d), varlogx(d))
-    # mShocks = Array(vShocks')
-    # return mShocks, vWeights
-end
+getquadrature(d::ContinuousUnivariateDistribution, numquadnodes::Vector{Int}) =
+	qnwdist(d, numquadnodes[1])
+
+getquadrature(d::Normal, numquadnodes::Vector{Int}) =
+    qnwnorm(numquadnodes[1], mean(d), std(d)^2)
+
+getquadrature(d::Uniform, numquadnodes::Vector{Int}) =
+    qnwunif(numquadnodes[1], params(d)...)
+
+getquadrature(d::LogNormal, numquadnodes::Vector{Int}) =
+    qnwlogn(numquadnodes[1], meanlogx(d), varlogx(d))
 
 getquadrature(d::MvNormal, numquadnodes::Vector{Int}) =
-	mShocks, vWeights = qnwnorm(numquadnodes, Vector(d.μ), Matrix(d.Σ))
+	qnwnorm(numquadnodes, Vector(d.μ), Matrix(d.Σ))
 
-# split into intdims
+
 transitionmatrix(p::DDM;
     numquadnodes::Vector{Int} = 5*ones(Int64, length(p.shockdist.μ))) =
     _transitionmatrix(p, p.intdim, numquadnodes)
@@ -61,10 +52,10 @@ _transitionmatrix(p::DDM, method::Type{All}, numquadnodes::Vector{Int}) =
 
 # for choices and states as input
 function _transitionmatrix(transfunc::Function,
-    tInputVectorsStates::NTuple{dimStates, Vector{T}},
-	tInputVectorsChoices::NTuple{dimChoices, Vector{T}},
+    tInputVectorsStates::NTuple{dimStates, Vector{T1}},
+	tInputVectorsChoices::NTuple{dimChoices, Vector{T2}},
 	tOutputVectors,
-    shockdist, numquadnodes) where {dimStates, dimChoices, T}
+    shockdist, numquadnodes) where {dimStates, dimChoices, T1, T2}
 
     Shocks, vWeights = getquadrature(shockdist, numquadnodes)
 	dimshocks = length(shockdist)
