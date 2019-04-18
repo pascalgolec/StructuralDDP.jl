@@ -4,7 +4,7 @@
 ####################################################
 
 # this function sets up the state-action pairs and feeds them into the QuantEcon solver
-function _solve(p::DDM, method::Type{All},  mTransition, mReward, disp::Bool)
+function _solve(p::DDP, method::Type{All},  mTransition, mReward, disp::Bool)
 
     # ONLY PROGRAMMED FOR SINGLECHOICEVAR SO FAR!
 

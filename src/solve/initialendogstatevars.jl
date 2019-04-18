@@ -8,7 +8,7 @@
 # to do:
 # - only works if choice vector is equal to state vector
 # - only works if first state is choice state?
-# note: could be more elegant to have a SingleChoiceVar and a TwoChoiceVar subtype of DDM
+# note: could be more elegant to have a SingleChoiceVar and a TwoChoiceVar subtype of DDP
 # to allocate to method.. will depend on how user inputs stuff
 
 initialendogstatevars(p::DDP, meshValFun::Array{Float64}) =

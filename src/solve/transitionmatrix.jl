@@ -16,34 +16,34 @@ getquadrature(d::MvNormal, numquadnodes::Vector{Int}) =
 	qnwnorm(numquadnodes, Vector(d.μ), Matrix(d.Σ))
 
 
-transitionmatrix(p::DDM;
+transitionmatrix(p::DDP;
     numquadnodes::Vector{Int} = 5*ones(Int64, length(p.shockdist.μ))) =
     _transitionmatrix(p, p.intdim, numquadnodes)
 
 
 """Generate a nExogStates x nExogStates transition matrix."""
-_transitionmatrix(p::DDM, method::Type{Separable_ExogStates}, numquadnodes::Vector{Int}) =
+_transitionmatrix(p::DDP, method::Type{Separable_ExogStates}, numquadnodes::Vector{Int}) =
     _transitionmatrix(p.transfunc,
 	getnonchoicevars(p),
 	getnonchoicevars(p),
     p.shockdist, numquadnodes)
 
 """Generate a nStates x nExogStates transition matrix."""
-_transitionmatrix(p::DDM, method::Type{Separable_States}, numquadnodes::Vector{Int}) =
+_transitionmatrix(p::DDP, method::Type{Separable_States}, numquadnodes::Vector{Int}) =
     _transitionmatrix(p.transfunc,
     p.tStateVectors,
 	getnonchoicevars(p),
    	p.shockdist, numquadnodes)
 
 """Generate a (nChoices*nStates) x nExogStates transition matrix."""
-_transitionmatrix(p::DDM, method::Type{Separable}, numquadnodes::Vector{Int}) =
+_transitionmatrix(p::DDP, method::Type{Separable}, numquadnodes::Vector{Int}) =
     _transitionmatrix(p.transfunc,
 	    p.tStateVectors, getchoicevars(p),
 		getnonchoicevars(p),
 	    p.shockdist, numquadnodes)
 
 """Generate a (nChoices*nStates) x nStates transition matrix."""
-_transitionmatrix(p::DDM, method::Type{All}, numquadnodes::Vector{Int}) =
+_transitionmatrix(p::DDP, method::Type{All}, numquadnodes::Vector{Int}) =
 	_transitionmatrix(p.transfunc,
 		p.tStateVectors, p.tChoiceVectors,
 		p.tStateVectors,

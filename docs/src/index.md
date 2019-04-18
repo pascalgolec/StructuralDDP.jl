@@ -98,13 +98,12 @@ shockdistribution = Normal() # one-dimensional standard normal shock
 
 # construct problem
 prob = DiscreteDynamicProblem(
-            β,
-            rewardfunc,
-            transfunc,
-            shockdistribution,
             tStateVectors,
             tChoiceVectors,
-            )
+            reward,
+            transition,
+            shockdistribution,
+            β)
 ```
 
 The solver supports any type of univariate distribution distribution and multivariate-normal distributions. The [Distributions.jl package](https://juliastats.github.io/Distributions.jl/stable/) contains the syntax for implementing these distributions.
@@ -262,15 +261,31 @@ Note: `monotonicity` and `concavity` currently only work if the integration dime
 
 The `rewardmat` keyword determines whether (part of) the reward for each state-action pair should be precomputed before the value function iteration. Prebuilding requires more memory but less computations during the VFI.
 
-* `:nobuild` means that the reward is calculated during the VFI. This requires little memory but more computations during the VFI.
+`:nobuild` - the reward is calculated during the VFI whenever it is required, i.e. just in time. This requires little memory but more computations during the VFI. This is the default.
 
+`:prebuild` - precompute the reward matrix for each possible combination of states and actions before the VFI. This requires more memory but less computations during the VFI.
 
-* `:prebuild_partial` means that part of the reward function that only depends on states, but not choices, is prebuilt. From experience, this option is the fastest when combined with monotonicity and concavity.
+`:prebuild_partial` - precompute part of the reward function before the VFI that only depends on states, but not choices. From experience, this option is the fastest when combined with monotonicity and concavity. To exploit this option, we must separately define the inner and outer part of the reward function. The outer part is the same argument in `DDP` as the standard reward function and the partial reward function enters as a keyword arguement `rewardfunc_partial`. In the solver we must specify that the reward should be partially precomputed.
 
-To exploit this option, we must separately define the inner and outer part of the reward function.
+```julia
+function reward(Partial_Reward, vStateVars, Kprime)
+    K = vStateVars[1]
+    capx = Kprime - (1-δ)K
+    return (1-τ)*(Partial_Reward - F*K - γ/2*(capx/K- δ)^2 * K) - (1-κ*(capx<0))*capx + τ * δ * K
+end
+reward_partial(vStateVars) = vStateVars[1]^α * exp(vStateVars[2])
 
+prob = DiscreteDynamicProblem(
+    tStateVectors,
+    tChoiceVectors,
+    reward,
+    transition,
+    shockdistribution,
+    β;
+    rewardfunc_partial = reward_partial)
+solve(prob, rewardmat = :prebuild_partial)
+```
 
-* `:prebuild` means precompute the reward matrix for each possible combination of states and actions. This requires more memory but less computations during the VFI.
 
 ## Transition matrix
 

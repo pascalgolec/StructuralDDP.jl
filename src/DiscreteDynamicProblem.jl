@@ -1,9 +1,9 @@
 
 # model definition and parameters
-abstract type DiscreteDynamicModel end
-const DDM = DiscreteDynamicModel
+# abstract type DiscreteDynamicModel end
+# const DDP = DiscreteDynamicModel
 
-
+"""The integration dimension determines the in- and outputs of the transition function."""
 abstract type IntegrationDimension end
 const IntDim = IntegrationDimension
 abstract type All <: IntDim end
@@ -45,13 +45,13 @@ InitializationOptions(problem::Function, func::Function,
 struct DiscreteDynamicProblemOptions{RFP<:FuncOrNothing}
 
 	"""The partial reward function."""
-	rewardfunc_partial::RFP
+	reward_partial::RFP
 
 	"""Options for exact initialization."""
 	initialize::Union{InitializationOptions, Nothing}
 
 end
-const DDP_Options = DiscreteDynamicProblemOptions
+const DDPOptions = DiscreteDynamicProblemOptions
 
 
 """
@@ -63,7 +63,7 @@ Defines an infinite-horizon discrete choice dynamic optimization problem.
 
 $(FIELDS)
 """
-struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC} <: DDM
+struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC}
 
 	tStateVectors::NTuple{nStateVars, Vector{Float64}} #where N # can use NTuple{N, Vector{Float64}} where N
     tChoiceVectors::NTuple{nChoiceVars, typeC}
@@ -85,7 +85,7 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC} <: DDM
     β::Float64 # important to specify here for type stability
 
 	"""Optional information for problem definition."""
-	options::Union{DDP_Options, Nothing}
+	options::Union{DDPOptions, Nothing}
 
 
 	function DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC}(
@@ -96,7 +96,7 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC} <: DDM
 		intdim::Type{<:IntDim},
 		shockdist::Distribution,
 		β::Float64,
-		options::Union{DDP_Options, Nothing}) where
+		options::Union{DDPOptions, Nothing}) where
 			{nStateVars,nChoiceVars,typeC}
 
 
@@ -121,21 +121,17 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC} <: DDM
 	end
 
 end
-
-# construct with parameters
-DiscreteDynamicProblem(
+const DDP = DiscreteDynamicProblem
+DDP(
 	tStateVectors::NTuple{nStateVars, Vector{Float64}},
 	tChoiceVectors::NTuple{nChoiceVars, typeC}, args...) where
 		{nStateVars,nChoiceVars,typeC} =
-	DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC}(
+	DDP{nStateVars,nChoiceVars,typeC}(
 		tStateVectors,
 		tChoiceVectors, args...)
 
-const DDP = DiscreteDynamicProblem
 
-# function DDP(args...;
-
-# convenience constructor for options as keywords
+"""Options as keyword arguments for convenience."""
 function DDP(
 			tStateVectors::NTuple{dimStates, Vector{Float64}},
             tChoiceVectors::NTuple{dimChoices, typeC},
@@ -144,7 +140,7 @@ function DDP(
             shockdist::Distribution,
 			β::Real;
             intdim::Symbol = :All,
-            rewardfunc_partial::Union{Function,Nothing} = nothing,
+            reward_partial::Union{Function,Nothing} = nothing,
             initializationproblem::Union{Function,Nothing} = nothing,
             initializefunc::Union{Function,Nothing} = nothing,
             tChoiceVectorsZero::Union{NTuple{C0,Int64},Nothing} = nothing,
@@ -156,7 +152,7 @@ function DDP(
 
 	init_options = InitializationOptions(initializationproblem, initializefunc, tChoiceVectorsZero)
 
-	ddp_options = DDP_Options(rewardfunc_partial, init_options)
+	ddp_options = DDPOptions(reward_partial, init_options)
 
     DDP(tStateVectors,
         tChoiceVectors,
@@ -169,10 +165,11 @@ function DDP(
         )
 end
 
+"""Check whether the integration dimension is separable."""
 isseparable(p::DDP) = p.intdim <: Separable_Union
 
 """Retreive the state vectors that are not choice vectors from the state vector tuple."""
-getnonchoicevars(p::DDM) = getnonchoicevars(p.tStateVectors, p.tChoiceVectors)
+getnonchoicevars(p::DDP) = getnonchoicevars(p.tStateVectors, p.tChoiceVectors)
 function getnonchoicevars(tStateVectors::NTuple{NS,T}, tchoicevars::NTuple{NC, Int64}) where {NS, T, NC}
 	allvars = tuple(1:NS...)
 	nonchoicevars = tuple(setdiff(Set(allvars), Set(tchoicevars))...)
@@ -180,11 +177,11 @@ function getnonchoicevars(tStateVectors::NTuple{NS,T}, tchoicevars::NTuple{NC, I
 end
 getnonchoicevars(p::DDP{dimS,dimC,C}) where {dimS,dimC,C<:AbstractVector} = tuple() # i.e. intdim = :All
 getnonchoicevars(tStateVectors, tChoiceVectors::Nothing) = nothing
-getnonchoicevarszero(p::DDM) = getnonchoicevars(p.tStateVectors, p.options.initialize.tChoiceVectorsZero)
+getnonchoicevarszero(p::DDP) = getnonchoicevars(p.tStateVectors, p.options.initialize.tChoiceVectorsZero)
 
 
 """Retreive the choice vectors from the state vector tuple."""
-getchoicevars(p::DDM) = getchoicevars(p.tStateVectors, p.tChoiceVectors)
+getchoicevars(p::DDP) = getchoicevars(p.tStateVectors, p.tChoiceVectors)
 getchoicevars(tStateVectors::NTuple{NS,T}, tchoicevars::NTuple{NC, Int64}) where {NS, T, NC} =
 	getindex(tStateVectors, collect(tchoicevars))
 """Retreive nothing if the choice vectors are provided."""
@@ -192,4 +189,4 @@ getchoicevars(tStateVectors::NTuple{N1,T1}, tChoiceVectors::NTuple{N2,Vector{T2}
 	{N1, T1, N2, T2} = tChoiceVectors
 getchoicevars(tStateVectors, tChoiceVectors::Nothing) = nothing
 """Retreive the choice vectors to find policy at t=0."""
-getchoicevarszero(p::DDM) = getchoicevars(p.tStateVectors, p.options.initialize.tChoiceVectorsZero)
+getchoicevarszero(p::DDP) = getchoicevars(p.tStateVectors, p.options.initialize.tChoiceVectorsZero)

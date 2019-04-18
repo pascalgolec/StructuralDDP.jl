@@ -3,7 +3,7 @@
 Solve the dynamic programming problem.
 
 ##### Parameters
-- `p::DDM` : Object that contains the dynamic optimization problem. See `createDDP` for details.
+- `p::DDP` : Object that contains the dynamic optimization problem. See `createDDP` for details.
 - `;disp::Bool(false)`: turn on/off displaying of intermeditate value function iteration steps
 - `;disp_each_iter::Int(10)`: how often to display output
 - `;max_iter::Int(500)`: Maximum number of iterations
@@ -25,7 +25,7 @@ function in the choice of next period's state.
 TODO
 
 """
-function solve(p::DDM;
+function solve(p::DDP;
     disp::Bool = false,
     disp_each_iter::Int = 10,
     max_iter::Int = 500,

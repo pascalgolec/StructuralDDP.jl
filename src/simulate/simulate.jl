@@ -1,10 +1,10 @@
 
-# function simulate(p::DDM)
+# function simulate(p::DDP)
 # 	# seed!(42) # fix the seed
 # 	simulate(p, drawshocks(p))
 # end
 
-# function simulate(p::DDM, sol::DDPSolution)
+# function simulate(p::DDP, sol::DDPSolution)
 # 	# seed!(42) # fix the seed
 # 	simulate(p, sol, drawshocks(p))
 # end
@@ -18,9 +18,9 @@ simulate(sol::AbstractDDPSolution;
 simulate(sol::AbstractDDPSolution, shocks::DDPShocks; kwargs...) =
 	_simulate(sol.prob, sol, shocks, sol.prob.transfunc; kwargs...)
 
-simulate(p::DDM; kwargs...) =
+simulate(p::DDP; kwargs...) =
 	_simulate(p, drawshocks(p); kwargs...)
-simulate(p::DDM, shocks::DDPShocks; kwargs...) =
+simulate(p::DDP, shocks::DDPShocks; kwargs...) =
 	_simulate(p, solve(p), shocks, p.transfunc; kwargs...)
 
 

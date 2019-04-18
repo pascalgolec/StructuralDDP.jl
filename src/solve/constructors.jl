@@ -10,7 +10,7 @@ abstract type AbstractDDPSolution end
 # how to have an optional meshzero while preserving type stability?
 struct DDPSolution{nStateVars,nChoiceVars} <: AbstractDDPSolution
 
-   prob::DDM
+   prob::DDP
    meshValFun::Array{Float64,nStateVars}
    tmeshPolFun::NTuple{nChoiceVars,Array{Float64,nStateVars}}
 
@@ -19,7 +19,7 @@ end
 # includes solution for exact initialization
 struct DDPSolutionZero{nStateVars,nChoiceVars,nExogVarsZero} <: AbstractDDPSolution
 
-   prob::DDM
+   prob::DDP
    meshValFun::Array{Float64,nStateVars}
    tmeshPolFun::NTuple{nChoiceVars,Array{Float64,nStateVars}}
    meshValFunZero::Array{Float64,nExogVarsZero}
@@ -27,7 +27,7 @@ struct DDPSolutionZero{nStateVars,nChoiceVars,nExogVarsZero} <: AbstractDDPSolut
 
 end
 
-function createsolution(p::DDM, meshValFun::Array{Float64},
+function createsolution(p::DDP, meshValFun::Array{Float64},
                                 tmeshPolFun::NTuple{N,Array{Float64}},
                                 initialize_exact::Bool = false) where N
 
