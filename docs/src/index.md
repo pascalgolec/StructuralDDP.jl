@@ -120,6 +120,23 @@ We can solve the model with the function `solve`, which returns the (discrete) v
 sol = solve(prob)
 ```
 
+The result of `solve` is a solution object. We can access the value and policy of the fifth grid point of the first state and the third grid point of the second state by:
+```julia
+value(sol)[5, 3]
+policy(sol)[5, 3]
+```
+
+If there are multiple choice variables then `policy(sol)` returns a tuple, so we would have to specify that we for example are interested in the second choice variable:
+```julia
+policy(sol)[2][5, 3]
+```
+
+The `policy` and `value` objects that are returned by default act as a continuous solution via an interpolation. We can access the interpolated values by treating them as functions, for example:
+```julia
+policy(sol)(10., 0.5) # the optimal policy for state one = 10. and state two = 0.5
+```
+Note the difference between these: indexing with `[i]` is the policy at the ith grid point, while `(k)` is an interpolation for state `k`. Also note that if an interpolation outside of the state grid is requested, then the value/policy at the closest grid points is returned instead.
+
 The solver can be controlled using different options which are discribed in the [Solver Options section](#Solver-Options-1). For example, we can tell the solver to precompute the reward for the different combinations of states and choices before starting the value function iteration:
 
 ```julia

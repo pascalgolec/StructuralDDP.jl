@@ -1,3 +1,8 @@
+# struct DDPSimulation{T} where T
+# 	value::Union{Array{T,2}, Nothing}
+# 	states::Array{T,3}
+# end
+
 
 # convenience wrappers
 simulate(sol::AbstractDDPSolution;

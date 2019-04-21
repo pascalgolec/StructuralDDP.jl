@@ -26,9 +26,9 @@ function itparray(A::AbstractArray{T,N}, knots::NTuple{N,AbstractVector{T}}) whe
 	ItpArray{T,N,typeof(A),typeof(itp)}(A,itp)
 end
 
-abstract type AbstractDDPSolution end
+abstract type AbstractDDPSolution{NS,NC} end
 
-struct DDPSolution{NS,NC,valueType,policyType} <: AbstractDDPSolution
+struct DDPSolution{NS,NC,valueType,policyType} <: AbstractDDPSolution{NS,NC}
 
 	prob::DDP
    value::valueType
@@ -38,7 +38,7 @@ end
 
 # includes solution for exact initialization
 struct DDPSolutionZero{NS,NC,NE,valueType,policyType,
-		value0Type,policy0Type} <: AbstractDDPSolution
+		value0Type,policy0Type} <: AbstractDDPSolution{NS,NC}
 
    prob::DDP
 	value::valueType
@@ -69,3 +69,7 @@ function createsolution(p::DDP, meshValFun::Array{T,NS},
 			typeof(value0),typeof(policy0[1])}(p, value, policy, value0, policy0)
    end
 end
+
+value(sol::AbstractDDPSolution) = sol.value
+policy(sol::AbstractDDPSolution) = sol.policy
+policy(sol::AbstractDDPSolution{NS,1}) where NS = sol.policy[1]

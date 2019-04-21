@@ -16,8 +16,9 @@ module DiscreteDynamicProgramming
 	using DocStringExtensions
 
 	export DiscreteDynamicProblem
-	export createmodel, solve, drawshocks, simulate, transitionmatrix,
-		drawshocks
+	export createmodel
+	export solve, transitionmatrix, value, policy
+	export drawshocks, simulate
 	export compare
 
 	# using DiscreteDynamicModels
