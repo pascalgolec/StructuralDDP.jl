@@ -82,11 +82,13 @@ function _transitionmatrix(transfunc::Function,
         # loop over all inputstates
         for (j, (choices, states)) in enumerate(iterator)
 			if dimshocks > 1
-            	g[:,j] .= inbounds.(transfunc(states, choices,  Shocks[:,i]),
-					lowerbounds, upperbounds)
+            	# g[:,j] .= inbounds.(transfunc(states, choices,  Shocks[:,i]),
+				# 	lowerbounds, upperbounds)
+            	g[:,j] .= transfunc(states, choices,  Shocks[:,i])
 			else
-				g[:,j] .= inbounds.(transfunc(states, choices,  Shocks[i]),
-					lowerbounds, upperbounds)
+				# g[:,j] .= inbounds.(transfunc(states, choices,  Shocks[i]),
+				# 	lowerbounds, upperbounds)
+				g[:,j] .= transfunc(states, choices,  Shocks[i])
 			end
         end
         PhiTemp .= BasisMatrix(basisOutputStates, Expanded(), g', 0).vals[1]
@@ -128,11 +130,13 @@ function _transitionmatrix(transfunc::Function,
         # loop over all inputstates
         for (j, states) in enumerate(iterator)
 			if dimshocks > 1
-            	g[:,j] .= inbounds.(transfunc(states, Shocks[:,i]),
-					lowerbounds, upperbounds)
+            	# g[:,j] .= inbounds.(transfunc(states, Shocks[:,i]),
+				# 	lowerbounds, upperbounds)
+            	g[:,j] .= transfunc(states, Shocks[:,i])
         	else
-				g[:,j] .= inbounds.(transfunc(states, Shocks[i]),
-					lowerbounds, upperbounds)
+				# g[:,j] .= inbounds.(transfunc(states, Shocks[i]),
+				# 	lowerbounds, upperbounds)
+				g[:,j] .= transfunc(states, Shocks[i])
 			end
         end
         PhiTemp .= BasisMatrix(basisOutputStates, Expanded(), g', 0).vals[1]

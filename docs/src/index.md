@@ -285,7 +285,7 @@ prob = DiscreteDynamicProblem(
     shockdistribution,
     β;
     rewardfunc_partial = reward_partial)
-    
+
 solve(prob, rewardcall = :pre_partial)
 ```
 
@@ -317,12 +317,9 @@ The default setting how the initial state variables are drawn at t=0 is the burn
 There is also an option for more sophisticated initialization, where the initial endogenous state variables are chosen by the firm subject to a loss function and the exogenous ones are predetermined or random. For the neoclassical model, this entails coding the following functions as an additional input into the problem:
 
 ```julia
-initprob(value::Float64, vChoices) = value - (1 + (1-β)/β + C0) * vChoices[1]
-function init(vShocks)
-    z0 = vShocks[1] * sqrt(σ^2 / (1-ρ^2))
-    return inbounds(z0, tStateVectors[2][1], tStateVectors[2][end])
-end
-createDiscreteDynamicProblem(<other variables>,
+initprob(value, vChoices) = value - (1 + (1-β)/β + C0) * vChoices[1]
+init(vShocks) = vShocks[1] * sqrt(σ^2 / (1-ρ^2)) # = z0
+createDiscreteDynamicProblem(<other variables>;
     initializationproblem = initprob,
     initializefunc = init,
     tChoiceVectorsZero = (1,))

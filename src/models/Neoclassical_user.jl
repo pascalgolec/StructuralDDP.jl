@@ -109,18 +109,18 @@ function NeoClassicalSimple(;
 		return z0
 	end
 
-	DDP(		tStateVectors,
-	            tChoiceVectors,
-	            myrewardfunc,
-	            transfunc,
-				Normal(), # give distribution of shocks: standard normal
-				β;
-				intdim = intdim,
-	            rewardfunc_partial = mygrossprofits,
-	            initializationproblem = initializationproblem,
-	            initializefunc = initialize,
-				tChoiceVectorsZero = tChoiceVectorsZero,
-	            )
+	DDP(tStateVectors,
+        tChoiceVectors,
+        myrewardfunc,
+        transfunc,
+		Normal(), # give distribution of shocks: standard normal
+		β;
+		intdim = intdim,
+        rewardfunc_partial = mygrossprofits,
+        initializationproblem = initializationproblem,
+        initializefunc = initialize,
+		tChoiceVectorsZero = tChoiceVectorsZero,
+        )
 
 	# DDP(
 	#

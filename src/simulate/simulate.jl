@@ -1,19 +1,9 @@
 
-# function simulate(p::DDP)
-# 	# seed!(42) # fix the seed
-# 	simulate(p, drawshocks(p))
-# end
-
-# function simulate(p::DDP, sol::DDPSolution)
-# 	# seed!(42) # fix the seed
-# 	simulate(p, sol, drawshocks(p))
-# end
-
 # convenience wrappers
 simulate(sol::AbstractDDPSolution;
 			nPeriods::Int64 = 60,
 			nFirms::Int64 = 100, kwargs...) =
-	_simulate(sol.prob, sol, drawshocks(p, nPeriods=nPeriods, nFirms=nFirms),
+	_simulate(sol.prob, sol, drawshocks(sol.prob, nPeriods=nPeriods, nFirms=nFirms),
 				sol.prob.transfunc; kwargs...)
 simulate(sol::AbstractDDPSolution, shocks::DDPShocks; kwargs...) =
 	_simulate(sol.prob, sol, shocks, sol.prob.transfunc; kwargs...)
@@ -24,11 +14,9 @@ simulate(p::DDP, shocks::DDPShocks; kwargs...) =
 	_simulate(p, solve(p), shocks, p.transfunc; kwargs...)
 
 
-
 function initialize_simple(tStateVectors::NTuple{N, Vector{Float64}}) where N
 	# write a standard initialization function if want burn-in method
 	# get the middle index of all state variables to initialize
-	# convert(Vector{Float64},
 	getindex.(tStateVectors, Int.(floor.(length.(tStateVectors)./2)))
 end
 
@@ -85,32 +73,24 @@ function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
         upperbounds0::NTuple{dimExogStates0,T} = maximum.(tExogStateVectorsZero)
     end
 
-    if intdim == All
-        lowerboundsAll::NTuple{dimStates,T} = minimum.(tStateVectors)
-    	upperboundsAll::NTuple{dimStates,T} = maximum.(tStateVectors)
-    else
-        lowerbounds::NTuple{dimExogStates,T} = minimum.(tExogStateVectors)
-    	upperbounds::NTuple{dimExogStates,T} = maximum.(tExogStateVectors)
-    end
-
     # get transition of firm i at period t (for period t + 1)
     function fill_it!(vSim_it1, vSim_it, intdim::Type{All}, vChoice, mShocks_it)
-        vSim_it1 .= inbounds.(transfunc(vSim_it, vChoice, mShocks_it), lowerboundsAll, upperboundsAll)
+        vSim_it1 .= transfunc(vSim_it, vChoice, mShocks_it)
     end
     function fill_it!(vSim_it1, vSim_it, intdim::Type{Separable}, vChoice, mShocks_it)
         vSim_it1[1] = vChoice
-        vSim_it1[2:end] .= inbounds.(transfunc(vSim_it, vChoice, mShocks_it), lowerbounds, upperbounds)
+        vSim_it1[2:end] .= transfunc(vSim_it, vChoice, mShocks_it)
     end
     function fill_it!(vSim_it1, vSim_it, intdim::Type{Separable_States}, vChoice, mShocks_it)
         vSim_it1[1] = vChoice
-        vSim_it1[2:end] .= inbounds.(transfunc(vSim_it, mShocks_it), lowerbounds, upperbounds)
+        vSim_it1[2:end] .= transfunc(vSim_it, mShocks_it)
     end
     function fill_it!(vSim_it1, vSim_it, intdim::Type{Separable_ExogStates}, vChoice, mShocks_it)
         vSim_it1[1] = vChoice
         if dimExogStates == 1
-            vSim_it1[2] = inbounds.(transfunc(vSim_it[2], mShocks_it), lowerbounds..., upperbounds...) # splat because they're tuples
+            vSim_it1[2] = transfunc(vSim_it[2], mShocks_it) # splat because they're tuples
         else
-            vSim_it1[2:end] .= inbounds.(transfunc(vSim_it[2:end], mShocks_it), lowerbounds, upperbounds)
+            vSim_it1[2:end] .= transfunc(vSim_it[2:end], mShocks_it)
         end
     end
 
@@ -124,7 +104,7 @@ function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
             vSim_i1[1] = initialize_choices(vSim_i1[2:end], itp_policy0)
 
         else
-            vSim_i1[:] .= initialize_simple(tStateVectors) # stable
+            vSim_i1[:] .= initialize_simple(tStateVectors)
 
         end
     end
@@ -219,14 +199,6 @@ function _simulate2(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
         upperbounds0::NTuple{dimExogStates0,T} = maximum.(tExogStateVectorsZero)
     end
 
-    if intdim == All
-        lowerboundsAll::NTuple{dimStates,T} = minimum.(tStateVectors)
-    	upperboundsAll::NTuple{dimStates,T} = maximum.(tStateVectors)
-    else
-        lowerbounds::NTuple{dimExogStates,T} = minimum.(tExogStateVectors)
-    	upperbounds::NTuple{dimExogStates,T} = maximum.(tExogStateVectors)
-    end
-
 	# # for exogenous exit
  	# do_exog_exit = isdefined(params,:π)
 	# if do_exog_exit
@@ -235,22 +207,22 @@ function _simulate2(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 
     # get transition of firm i at period t (for period t + 1)
     function fill_it!(vSim_it1, vSim_it, intdim::Type{All}, vChoice, mShocks_it)
-        vSim_it1 .= inbounds.(transfunc(vSim_it, vChoice, mShocks_it), lowerboundsAll, upperboundsAll)
+        vSim_it1 .= transfunc(vSim_it, vChoice, mShocks_it)
     end
     function fill_it!(vSim_it1, vSim_it, intdim::Type{Separable}, vChoice, mShocks_it)
         vSim_it1[1:dimChoices] .= vChoice
-        vSim_it1[1+dimChoices:end] .= inbounds.(transfunc(vSim_it, vChoice, mShocks_it), lowerbounds, upperbounds)
+        vSim_it1[1+dimChoices:end] .= transfunc(vSim_it, vChoice, mShocks_it)
     end
     function fill_it!(vSim_it1, vSim_it,intdim::Type{Separable_States}, vChoice, mShocks_it)
         vSim_it1[1:dimChoices] .= vChoice
-        vSim_it1[1+dimChoices:end] .= inbounds.(transfunc(vSim_it, mShocks_it), lowerbounds, upperbounds)
+        vSim_it1[1+dimChoices:end] .= transfunc(vSim_it, mShocks_it)
     end
     function fill_it!(vSim_it1, vSim_it, intdim::Type{Separable_ExogStates}, vChoice, mShocks_it)
         vSim_it1[1:dimChoices] .= vChoice
         if dimExogStates == 1
-            vSim_it1[1+dimChoices:end] .= inbounds.(transfunc(vSim_it[1+dimChoices], mShocks_it), lowerbounds, upperbounds)
+            vSim_it1[1+dimChoices:end] .= transfunc(vSim_it[1+dimChoices], mShocks_it)
         else
-            vSim_it1[1+dimChoices:end] .= inbounds.(transfunc(vSim_it[1+dimChoices:end], mShocks_it), lowerbounds, upperbounds)
+            vSim_it1[1+dimChoices:end] .= transfunc(vSim_it[1+dimChoices:end], mShocks_it)
         end
     end
 

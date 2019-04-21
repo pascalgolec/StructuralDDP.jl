@@ -114,13 +114,47 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC}
 			end
 		end
 
+
+		# extend transitionfunc to stay inbounds
+		# note: not sure this will yield perfect performance
+		# perhaps better to do the wrapping where the transition function is used
+		if intdim == All
+			transfunc_inbounds = wrapinbounds(transfunc, tStateVectors)
+	    else
+			tExogStateVectors = getnonchoicevars(tStateVectors, tChoiceVectors)
+			transfunc_inbounds = wrapinbounds(transfunc, tExogStateVectors)
+	    end
+		
 		new{nStateVars,nChoiceVars,typeC}(
 			tStateVectors, tChoiceVectors,
-			rewardfunc, transfunc, intdim,
+			rewardfunc, transfunc_inbounds, intdim,
 			shockdist, β, options)
+
+		# new{nStateVars,nChoiceVars,typeC}(
+		# 	tStateVectors, tChoiceVectors,
+		# 	rewardfunc, transfunc, intdim,
+		# 	shockdist, β, options)
 	end
 
 end
+
+function wrapinbounds(f::Function, tVectors::NTuple{N,Vector{C}}) where {N,C}
+	lowerbounds::NTuple{N,C} = minimum.(tVectors)
+	upperbounds::NTuple{N,C} = maximum.(tVectors)
+	return function f2(args...)
+		inbounds.(f(args...), lowerbounds, upperbounds)
+	end
+end
+function wrapinbounds(f::Function, tVectors::NTuple{1,Vector{C}}) where {C}
+	lowerbounds::C = minimum(tVectors[1])
+	upperbounds::C = maximum(tVectors[1])
+	return function f1(args...)
+		inbounds(f(args...), lowerbounds, upperbounds)
+	end
+end
+
+
+
 const DDP = DiscreteDynamicProblem
 DDP(
 	tStateVectors::NTuple{nStateVars, Vector{Float64}},
@@ -177,6 +211,7 @@ function getnonchoicevars(tStateVectors::NTuple{NS,T}, tchoicevars::NTuple{NC, I
 end
 getnonchoicevars(p::DDP{dimS,dimC,C}) where {dimS,dimC,C<:AbstractVector} = tuple() # i.e. intdim = :All
 getnonchoicevars(tStateVectors, tChoiceVectors::Nothing) = nothing
+"""Retreive exogenous states at t=0."""
 getnonchoicevarszero(p::DDP) = getnonchoicevars(p.tStateVectors, p.options.initialize.tChoiceVectorsZero)
 
 
@@ -188,5 +223,5 @@ getchoicevars(tStateVectors::NTuple{NS,T}, tchoicevars::NTuple{NC, Int64}) where
 getchoicevars(tStateVectors::NTuple{N1,T1}, tChoiceVectors::NTuple{N2,Vector{T2}}) where
 	{N1, T1, N2, T2} = tChoiceVectors
 getchoicevars(tStateVectors, tChoiceVectors::Nothing) = nothing
-"""Retreive the choice vectors to find policy at t=0."""
+"""Retreive endogenous states at t=0."""
 getchoicevarszero(p::DDP) = getchoicevars(p.tStateVectors, p.options.initialize.tChoiceVectorsZero)

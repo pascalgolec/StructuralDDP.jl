@@ -19,15 +19,10 @@ module DiscreteDynamicProgramming
 	export createmodel, solve, drawshocks, simulate, transitionmatrix,
 		drawshocks
 	export compare
-	# export NeoClassicalSimple
 
 	# using DiscreteDynamicModels
 
 	include("utils.jl")
-
-	# abstract type NumChoiceVar end
-	# abstract type SingleChoiceVar <: NumChoiceVar end
-	# abstract type TwoChoiceVar <: NumChoiceVar end
 
 	# type constructor
 	include("DiscreteDynamicProblem.jl")
@@ -35,7 +30,6 @@ module DiscreteDynamicProgramming
 
 	# Models
 	include("models/Neoclassical_user.jl")
-	# include("models/Intangible.jl")
 	include("models/Intangible_user.jl")
 
 	# for using createmodel syntax:
@@ -56,7 +50,5 @@ module DiscreteDynamicProgramming
 	# simulator
 	include("simulate/shocks.jl")
 	include("simulate/simulate.jl")
-
-
 
 end
