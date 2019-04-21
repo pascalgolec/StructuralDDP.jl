@@ -36,7 +36,7 @@ function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 				tStateVectors::NTuple{dimStates, AbstractVector{T}},
 				tChoiceVectors,
 				tExogStateVectors::NTuple{dimExogStates, AbstractVector{T}},
-				# need information on dimension incase intdim=ExogStates and have only one exog varible
+				# need information on dimension incase intdim=ExogStates and have only one exog variable
 				tChoiceVectorsZero::NTuple{dimChoices0, AbstractVector{T}},
 				tExogStateVectorsZero::NTuple{dimExogStates0, AbstractVector{T}},
 				initializefunc::Function, initialize_exact::Bool) where
@@ -47,27 +47,18 @@ function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 	nChoiceVars = 1
 
 	# choose firms as last dimension because loop over firms (easier to code)
-	dimShocks, nPeriods, nFirms = size(shocks.aSim)
+	dimShocks::Int, nPeriods, nFirms = size(shocks.aSim)
 	aSim = fill!(zeros(dimStates, nPeriods+1, nFirms), NaN)
 	mVal = fill!(zeros(1, nPeriods+1, nFirms), NaN)
 	# aChoice = fill!(zeros(nChoiceVars, nPeriods+1, nFirms), NaN)
 
-	#############
-	# construct interpolator
-	# if knots are not evenly spaced: need gridded interpolation
-	itp_policy = interpolate(tStateVectors, sol.tmeshPolFun[1], Gridded(Linear()))
-	itp_value = interpolate(tStateVectors, sol.meshValFun, Gridded(Linear()))
-	itp_policy = extrapolate(itp_policy, Flat())
-	itp_value = extrapolate(itp_value, Flat())
+	value = sol.value
+	policy = sol.policy[1]
 
 	if initialize_exact
-        itp_policy0 = interpolate(tExogStateVectorsZero, sol.tmeshPolFunZero[1], Gridded(Linear()))
-        itp_policy0 = extrapolate(itp_policy0, Flat())
+		policy0 = sol.policy0[1]
 
-		function initialize_choices(vExogStateVars0, itp_policy0)
-		    C0 = itp_policy0(vExogStateVars0...)
-			# C0 = inbounds(C0, tChoiceVectorsZero[1][1], tChoiceVectorsZero[1][end])
-        end
+		initialize_choices(vExogStateVars0, policy0) = policy0(vExogStateVars0...)
 
         lowerbounds0::NTuple{dimExogStates0,T} = minimum.(tExogStateVectorsZero)
         upperbounds0::NTuple{dimExogStates0,T} = maximum.(tExogStateVectorsZero)
@@ -101,11 +92,9 @@ function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 			else
                 vSim_i1[2:end] .= inbounds.(initializefunc(shocksInit_i), lowerbounds0, upperbounds0)
 			end
-            vSim_i1[1] = initialize_choices(vSim_i1[2:end], itp_policy0)
-
+            vSim_i1[1] = initialize_choices(vSim_i1[2:end], policy0)
         else
             vSim_i1[:] .= initialize_simple(tStateVectors)
-
         end
     end
 
@@ -121,8 +110,7 @@ function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
             # don't need value for now
             # vVal_i[t] = itp_value(vSim_i[:,t]...)
 
-			vChoice = itp_policy(vSim_i[:,t]...)
-            # Flat() option in itp_policy ensures it does not leave bounds
+			vChoice = policy(vSim_i[:,t]...)
 
 			if dimShocks > 1
 				fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice, mShocks_i[:,t])
@@ -173,27 +161,13 @@ function _simulate2(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 	aSim = fill!(zeros(dimStates, nPeriods+1, nFirms), NaN)
 	mVal = fill!(zeros(1, nPeriods+1, nFirms), NaN)
 
-	#############
-	# construct interpolator
-	# if knots are not evenly spaced: need gridded interpolation
-	itp_policy = [interpolate(tStateVectors, polfun, Gridded(Linear())) for polfun in sol.tmeshPolFun]
-	itp_value = interpolate(tStateVectors, sol.meshValFun, Gridded(Linear()))
-
-	# if knots are evenly spaced: scaled Bsplines (not working yet)
-	# itp = interpolate(meshPolFun, BSpline(Linear()), OnGrid())
-	# itp = scale(itp, vK, vAlog)
-
-	# specify that if value requested outside of grid, return grid value
-	# I am using my inbounds() function, but still there is an issue with values on the grid somehow..
-	# hope to remove these lines in the future
-	itp_policy = [extrapolate(itp, Flat()) for itp in itp_policy]
-	itp_value = extrapolate(itp_value, Flat())
+	value = sol.value
+	policy = sol.policy
 
 	if initialize_exact
-        itp_policy0 = [interpolate(tExogStateVectorsZero, polfun, Gridded(Linear())) for polfun in sol.tmeshPolFunZero]
-        itp_policy0 = [extrapolate(itp, Flat()) for itp in itp_policy0]
+        policy0 = sol.policy0
 
-        initialize_choices(vExogStateVars0) = [itp(vExogStateVars0...) for itp in itp_policy0]
+        initialize_choices(vExogStateVars0) = [itp(vExogStateVars0...) for itp in policy0]
 
         lowerbounds0::NTuple{dimExogStates0,T} = minimum.(tExogStateVectorsZero)
         upperbounds0::NTuple{dimExogStates0,T} = maximum.(tExogStateVectorsZero)
@@ -254,7 +228,7 @@ function _simulate2(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
             # don't need value for now
             # vVal_i[t] = itp_value(vSim_i[:,t]...)
 
-			vChoice = [itp(vSim_i[:,t]...) for itp in itp_policy]
+			vChoice = [itp(vSim_i[:,t]...) for itp in policy]
 
 			if dimShocks > 1
 				fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice, mShocks_i[:,t])

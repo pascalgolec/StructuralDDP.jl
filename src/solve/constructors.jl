@@ -5,116 +5,67 @@
 # abstract type passive <: capitalaction end
 # # only use capital action for multiplechoicevar. will try to code without
 
+"""ItpArray allows the array to be interpolated. Remove when Interpolations.jl
+supports array indexing with `[]`."""
+struct ItpArray{T,N,Tarr<:Array{T,N},
+		Titp<:AbstractInterpolation{T,N}} <: AbstractArray{T,N}
+	arr::Tarr
+	itp::Titp
+end
+# overload array functions
+Base.size(A::ItpArray) = size(A.arr)
+Base.getindex(A::ItpArray, args...) = getindex(A.arr,args...)
+Base.setindex!(A::ItpArray, args...) = setindex!(A.arr, args...)
+# overload interpolator
+function (A::ItpArray)(x::Vararg{Number,N}) where {T,N}
+	return A.itp(x...) #A.itp()(x) # size(A.itp)
+end
+function itparray(A::AbstractArray{T,N}, knots::NTuple{N,AbstractVector{T}}) where {T,N}
+	itp = interpolate(knots, A, Gridded(Linear()))
+	itp = extrapolate(itp, Flat())
+	ItpArray{T,N,typeof(A),typeof(itp)}(A,itp)
+end
+
 abstract type AbstractDDPSolution end
 
-# how to have an optional meshzero while preserving type stability?
-struct DDPSolution{nStateVars,nChoiceVars} <: AbstractDDPSolution
+struct DDPSolution{NS,NC,valueType,policyType} <: AbstractDDPSolution
 
-   prob::DDP
-   meshValFun::Array{Float64,nStateVars}
-   tmeshPolFun::NTuple{nChoiceVars,Array{Float64,nStateVars}}
+	prob::DDP
+   value::valueType
+   policy::NTuple{NC,policyType}
 
 end
 
 # includes solution for exact initialization
-struct DDPSolutionZero{nStateVars,nChoiceVars,nExogVarsZero} <: AbstractDDPSolution
+struct DDPSolutionZero{NS,NC,NE,valueType,policyType,
+		value0Type,policy0Type} <: AbstractDDPSolution
 
    prob::DDP
-   meshValFun::Array{Float64,nStateVars}
-   tmeshPolFun::NTuple{nChoiceVars,Array{Float64,nStateVars}}
-   meshValFunZero::Array{Float64,nExogVarsZero}
-   tmeshPolFunZero::NTuple{nChoiceVars,Array{Float64,nExogVarsZero}}
+	value::valueType
+	policy::NTuple{NC,policyType}
+	value0::value0Type
+	policy0::NTuple{NC,policy0Type}
 
 end
 
-function createsolution(p::DDP, meshValFun::Array{Float64},
-                                tmeshPolFun::NTuple{N,Array{Float64}},
-                                initialize_exact::Bool = false) where N
+function createsolution(p::DDP, meshValFun::Array{T,NS},
+                                tmeshPolFun::NTuple{NC,Array{T,NS}},
+                                initialize_exact::Bool = false) where {T,NS,NC}
+
+	value = itparray(meshValFun, p.tStateVectors)
+  	policy = [itparray(pol, p.tStateVectors) for pol in tmeshPolFun]
+  	policy = tuple(policy...)
 
    if !initialize_exact
-      return DDPSolution(p, meshValFun, tmeshPolFun)
+      return DDPSolution{NS,NC,typeof(value),typeof(policy[1])}(p, value, policy)
    else
       meshValFunZero, tmeshPolFunZero = initialendogstatevars(p, meshValFun)
-      return DDPSolutionZero(p, meshValFun, tmeshPolFun, meshValFunZero, tmeshPolFunZero)
+		tExogStateVectorsZero = getnonchoicevarszero(p)
+		NE = length(tExogStateVectorsZero)
+		value0 = itparray(meshValFunZero, tExogStateVectorsZero)
+		policy0 = [itparray(pol, tExogStateVectorsZero) for pol in tmeshPolFunZero]
+		policy0 = tuple(policy0...)
+      return DDPSolutionZero{NS,NC,NE,typeof(value),typeof(policy[1]),
+			typeof(value0),typeof(policy0[1])}(p, value, policy, value0, policy0)
    end
 end
-
-# abstract type DDPSolution end
-
-# constructors
-
-# struct SingleChoiceVarSolution <: DDPSolution
-#
-#        meshValFun::Array{Float64}
-#        meshPolFun::Array{Float64}
-#        # mV0::Array{Float64}
-#        # mPolFun0::Array{Float64}
-#
-# end
-
-
-# function createsolution(p::SingleChoiceVar, meshValFun::Array{Float64},
-#                                             meshPolFun::Array{Float64})
-#
-#         # mV0, mPolFun0 = initialendogstatevars(p, meshValFun)
-#
-#         # SingleChoiceVarSolution(meshValFun, meshPolFun, mV0, mPolFun0)
-#         SingleChoiceVarSolution(meshValFun, meshPolFun)
-# end
-
-# struct TwoChoiceVarolution <: DDPSolution
-#
-#        meshValFun::Array{Float64}
-#        meshPolFun1::Array{Float64}
-#        meshPolFun2::Array{Float64}
-#        mV0::Array{Float64}
-#        mPolFunOne0::Array{Float64}
-#        mPolFunTwo0::Array{Float64}
-#
-# end
-
-# struct SingleChoiceExitSolution <: DDPSolution # LKE = LearningKExit
-#
-#        meshValFun::Array{Float64}
-#        meshPolFun::Array{Float64}
-#        meshExit::Array{Bool}
-#        mV0::Array{Float64}
-#        mK0::Array{Float64}
-#
-# end
-
-
-# function createsolution(p::TwoChoiceVar, meshValFun::Array{Float64},
-#                            meshPolFun1::Array{Float64}, meshPolFun2 ::Array{Float64})
-#
-#         mV0, mPolFunOne0, mPolFunTwo0 = initialendogstatevars(p, meshValFun)
-#
-#         TwoChoiceVarolution(meshValFun, meshPolFun1, meshPolFun2,
-#                                    mV0, mPolFunOne0, mPolFunTwo0)
-# end
-
-
-
-# function createsolution(p::LearningKExit, meshValFun::Array{Float64},
-#                         meshPolFun::Array{Float64}, meshExit::Array{Float64})
-#
-#     # nz x nmu matrix of optimal initial capital stock
-# 	mK0 = getmK0(p, meshValFun)
-#
-# 	# interpolator for indirect value V0 (z, mu, P=P0)
-# 	itp_V0 = interpolate(p.tStateVectors[1:3], meshValFun[:,:,:,end], Gridded(Linear()))
-#
-# 	## CONSTRUCT V0 INTERPOLATOR
-# 	mV0 = zeros(p.nNodes[2], p.nNodes[3]) # z x mu
-# 	for iz = 1 : p.nNodes[2], imu = 1: p.nNodes[3]
-# 		# println("iz = $iz, imu = $imu")
-# 		# println(mK0[iz, imu])
-# 		mV0[iz, imu] = itp_V0[mK0[iz, imu], p.tStateVectors[2][iz],
-# 							p.tStateVectors[3][imu]] - (1+p.C0)*mK0[iz, imu]
-#
-# 		# NOW VALUE DOES NOT INCLUDE INITIAL COST C0
-# 	end
-# 	# V0 = (K = K0, z, mu, P = P0) indirect utility
-#
-#     SingleChoiceExitSolution(meshValFun, meshPolFun, meshExit, mK0, mV0)
-# end

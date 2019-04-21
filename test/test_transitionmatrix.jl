@@ -11,10 +11,10 @@ p_neo_sep = createmodel(model; dipar_neo..., intdim = :Separable)
 p_neo_sep_states = createmodel(model; dipar_neo..., intdim = :Separable_States)
 p_neo_sep_exogstates = createmodel(model; dipar_neo..., intdim = :Separable_ExogStates)
 
-@time T_neo_all = transitionmatrix(p_neo_all)
-@time T_neo_sep = transitionmatrix(p_neo_sep)
-@time T_neo_sep_states = transitionmatrix(p_neo_sep_states)
-@time T_neo_sep_exogstates = transitionmatrix(p_neo_sep_exogstates)
+T_neo_all = transitionmatrix(p_neo_all)
+T_neo_sep = transitionmatrix(p_neo_sep)
+T_neo_sep_states = transitionmatrix(p_neo_sep_states)
+T_neo_sep_exogstates = transitionmatrix(p_neo_sep_exogstates)
 
 model = :Intangible
 dipar_int = Dict(:nK => 20, :nN=>15, :nz => 3, :β => 0.9, :ρ => 0.6, :σ => 0.3)
