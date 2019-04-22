@@ -8,6 +8,7 @@ module DiscreteDynamicProgramming
 	using NLsolve # to find steady state
 	using TreeViews
 	using Distributions
+	using DataFrames
 	using Test
 
 	using SparseArrays
@@ -18,7 +19,7 @@ module DiscreteDynamicProgramming
 	export DiscreteDynamicProblem
 	export createmodel
 	export solve, transitionmatrix, value, policy
-	export drawshocks, simulate
+	export drawshocks, simulate, policy, states, value
 	export compare
 
 	# using DiscreteDynamicModels
@@ -49,6 +50,7 @@ module DiscreteDynamicProgramming
 	include("solve/compare.jl")
 
 	# simulator
+	include("simulate/constructor.jl")
 	include("simulate/shocks.jl")
 	include("simulate/simulate.jl")
 

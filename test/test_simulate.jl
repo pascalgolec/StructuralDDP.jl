@@ -1,5 +1,6 @@
 using DiscreteDynamicProgramming
 using Test
+using DataFrames
 
 # todo: find a better way to test rather than just calling the function
 # must test for different intdims
@@ -24,17 +25,27 @@ sol_neo_sep_exogstates = solve(p_neo_sep_exogstates; optdict...)
 shocks_neo = drawshocks(p_neo_all, nPeriods=40, nFirms=100)
 
 @testset "Simulate Neoclassical" begin
-    simulate(sol_neo_all, shocks_neo, initialize_exact=false)
-    simulate(sol_neo_sep, shocks_neo, initialize_exact=false)
-    simulate(sol_neo_sep_states, shocks_neo, initialize_exact=false)
-    simulate(sol_neo_sep_exogstates, shocks_neo, initialize_exact=false)
-
-    simulate(sol_neo_all, shocks_neo, initialize_exact=true)
-    simulate(sol_neo_sep, shocks_neo, initialize_exact=true)
-    simulate(sol_neo_sep_states, shocks_neo, initialize_exact=true)
-    simulate(sol_neo_sep_exogstates, shocks_neo, initialize_exact=true)
+	@testset "initialize_inexact" begin
+	    simulate(sol_neo_all, shocks_neo, initialize_exact=false)
+	    simulate(sol_neo_sep, shocks_neo, initialize_exact=false)
+	    simulate(sol_neo_sep_states, shocks_neo, initialize_exact=false)
+	    simulate(sol_neo_sep_exogstates, shocks_neo, initialize_exact=false)
+	end
+	@testset "initialize_exact" begin
+	    simulate(sol_neo_all, shocks_neo, initialize_exact=true)
+	    simulate(sol_neo_sep, shocks_neo, initialize_exact=true)
+	    simulate(sol_neo_sep_states, shocks_neo, initialize_exact=true)
+	    simulate(sol_neo_sep_exogstates, shocks_neo, initialize_exact=true)
+	end
+	@testset "conversion" begin
+		sim = simulate(sol_neo_sep_exogstates, shocks_neo, get_value=true)
+	    @test typeof(DataFrame(sim)) <: DataFrame
+		@test typeof(Array(sim)) <: AbstractArray
+		sim = simulate(sol_neo_sep_exogstates, shocks_neo, get_value=false)
+	    @test typeof(DataFrame(sim)) <: DataFrame
+		@test typeof(Array(sim)) <: AbstractArray
+	end
 end
-
 
 
 model = :Intangible
@@ -57,16 +68,26 @@ sol_int_sep_states = solve(p_int_sep_states; optdict...)
 sol_int_sep_exogstates = solve(p_int_sep_exogstates; optdict...)
 
 shocks_int = drawshocks(p_int_all, nPeriods=20, nFirms=10)
-shocks_int = drawshocks(p_int_all, nPeriods=60, nFirms=10^3)
 
 @testset "Simulate Intangible" begin
-    simulate(sol_int_all, shocks_int, initialize_exact=false)
-    simulate(sol_int_sep, shocks_int, initialize_exact=false)
-    simulate(sol_int_sep_states, shocks_int, initialize_exact=false)
-    simulate(sol_int_sep_exogstates, shocks_int, initialize_exact=false)
-
-    simulate(sol_int_all, shocks_int, initialize_exact=true)
-    simulate(sol_int_sep, shocks_int, initialize_exact=true)
-    simulate(sol_int_sep_states, shocks_int, initialize_exact=true)
-    simulate(sol_int_sep_exogstates, shocks_int, initialize_exact=true)
+	@testset "initialize_inexact" begin
+	    simulate(sol_int_all, shocks_int, initialize_exact=false)
+	    simulate(sol_int_sep, shocks_int, initialize_exact=false)
+	    simulate(sol_int_sep_states, shocks_int, initialize_exact=false)
+	    simulate(sol_int_sep_exogstates, shocks_int, initialize_exact=false)
+	end
+	@testset "initialize_exact" begin
+	    simulate(sol_int_all, shocks_int, initialize_exact=true)
+	    simulate(sol_int_sep, shocks_int, initialize_exact=true)
+	    simulate(sol_int_sep_states, shocks_int, initialize_exact=true)
+	    simulate(sol_int_sep_exogstates, shocks_int, initialize_exact=true)
+	end
+	@testset "conversion" begin
+		sim = simulate(sol_int_sep_exogstates, shocks_neo, get_value=true)
+	    @test typeof(DataFrame(sim)) <: DataFrame
+		@test typeof(Array(sim)) <: AbstractArray
+		sim = simulate(sol_int_sep_exogstates, shocks_neo, get_value=false)
+	    @test typeof(DataFrame(sim)) <: DataFrame
+		@test typeof(Array(sim)) <: AbstractArray
+	end
 end

@@ -1,9 +1,3 @@
-# struct DDPSimulation{T} where T
-# 	value::Union{Array{T,2}, Nothing}
-# 	states::Array{T,3}
-# end
-
-
 # convenience wrappers
 simulate(sol::AbstractDDPSolution;
 			nPeriods::Int64 = 60,
@@ -27,16 +21,19 @@ end
 
 # expand p structure
 _simulate(p::DDP{NS,1}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function;
-        initialize_exact::Bool = typeof(sol) <: DDPSolutionZero) where NS =
-		_simulate1(sol, shocks, transfunc, p.intdim,
+        initialize_exact::Bool = typeof(sol) <: DDPSolutionZero,
+		get_value::Bool = false) where NS =
+		_simulate1(p, sol, shocks, transfunc, p.intdim,
 				p.tStateVectors, getchoicevars(p), getnonchoicevars(p),
                 getchoicevarszero(p),
 				getnonchoicevarszero(p),
-				p.options.initialize.func, initialize_exact)
+				p.options.initialize.func,
+				initialize_exact,
+				get_value)
 
 
 # perhaps better to return a tuple of arrays rather than an array
-function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function,
+function _simulate1(p::DDP, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function,
 				intdim::Type{ID},
 				tStateVectors::NTuple{dimStates, AbstractVector{T}},
 				tChoiceVectors,
@@ -44,7 +41,8 @@ function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 				# need information on dimension incase intdim=ExogStates and have only one exog variable
 				tChoiceVectorsZero::NTuple{dimChoices0, AbstractVector{T}},
 				tExogStateVectorsZero::NTuple{dimExogStates0, AbstractVector{T}},
-				initializefunc::Function, initialize_exact::Bool) where
+				initializefunc::Function, initialize_exact::Bool,
+				get_value::Bool) where
 				{T, ID<:IntDim, dimStates, dimExogStates, dimChoices0, dimExogStates0}
 
 	!(initialize_exact && !(typeof(sol) <: DDPSolutionZero)) || error(
@@ -55,7 +53,7 @@ function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 	dimShocks::Int, nPeriods, nFirms = size(shocks.aSim)
 	aSim = fill!(zeros(dimStates, nPeriods+1, nFirms), NaN)
 	mVal = fill!(zeros(1, nPeriods+1, nFirms), NaN)
-	# aChoice = fill!(zeros(nChoiceVars, nPeriods+1, nFirms), NaN)
+	aChoice = fill!(zeros(nChoiceVars, nPeriods+1, nFirms), NaN)
 
 	value = sol.value
 	policy = sol.policy[1]
@@ -107,20 +105,23 @@ function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 
 		vSim_i = @view aSim[:,:,i]
 		vVal_i = @view mVal[:,:,i]
+		vChoice_i = @view aChoice[:,:,i]
         mShocks_i = @view shocks.aSim[:,:,i]
 
         initialize!(@view(vSim_i[:,1]), @view(mShocks_i[:,1]))
 
 		for t = 1 : nPeriods
-            # don't need value for now
-            # vVal_i[t] = itp_value(vSim_i[:,t]...)
 
-			vChoice = policy(vSim_i[:,t]...)
+            if get_value
+            	vVal_i[t] = value(vSim_i[:,t]...)
+			end
+
+			vChoice_i[t] = policy(vSim_i[:,t]...)
 
 			if dimShocks > 1
-				fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice, mShocks_i[:,t])
+				fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice_i[t], mShocks_i[:,t])
 			else
-				fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice, mShocks_i[:,t][1])
+				fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice_i[t], mShocks_i[:,t][1])
 			end
 
 			# if do_exog_exit
@@ -133,27 +134,33 @@ function _simulate1(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 
 	end # firm loop
 
-	return aSim
-	# return cat(mVal, aSim, dims=1) #sdata(aSim) # convert shared array to standard array
+	if get_value
+		return DDPSimulation(p, sol, mVal, aSim, aChoice)
+	else
+		return DDPSimulation(p, sol, nothing, aSim, aChoice)
+	end
 end # simulatemodel
 
 
 _simulate(p::DDP{NS,2}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function;
-        initialize_exact::Bool = typeof(sol) <: DDPSolutionZero) where NS =
-		_simulate2(sol, shocks, transfunc, p.intdim,
+        initialize_exact::Bool = typeof(sol) <: DDPSolutionZero,
+		get_value::Bool = false) where NS =
+		_simulate2(p, sol, shocks, transfunc, p.intdim,
 				p.tStateVectors,
                 getchoicevars(p), getnonchoicevars(p),
                 getchoicevarszero(p), getnonchoicevarszero(p),
-				p.options.initialize.func, initialize_exact)
+				p.options.initialize.func, initialize_exact,
+				get_value)
 # perhaps better to return a tuple of arrays rather than an array
-function _simulate2(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function,
+function _simulate2(p::DDP, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function,
 				intdim::Type{ID},
 				tStateVectors::NTuple{dimStates, AbstractVector{T}},
 				tChoiceVectors::NTuple{dimChoices, AbstractVector{T}},
 				tExogStateVectors::NTuple{dimExogStates, AbstractVector{T}},
                 tChoiceVectorsZero::NTuple{dimChoices0, AbstractVector{T}},
 				tExogStateVectorsZero::NTuple{dimExogStates0, AbstractVector{T}},
-				initializefunc::Function, initialize_exact::Bool) where
+				initializefunc::Function, initialize_exact::Bool,
+				get_value::Bool) where
 					{T, ID<:IntDim, dimStates, dimChoices, dimExogStates, dimChoices0, dimExogStates0}
 
 	!(initialize_exact && !(typeof(sol) <: DDPSolutionZero)) || error(
@@ -165,6 +172,7 @@ function _simulate2(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 	dimShocks, nPeriods, nFirms = size(shocks.aSim)
 	aSim = fill!(zeros(dimStates, nPeriods+1, nFirms), NaN)
 	mVal = fill!(zeros(1, nPeriods+1, nFirms), NaN)
+	aChoice = fill!(zeros(dimChoices, nPeriods+1, nFirms), NaN)
 
 	value = sol.value
 	policy = sol.policy
@@ -225,20 +233,23 @@ function _simulate2(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 
         vSim_i = @view aSim[:,:,i]
 		vVal_i = @view mVal[:,:,i]
+		vChoice_i = @view aChoice[:,:,i]
         mShocks_i = @view shocks.aSim[:,:,i]
 
         initialize!(@view(vSim_i[:,1]), @view(mShocks_i[:,1]))
 
 		for t = 1 : nPeriods
             # don't need value for now
-            # vVal_i[t] = itp_value(vSim_i[:,t]...)
+			if get_value
+            	vVal_i[t] = value(vSim_i[:,t]...)
+			end
 
-			vChoice = [itp(vSim_i[:,t]...) for itp in policy]
+			vChoice_i[:,t] .= [itp(vSim_i[:,t]...) for itp in policy]
 
 			if dimShocks > 1
-				fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice, mShocks_i[:,t])
+				fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice_i[:,t], mShocks_i[:,t])
 			else
-				fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice, mShocks_i[:,t][1])
+				fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice_i[:,t], mShocks_i[:,t][1])
 			end
 
 			# if do_exog_exit
@@ -251,6 +262,9 @@ function _simulate2(sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Func
 
 	end # firm loop
 
-	return aSim#, itp_policy
-	# return cat(mVal, aSim, dims=1) #sdata(aSim) # convert shared array to standard array
+	if get_value
+		return DDPSimulation(p, sol, mVal, aSim, aChoice)
+	else
+		return DDPSimulation(p, sol, nothing, aSim, aChoice)
+	end
 end # simulatemodel
