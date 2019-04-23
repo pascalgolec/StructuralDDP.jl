@@ -24,19 +24,26 @@ struct InitializationOptions{nChoiceVarsZero,C0<:Int}
 	tChoiceVectorsZero::NTuple{nChoiceVarsZero, C0}
 
 	function InitializationOptions{nChoiceVarsZero,C0}(problem::Function,
-		func::Function, tChoiceVectorsZero::NTuple{nChoiceVarsZero,C0}) where
-			{nChoiceVarsZero,C0<:Int}
+		func::Function, tChoiceVectorsZero::NTuple{nChoiceVarsZero,C0},
+		tStateVectors::NTuple{nStateVars,Vector{Float64}}) where
+			{nChoiceVarsZero,C0<:Int,nStateVars}
 
 		tChoiceVectorsZero[1] == 1 || error(
 		"Bad tChoiceVectorsZero: the first state variable must be the (first) choice variable in the intialization problem.")
 
-		new(problem, func, tChoiceVectorsZero)
+		tExogStateVectorsZero = getnonchoicevars(tStateVectors, tChoiceVectorsZero)
+		func_inbounds = wrapinbounds(func, tExogStateVectorsZero)
+
+		new(problem, func_inbounds, tChoiceVectorsZero)
+		# new(problem, func, tChoiceVectorsZero)
 
 	end
 end
 InitializationOptions(problem::Function, func::Function,
-	tChoiceVectorsZero::NTuple{nChoiceVarsZero,C0}) where {nChoiceVarsZero,C0} =
-	InitializationOptions{nChoiceVarsZero,C0}(problem, func, tChoiceVectorsZero)
+	tChoiceVectorsZero::NTuple{nChoiceVarsZero,C0},
+	tStateVectors::NTuple{nStateVars,Vector{Float64}}) where {nChoiceVarsZero,C0,nStateVars} =
+	InitializationOptions{nChoiceVarsZero,C0}(problem, func,
+		tChoiceVectorsZero,tStateVectors)
 
 
 struct DiscreteDynamicProblemOptions{RFP<:FuncOrNothing, I<:Union{InitializationOptions, Nothing}}
@@ -179,7 +186,12 @@ function DDP(
 	if initializationproblem == nothing
 		init_options = nothing
 	else
-		init_options = InitializationOptions(initializationproblem, initializefunc, tChoiceVectorsZero)
+		# tExogStateVectorsZero = getnonchoicevars(tStateVectors, tChoiceVectorsZero)
+		# initializefunc_inbounds = wrapinbounds(initializefunc, tExogStateVectorsZero)
+		# init_options = InitializationOptions(initializationproblem, initializefunc_inbounds,
+		# 	tChoiceVectorsZero)
+		init_options = InitializationOptions(initializationproblem, initializefunc,
+			tChoiceVectorsZero, tStateVectors)
 	end
 
 	ddp_options = DDPOptions(rewardfunc_partial, init_options)

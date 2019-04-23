@@ -90,10 +90,13 @@ function _simulate(p::DDP{dimStates,1}, sol::AbstractDDPSolution, shocks::DDPSho
 
     function initialize!(vSim_i1, shocksInit_i)
         if initialize_exact
-			if dimShocks > 1
-                vSim_i1[2:end] .= inbounds.(initializefunc(shocksInit_i[1]), lowerbounds0, upperbounds0)
+			if dimShocks == 1
+                # vSim_i1[2:end] .= inbounds.(initializefunc(shocksInit_i[1]), lowerbounds0, upperbounds0)
+                vSim_i1[2:end] .= initializefunc(shocksInit_i[1])
 			else
-                vSim_i1[2:end] .= inbounds.(initializefunc(shocksInit_i), lowerbounds0, upperbounds0)
+                # vSim_i1[2:end] .= inbounds.(initializefunc(shocksInit_i), lowerbounds0, upperbounds0)
+				# @show shocksInit_i
+				vSim_i1[2:end] .= initializefunc(shocksInit_i)
 			end
             vSim_i1[1] = initialize_choices(vSim_i1[2:end], policy0)
         else
@@ -213,10 +216,12 @@ function _simulate(p::DDP{dimStates,2}, sol::AbstractDDPSolution, shocks::DDPSho
 
     function initialize!(vSim_i1, shocksInit_i)
         if initialize_exact
-			if dimShocks > 1
-                vSim_i1[1+dimChoices0:end] .= inbounds.(initializefunc(shocksInit_i[1]), lowerbounds0, upperbounds0)
+			if dimShocks == 1
+                # vSim_i1[1+dimChoices0:end] .= inbounds.(initializefunc(shocksInit_i[1]), lowerbounds0, upperbounds0)
+                vSim_i1[1+dimChoices0:end] .= initializefunc(shocksInit_i[1])
 			else
-                vSim_i1[1+dimChoices0:end] .= inbounds.(initializefunc(shocksInit_i), lowerbounds0, upperbounds0)
+                # vSim_i1[1+dimChoices0:end] .= inbounds.(initializefunc(shocksInit_i), lowerbounds0, upperbounds0)
+                vSim_i1[1+dimChoices0:end] .= initializefunc(shocksInit_i)
 			end
             vSim_i1[1:dimChoices0] = initialize_choices(vSim_i1[1+dimChoices0:end])
 

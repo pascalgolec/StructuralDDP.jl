@@ -154,8 +154,8 @@ function Intangible(;
 		tChoiceVectors,
 		myrewardfunc,
         transfunc,
-		Normal(),
-		β; # give distribution of shocks: standard normal
+		Normal(), # distribution of shocks: standard normal
+		β;
 		intdim = intdim,
         rewardfunc_partial = mygrossprofits,
         initializationproblem = initializationproblem,

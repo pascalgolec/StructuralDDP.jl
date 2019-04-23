@@ -7,7 +7,6 @@ module DiscreteDynamicProgramming
 	using NLsolve # to find steady state
 	using Test
 
-
 	import QuantEcon: solve
 	import DataFrames: DataFrame
 	import Base: Array
