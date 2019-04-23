@@ -2,17 +2,15 @@ module DiscreteDynamicProgramming
 
 	using BasisMatrices: Basis, SplineParams, nodes, BasisMatrix, Expanded
 	using QuantEcon: qnwnorm, qnwunif, qnwlogn, gridmake, DiscreteDP, VFI
-	import QuantEcon: solve # import because will extend
-	using Interpolations
-	# using Parameters
+	using Interpolations, Distributions, TreeViews, DataFrames
+	using SparseArrays, LinearAlgebra
 	using NLsolve # to find steady state
-	using TreeViews
-	using Distributions
-	using DataFrames
 	using Test
 
-	using SparseArrays
-	using LinearAlgebra
+
+	import QuantEcon: solve
+	import DataFrames: DataFrame
+	import Base: Array
 
 	using DocStringExtensions
 

@@ -9,7 +9,6 @@ value(sim::DDPSimulation) = sim.value
 states(sim::DDPSimulation) = sim.states
 policy(sim::DDPSimulation) = sim.policy
 
-import DataFrames: DataFrame
 """Construct a DataFrame from the simulation."""
 function DataFrame(sim::DDPSimulation)
 	(nStateVars, nPeriods, nFirms) = size(states(sim))
@@ -30,7 +29,6 @@ function DataFrame(sim::DDPSimulation)
 	return df
 end
 
-import Base: Array
 """Construct an `variable x periods x firms` array from the simulation.
 The order of the variables is states, choices and value."""
 function Array(sim::DDPSimulation)

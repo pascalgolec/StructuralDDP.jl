@@ -23,7 +23,7 @@ end
 _simulate(p::DDP{NS,1}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function;
         initialize_exact::Bool = typeof(sol) <: DDPSolutionZero,
 		get_value::Bool = false) where NS =
-		_simulate1(p, sol, shocks, transfunc, p.intdim,
+		_simulate(p, sol, shocks, transfunc, p.intdim,
 				p.tStateVectors, getchoicevars(p), getnonchoicevars(p),
                 getchoicevarszero(p),
 				getnonchoicevarszero(p),
@@ -33,7 +33,7 @@ _simulate(p::DDP{NS,1}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::
 
 
 # perhaps better to return a tuple of arrays rather than an array
-function _simulate1(p::DDP, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function,
+function _simulate(p::DDP{dimStates,1}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function,
 				intdim::Type{ID},
 				tStateVectors::NTuple{dimStates, AbstractVector{T}},
 				tChoiceVectors,
@@ -145,14 +145,14 @@ end # simulatemodel
 _simulate(p::DDP{NS,2}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function;
         initialize_exact::Bool = typeof(sol) <: DDPSolutionZero,
 		get_value::Bool = false) where NS =
-		_simulate2(p, sol, shocks, transfunc, p.intdim,
+		_simulate(p, sol, shocks, transfunc, p.intdim,
 				p.tStateVectors,
                 getchoicevars(p), getnonchoicevars(p),
                 getchoicevarszero(p), getnonchoicevarszero(p),
 				p.options.initialize.func, initialize_exact,
 				get_value)
 # perhaps better to return a tuple of arrays rather than an array
-function _simulate2(p::DDP, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function,
+function _simulate(p::DDP{dimStates,2}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function,
 				intdim::Type{ID},
 				tStateVectors::NTuple{dimStates, AbstractVector{T}},
 				tChoiceVectors::NTuple{dimChoices, AbstractVector{T}},
@@ -166,10 +166,8 @@ function _simulate2(p::DDP, sol::AbstractDDPSolution, shocks::DDPShocks, transfu
 	!(initialize_exact && !(typeof(sol) <: DDPSolutionZero)) || error(
 		"Solution does not contain intial policy -> rerun solver with `initialize_exact = true`")
 
-	# dimChoices::Int64 = length(sol.tmeshPolFun)
-
 	# choose firms as last dimension because loop over firms (easier to code)
-	dimShocks, nPeriods, nFirms = size(shocks.aSim)
+	dimShocks::Int, nPeriods, nFirms = size(shocks.aSim)
 	aSim = fill!(zeros(dimStates, nPeriods+1, nFirms), NaN)
 	mVal = fill!(zeros(1, nPeriods+1, nFirms), NaN)
 	aChoice = fill!(zeros(dimChoices, nPeriods+1, nFirms), NaN)
@@ -239,12 +237,13 @@ function _simulate2(p::DDP, sol::AbstractDDPSolution, shocks::DDPShocks, transfu
         initialize!(@view(vSim_i[:,1]), @view(mShocks_i[:,1]))
 
 		for t = 1 : nPeriods
-            # don't need value for now
 			if get_value
             	vVal_i[t] = value(vSim_i[:,t]...)
 			end
 
-			vChoice_i[:,t] .= [itp(vSim_i[:,t]...) for itp in policy]
+			for j = 1 : dimChoices
+				vChoice_i[j,t] = policy[j](vSim_i[:,t]...)
+			end
 
 			if dimShocks > 1
 				fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice_i[:,t], mShocks_i[:,t])

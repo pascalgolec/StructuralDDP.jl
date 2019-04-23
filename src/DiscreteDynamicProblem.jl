@@ -63,7 +63,7 @@ Defines an infinite-horizon discrete choice dynamic optimization problem.
 
 $(FIELDS)
 """
-struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC}
+struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC,D<:Distribution}
 
 	tStateVectors::NTuple{nStateVars, Vector{Float64}} #where N # can use NTuple{N, Vector{Float64}} where N
     tChoiceVectors::NTuple{nChoiceVars, typeC}
@@ -79,7 +79,7 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC}
     intdim::Type{ID} where ID<:IntDim # not really necessary, can just have it as a parameter in type...
 
     """The distribution of the shock(s)."""
-    shockdist::Distribution
+    shockdist::D
 
 	"""The discount factor for future rewards."""
     β::Float64 # important to specify here for type stability
@@ -124,8 +124,8 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC}
 			tExogStateVectors = getnonchoicevars(tStateVectors, tChoiceVectors)
 			transfunc_inbounds = wrapinbounds(transfunc, tExogStateVectors)
 	    end
-		
-		new{nStateVars,nChoiceVars,typeC}(
+
+		new{nStateVars,nChoiceVars,typeC,typeof(shockdist)}(
 			tStateVectors, tChoiceVectors,
 			rewardfunc, transfunc_inbounds, intdim,
 			shockdist, β, options)

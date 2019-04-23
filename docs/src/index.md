@@ -1,14 +1,18 @@
 # DiscreteDynamicProgramming.jl Documentation
 
-This package solves and simulates discrete dynamic choice models with value function iteration. It has a simple and transparent syntax for defining dynamic optimization problems and is optimized for speed. The available options take advantage of properties of the problem which can result in orders of a magnitude speedup without relying on parallelization.
+This package solves and simulates discrete dynamic choice models with value function iteration. It has a simple and transparent syntax for defining dynamic optimization problems and is optimized for speed. The available options take advantage of properties of the problem which lead to orders of a magnitude speedup without relying on parallelization.
 
-The general workflow is to define a problem, solve the problem, and then analyze the solution. The full code for solving and simulating an example is:
+The general workflow is to define a problem, solve it, simulate it, and then analyze it. The full code for solving, simulating and plotting an example is:
 
 ```julia
 using DiscreteDynamicProgramming
-prob = NeoClassical(nK=150, nz=15, ρ=0.5, σ=0.3, γ=2.) # define problem
+prob = CapitalAdjustModel(nK=150, nz=15, ρ=0.5, σ=0.3, γ=2.)
 sol = solve(prob)
-sim = simulate(sol)
+sim = simulate(sol, nPeriods=50, nFirms=5)
+df_sim = DataFrame(sim)
+using Plots, StatPlots
+@df df_sim plot(:period, :state_1, group=:firm,
+    xlabel="period", ylabel="capital stock")
 ```
 
 where the individual pieces are described below.
@@ -150,19 +154,36 @@ Experimenting with the solver options is essential if one wants to solve the mod
 We can simulate a panel:
 
 ```julia
-sim = simulate(sol, nPeriods = 120, nFirms = 10000)
+sim = simulate(sol, nPeriods = 60, nFirms = 100)
+```
+
+The function `simulate` returns a simulation object, from which we can retreive the simulated states, choices and value as individual arrays:
+
+```julia
+sim_states = states(sim)
+sim_policy = policy(sim)
+sim_val = value(sim)
+```
+
+Convenience methods which convert the simulation object into an array or dataframe:
+```julia
+a_sim = Array(sim)
+df_sim = DataFrame(sim)
+```
+
+We can then use the dataframe to analyse the simulation, for example by plotting a histogram:
+```julia
+using Plots
+histogram(df_sim.state_1, xlabel="K",legend=false)
+```
+
+Or the time of capital of each firm takes:
+```julia
+using StatPlots
+@df df_sim plot(:period, :state_1, group=:firm, xlabel="time", ylabel="K")
 ```
 
 By default, all firms start with the same state variables in the simulation. More details about this and more sophisticated starting points are in the [simulator options section](#Simulator-Options-1).
-
-It is also possible to simulate a model or variations thereof using the identical draw of shocks:
-
-```julia
-shocks = drawshocks(prob, nPeriods = 120, nFirms = 1000)
-sim = simulate(sol, shocks)
-```
-
-Note: the draw of shocks refers to the supplied shock distribution in the problem defintion. If the shock distribution is parametrized, for example by its variance, then one should not do comparative statics on those parameters.
 
 # Problem Options
 
@@ -273,7 +294,7 @@ sol_conc = solve(prob; concavity=true)
 compare(sol, sol_conc; tol=1e-4)
 ```
 
-Note: `monotonicity` and `concavity` currently only work if the integration dimension is separable.
+Note: `monotonicity` and `concavity` currently only work if the integration dimension is separable. The options don't work if there are discontinuities in the reward function.
 
 
 ### Prebuilding the reward matrix
@@ -327,6 +348,8 @@ sol = solve(prob, mTransition = tauchen(nz, ρ, σ))
 
 # Simulator Options
 
+The keyword `get_value` determines whether the simulator should also compute the value at the beginning of each time period. This takes more time. The default is `get_value = false.`.
+
 ## Initialization
 
 The default setting how the initial state variables are drawn at t=0 is the burn-in method. Here, each firm starts with states that are the median values of the state space. The idea is to simulate the model for more periods than necessary and then only analyse the simulated values after 60 periods or so on, depending on the model.
@@ -344,9 +367,23 @@ createDiscreteDynamicProblem(<other variables>;
 
 If we have a problem where our choice variables are not exacly equal to some of the state variables, then we need to specify additionally which state variables the firm chooses at t=0. This is achieved with the option `tChoiceVectorsZero`, i.e. `tChoiceVectorsZero = (1,)` for the neoclassical model. If `tChoiceVectorsZero` is not specified, then the solver/simulator uses indices of the choice variables for the dynamic optimization.
 
+## Fixed shock draws
+
+It is also possible to simulate a model solution using the identical draw of shocks:
+
+```julia
+shocks = drawshocks(prob, nPeriods = 60, nFirms = 100)
+sim = simulate(sol, shocks)
+```
+
+Note: the draw of shocks refers to the supplied shock distribution in the problem defintion. If the shock distribution is parametrized, for example by its variance, then one should not do comparative statics on those parameters.
+
 # notes
 
-## Solver assumptions
+## To do
 
-- state variables are always forced to stay within bounds
-- order of state variables is first the endogenous state variable, then exogenous
+- [ ] support more than two choice variables when the integration dimension is `separable`
+- [ ] plotrecipe for `DDPSolution`
+- [ ] allow parametric types in problem definition of state and choice vectors, i.e. `AbstractVector{T}` instead of `Vector{Float64}`
+- [ ] allow `LabelledArrays.jl` in problem definition
+- [ ] allow discontinuities in the reward function with `monotonicity` and `concavity`
