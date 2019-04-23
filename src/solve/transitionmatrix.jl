@@ -50,7 +50,7 @@ _transitionmatrix(p::DDP, method::Type{All}, numquadnodes::Vector{Int}) =
 		p.shockdist, numquadnodes)
 
 # for choices and states as input
-function _transitionmatrix(transfunc::Function,
+function _transitionmatrix(transfunc,
     tInputVectorsStates::NTuple{dimStates, Vector{T1}},
 	tInputVectorsChoices::NTuple{dimChoices, Vector{T2}},
 	tOutputVectors,
@@ -104,7 +104,7 @@ function _transitionmatrix(transfunc::Function,
 end #getG
 
 # for states as input
-function _transitionmatrix(transfunc::Function,
+function _transitionmatrix(transfunc,
     tInputVectors::NTuple{N, Vector{T}}, tOutputVectors,
     shockdist, numquadnodes) where {N,T}
 

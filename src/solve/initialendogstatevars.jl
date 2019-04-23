@@ -16,7 +16,7 @@ initialendogstatevars(p::DDP, meshValFun::Array{Float64}) =
         p.options.initialize.problem, meshValFun,
         p.tStateVectors, getchoicevarszero(p), getnonchoicevarszero(p))
 
-function _initialendogstatevars(initializationproblem::Function, meshValFun::Array{Float64},
+function _initialendogstatevars(initializationproblem, meshValFun::Array{Float64},
     tStateVectors,
     tChoiceVectors::Tuple{Vector{Float64}}, tExogStateVectors)
 
@@ -51,7 +51,7 @@ function _initialendogstatevars(initializationproblem::Function, meshValFun::Arr
 
 end
 
-function _initialendogstatevars(initializationproblem::Function, meshValFun::Array{Float64},
+function _initialendogstatevars(initializationproblem, meshValFun::Array{Float64},
     tStateVectors, tChoiceVectors::NTuple{2,Vector{Float64}}, tExogStateVectors)
 
     exogtNodes = length.(tExogStateVectors)

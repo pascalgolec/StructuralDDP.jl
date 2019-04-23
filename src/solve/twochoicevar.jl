@@ -15,7 +15,7 @@ _solve(p::DDP{nStateVars,2}, method::Type{T},
 			p.β)
 
 
-function _solve2(rewardfunc::Function, method::Type{T},
+function _solve2(rewardfunc, method::Type{T},
 						mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
 						disp::Bool, disp_each_iter::Int, max_iter::Int, epsilon::Float64,
 						rewardcall,

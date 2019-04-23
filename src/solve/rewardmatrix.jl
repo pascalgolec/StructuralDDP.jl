@@ -7,7 +7,7 @@ rewardmatrix(p::DDP{nStateVars,nChoiceVars,C}) where
     _rewardmatrix(p.rewardfunc, p.tStateVectors, p.tChoiceVectors)
 
 """ Return a nChoices x nStates reward matrix"""
-function _rewardmatrix(rewardfunc::Function, tStateVectors, tChoiceVectors)
+function _rewardmatrix(rewardfunc, tStateVectors, tChoiceVectors)
     # output dimension is nChoices x nStates
 
     nChoices = prod(length.(tChoiceVectors))
@@ -34,7 +34,7 @@ rewardmatrix_partial(p::DDP) = _rewardmatrix_partial(p.options.rewardfunc_partia
     getnonchoicevars(p.tStateVectors, p.tChoiceVectors))
 
 """Return a nEndogStates x nExogStates reward matrix."""
-function _rewardmatrix_partial(rewardfunc_partial::Function,
+function _rewardmatrix_partial(rewardfunc_partial,
     tEndogStateVectors, tExogStateVectors)
     # output dimension is nEndogStates x nExogStates
 

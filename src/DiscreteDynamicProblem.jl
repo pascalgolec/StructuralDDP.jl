@@ -13,7 +13,7 @@ abstract type Separable_ExogStates <: IntDim end
 const Separable_Union = Union{Separable, Separable_States, Separable_ExogStates}
 
 
-struct InitializationOptions{nChoiceVarsZero,C0<:Int,P<:Function,F<:Function}
+struct InitializationOptions{nChoiceVarsZero,C0<:Int,P,F}
 	"""Objective function at t=0 to choose initial endogenous state variables."""
 	problem::P
 
@@ -23,8 +23,8 @@ struct InitializationOptions{nChoiceVarsZero,C0<:Int,P<:Function,F<:Function}
 	"""Pointer towards choice of initial state variables."""
 	tChoiceVectorsZero::NTuple{nChoiceVarsZero, C0}
 
-	function InitializationOptions{nChoiceVarsZero,C0,P,F}(problem::Function,
-		func::Function, tChoiceVectorsZero::NTuple{nChoiceVarsZero,C0},
+	function InitializationOptions{nChoiceVarsZero,C0,P,F}(problem,
+		func, tChoiceVectorsZero::NTuple{nChoiceVarsZero,C0},
 		tStateVectors::NTuple{nStateVars,Vector{Float64}}) where
 			{nChoiceVarsZero,C0<:Int,nStateVars,P,F}
 
@@ -39,14 +39,14 @@ struct InitializationOptions{nChoiceVarsZero,C0<:Int,P<:Function,F<:Function}
 
 	end
 end
-InitializationOptions(problem::Function, func::Function,
+InitializationOptions(problem, func,
 	tChoiceVectorsZero::NTuple{nChoiceVarsZero,C0},
 	tStateVectors::NTuple{nStateVars,Vector{Float64}}) where {nChoiceVarsZero,C0,nStateVars} =
 	InitializationOptions{nChoiceVarsZero,C0,typeof(problem),typeof(func)}(problem, func,
 		tChoiceVectorsZero,tStateVectors)
 
 
-struct DiscreteDynamicProblemOptions{RFP<:FuncOrNothing, I<:Union{InitializationOptions, Nothing}}
+struct DiscreteDynamicProblemOptions{RFP, I<:Union{InitializationOptions, Nothing}}
 
 	"""The partial reward function."""
 	rewardfunc_partial::RFP
@@ -95,8 +95,8 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC,ID<:IntDim,RF,TF,D<:D
 	function DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC}(
 		tStateVectors::NTuple{nStateVars, Vector{Float64}},
 		tChoiceVectors::NTuple{nChoiceVars, typeC},
-		rewardfunc::Function,
-		transfunc::Function,
+		rewardfunc,
+		transfunc,
 		intdim::Type{<:IntDim},
 		shockdist::Distribution,
 		β::Float64,
@@ -137,14 +137,16 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC,ID<:IntDim,RF,TF,D<:D
 
 end
 
-function wrapinbounds(f::Function, tVectors::NTuple{N,Vector{C}}) where {N,C}
+"""Returns a modified version of the function f that if forced to stay between
+the bounds defined by the tuple of vectors tVectors"""
+function wrapinbounds(f, tVectors::NTuple{N,Vector{C}}) where {N,C}
 	lowerbounds::NTuple{N,C} = minimum.(tVectors)
 	upperbounds::NTuple{N,C} = maximum.(tVectors)
 	return function f2(args...)
 		inbounds.(f(args...), lowerbounds, upperbounds)
 	end
 end
-function wrapinbounds(f::Function, tVectors::NTuple{1,Vector{C}}) where {C}
+function wrapinbounds(f, tVectors::NTuple{1,Vector{C}}) where {C}
 	lowerbounds::C = minimum(tVectors[1])
 	upperbounds::C = maximum(tVectors[1])
 	return function f1(args...)
@@ -155,8 +157,7 @@ end
 
 
 const DDP = DiscreteDynamicProblem
-DDP(
-	tStateVectors::NTuple{nStateVars, Vector{Float64}},
+DDP(tStateVectors::NTuple{nStateVars, Vector{Float64}},
 	tChoiceVectors::NTuple{nChoiceVars, typeC}, args...) where
 		{nStateVars,nChoiceVars,typeC} =
 	DDP{nStateVars,nChoiceVars,typeC}(
@@ -168,17 +169,21 @@ DDP(
 function DDP(
 			tStateVectors::NTuple{dimStates, Vector{Float64}},
             tChoiceVectors::NTuple{dimChoices, typeC},
-            rewardfunc::Function,
-            transfunc::Function,
+            rewardfunc,
+            transfunc,
             shockdist::Distribution,
 			β::Real;
             intdim::Symbol = :All,
-            rewardfunc_partial::Union{Function,Nothing} = nothing,
-            initializationproblem::Union{Function,Nothing} = nothing,
-            initializefunc::Union{Function,Nothing} = nothing,
+            rewardfunc_partial = nothing,
+            initializationproblem = nothing,
+            initializefunc = nothing,
             tChoiceVectorsZero::Union{NTuple{C0,Int64},Nothing} = nothing,
             ) where {I <: IntDim, dimStates, dimChoices, typeC<:Union{Vector{Float64}, Int64},
                 C0}
+
+	# make sure functions are callable
+	!isempty(methods(rewardfunc)) || error("supplied rewardfunc is not callable")
+	!isempty(methods(transfunc)) || error("supplied transfunc is not callable")
 
 	intdim in (:All, :Separable, :Separable_ExogStates, :Separable_States) ||
 		error("Provided wrong integration dimension $intdim.")

@@ -20,7 +20,7 @@ function initialize_simple(tStateVectors::NTuple{N, Vector{Float64}}) where N
 end
 
 # expand p structure
-_simulate(p::DDP{NS,1}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function;
+_simulate(p::DDP{NS,1}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc;
         initialize_exact::Bool = typeof(sol) <: DDPSolutionZero,
 		get_value::Bool = false) where NS =
 		_simulate(p, sol, shocks, transfunc, p.intdim,
@@ -33,7 +33,7 @@ _simulate(p::DDP{NS,1}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::
 
 
 # perhaps better to return a tuple of arrays rather than an array
-function _simulate(p::DDP{dimStates,1}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function,
+function _simulate(p::DDP{dimStates,1}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc,
 				intdim::Type{ID},
 				tStateVectors::NTuple{dimStates, AbstractVector{T}},
 				tChoiceVectors,
@@ -41,7 +41,7 @@ function _simulate(p::DDP{dimStates,1}, sol::AbstractDDPSolution, shocks::DDPSho
 				# need information on dimension incase intdim=ExogStates and have only one exog variable
 				tChoiceVectorsZero::NTuple{dimChoices0, AbstractVector{T}},
 				tExogStateVectorsZero::NTuple{dimExogStates0, AbstractVector{T}},
-				initializefunc::Function, initialize_exact::Bool,
+				initializefunc, initialize_exact::Bool,
 				get_value::Bool) where
 				{T, ID<:IntDim, dimStates, dimExogStates, dimChoices0, dimExogStates0}
 
@@ -145,7 +145,7 @@ function _simulate(p::DDP{dimStates,1}, sol::AbstractDDPSolution, shocks::DDPSho
 end # simulatemodel
 
 
-_simulate(p::DDP{NS,2}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function;
+_simulate(p::DDP{NS,2}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc;
         initialize_exact::Bool = typeof(sol) <: DDPSolutionZero,
 		get_value::Bool = false) where NS =
 		_simulate(p, sol, shocks, transfunc, p.intdim,
@@ -155,14 +155,14 @@ _simulate(p::DDP{NS,2}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::
 				p.options.initialize.func, initialize_exact,
 				get_value)
 # perhaps better to return a tuple of arrays rather than an array
-function _simulate(p::DDP{dimStates,2}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc::Function,
+function _simulate(p::DDP{dimStates,2}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc,
 				intdim::Type{ID},
 				tStateVectors::NTuple{dimStates, AbstractVector{T}},
 				tChoiceVectors::NTuple{dimChoices, AbstractVector{T}},
 				tExogStateVectors::NTuple{dimExogStates, AbstractVector{T}},
                 tChoiceVectorsZero::NTuple{dimChoices0, AbstractVector{T}},
 				tExogStateVectorsZero::NTuple{dimExogStates0, AbstractVector{T}},
-				initializefunc::Function, initialize_exact::Bool,
+				initializefunc, initialize_exact::Bool,
 				get_value::Bool) where
 					{T, ID<:IntDim, dimStates, dimChoices, dimExogStates, dimChoices0, dimExogStates0}
 
