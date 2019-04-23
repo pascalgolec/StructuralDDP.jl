@@ -1,11 +1,11 @@
 # Note: shocks should be independent of parameters, because in SMM will loop over
 # parameters, keeping the shocks fixed
 
-struct DDPShocks
+struct DDPShocks{dimShocks}
 	# dimension of aSim is (dimShocks, nPeriods, nFirms)
 	# dimension of aInit is (dimShocks, 1, nFirms)
-	aInit ::Array{Float64,3}
-	aSim ::Array{Float64,3}
+	aInit::Array{Float64,3}
+	aSim::Array{Float64,3}
 end
 
 function drawshocks(p::DDP; nPeriods::Int64 = p.params.nPeriods,
@@ -27,7 +27,7 @@ function drawshocks(p::DDP; nPeriods::Int64 = p.params.nPeriods,
 		aSim[:,t,f] .= rand(p.shockdist)
 	end
 
-	return DDPShocks(aInit, aSim)
+	return DDPShocks{dimShocks}(aInit, aSim)
 end
 
 # function drawshocks(p::NewIdeas)

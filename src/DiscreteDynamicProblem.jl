@@ -3,16 +3,6 @@
 # abstract type DiscreteDynamicModel end
 # const DDP = DiscreteDynamicModel
 
-"""The integration dimension determines the in- and outputs of the transition function."""
-abstract type IntegrationDimension end
-const IntDim = IntegrationDimension
-abstract type All <: IntDim end
-abstract type Separable <: IntDim end
-abstract type Separable_States <: IntDim end
-abstract type Separable_ExogStates <: IntDim end
-const Separable_Union = Union{Separable, Separable_States, Separable_ExogStates}
-
-
 struct InitializationOptions{nChoiceVarsZero,C0<:Int,P,F}
 	"""Objective function at t=0 to choose initial endogenous state variables."""
 	problem::P
@@ -124,15 +114,25 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC,ID<:IntDim,RF,TF,D<:D
 		# perhaps better to do the wrapping where the transition function is used
 		if intdim == All
 			transfunc_inbounds = wrapinbounds(transfunc, tStateVectors)
+			nExogStates = 0
 	    else
 			tExogStateVectors = getnonchoicevars(tStateVectors, tChoiceVectors)
 			transfunc_inbounds = wrapinbounds(transfunc, tExogStateVectors)
+			nExogStates = length(tExogStateVectors)
 	    end
 
-		new{nStateVars,nChoiceVars,typeC,intdim,typeof(rewardfunc),typeof(transfunc_inbounds),typeof(shockdist)}(
+		nShocks = length(shockdist)
+		transition = Transition{intdim,nChoiceVars,nShocks,
+			nExogStates,typeof(transfunc_inbounds)}(transfunc_inbounds)
+
+		new{nStateVars,nChoiceVars,typeC,intdim,typeof(rewardfunc),typeof(transition),typeof(shockdist)}(
 			tStateVectors, tChoiceVectors,
-			rewardfunc, transfunc_inbounds, intdim,
+			rewardfunc, transition, intdim,
 			shockdist, β, options)
+		# new{nStateVars,nChoiceVars,typeC,intdim,typeof(rewardfunc),typeof(transfunc_inbounds),typeof(shockdist)}(
+		# 	tStateVectors, tChoiceVectors,
+		# 	rewardfunc, transfunc_inbounds, intdim,
+		# 	shockdist, β, options)
 	end
 
 end

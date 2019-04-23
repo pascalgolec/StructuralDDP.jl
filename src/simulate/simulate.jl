@@ -19,6 +19,46 @@ function initialize_simple(tStateVectors::NTuple{N, Vector{Float64}}) where N
 	getindex.(tStateVectors, Int.(floor.(length.(tStateVectors)./2)))
 end
 
+# function fill_it!(p::DDP{NS,NC,C,All}, vSim_it1, vSim_it, vChoice, mShocks_it) where {NS,NC,C}
+# 	vSim_it1 .= p.transfunc(vSim_it, vChoice, mShocks_it)
+# end
+
+# function fill_it!(p::DDP{NS,1,C,Separable}, vSim_it1, vSim_it, vChoice, mShocks_it) where {NS,C}
+# 	vSim_it1[1] = vChoice
+# 	vSim_it1[2:end] .= p.transfunc(vSim_it, vChoice, mShocks_it)
+# end
+# function fill_it!(p::DDP{NS,NC,C,Separable}, vSim_it1, vSim_it, vChoice, mShocks_it) where {NS,NC,C}
+# 	vSim_it1[1:NC] .= vChoice
+# 	vSim_it1[1+NC:end] .= p.transfunc(vSim_it, vChoice, mShocks_it)
+# end
+
+# function fill_it!(p::DDP{NS,1,C,Separable_States}, vSim_it1, vSim_it, vChoice, mShocks_it) where {NS,C}
+# 	vSim_it1[1] = vChoice
+# 	vSim_it1[2:end] .= p.transfunc(vSim_it, mShocks_it)
+# end
+# function fill_it!(p::DDP{NS,NC,C,Separable_States}, vSim_it1, vSim_it, vChoice, mShocks_it) where {NS,NC,C}
+# 	vSim_it1[1:NC] .= vChoice
+# 	vSim_it1[1+NC:end] .= p.transfunc(vSim_it, mShocks_it)
+# end
+
+# function fill_it!(p::DDP{NS,1,C,Separable_ExogStates}, vSim_it1, vSim_it, vChoice, mShocks_it) where {NS,C}
+# 	vSim_it1[1] = vChoice
+# 	# if dimExogStates == 1
+# 		vSim_it1[2] = p.transfunc(vSim_it[2], mShocks_it) # splat because they're tuples
+# 	# else
+# 		# vSim_it1[2:end] .= p.transfunc(vSim_it[2:end], mShocks_it)
+# 	# end
+# end
+# function fill_it!(p::DDP{NS,NC,C,Separable_ExogStates}, vSim_it1, vSim_it, vChoice, mShocks_it) where {NS,NC,C}
+# 	vSim_it1[1:NC] .= vChoice
+# 	# if dimExogStates == 1
+# 		vSim_it1[1+NC:end] .= p.transfunc(vSim_it[1+NC], mShocks_it)
+# 	# else
+# 	# 	vSim_it1[1+NC:end] .= transfunc(vSim_it[1+NC:end], mShocks_it)
+# 	# end
+# end
+
+
 # expand p structure
 _simulate(p::DDP{NS,1}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc;
         initialize_exact::Bool = typeof(sol) <: DDPSolutionZero,
@@ -33,7 +73,7 @@ _simulate(p::DDP{NS,1}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc;
 
 
 # perhaps better to return a tuple of arrays rather than an array
-function _simulate(p::DDP{dimStates,1}, sol::AbstractDDPSolution, shocks::DDPShocks, transfunc,
+function _simulate(p::DDP{dimStates,1}, sol::AbstractDDPSolution, shocks::DDPShocks{dimShocks}, transfunc,
 				intdim::Type{ID},
 				tStateVectors::NTuple{dimStates, AbstractVector{T}},
 				tChoiceVectors,
@@ -43,14 +83,15 @@ function _simulate(p::DDP{dimStates,1}, sol::AbstractDDPSolution, shocks::DDPSho
 				tExogStateVectorsZero::NTuple{dimExogStates0, AbstractVector{T}},
 				initializefunc, initialize_exact::Bool,
 				get_value::Bool) where
-				{T, ID<:IntDim, dimStates, dimExogStates, dimChoices0, dimExogStates0}
+				{T, ID<:IntDim, dimStates, dimExogStates, dimChoices0,
+					dimExogStates0, dimShocks}
 
 	!(initialize_exact && !(typeof(sol) <: DDPSolutionZero)) || error(
 		"Solution does not contain intial policy -> rerun solver with `initialize_exact = true`")
 	nChoiceVars = 1
 
 	# choose firms as last dimension because loop over firms (easier to code)
-	dimShocks::Int, nPeriods, nFirms = size(shocks.aSim)
+	unused, nPeriods, nFirms = size(shocks.aSim)
 	aSim = fill!(zeros(dimStates, nPeriods+1, nFirms), NaN)
 	mVal = fill!(zeros(1, nPeriods+1, nFirms), NaN)
 	aChoice = fill!(zeros(nChoiceVars, nPeriods+1, nFirms), NaN)
@@ -68,25 +109,25 @@ function _simulate(p::DDP{dimStates,1}, sol::AbstractDDPSolution, shocks::DDPSho
     end
 
     # get transition of firm i at period t (for period t + 1)
-    function fill_it!(vSim_it1, vSim_it, intdim::Type{All}, vChoice, mShocks_it)
-        vSim_it1 .= transfunc(vSim_it, vChoice, mShocks_it)
-    end
-    function fill_it!(vSim_it1, vSim_it, intdim::Type{Separable}, vChoice, mShocks_it)
-        vSim_it1[1] = vChoice
-        vSim_it1[2:end] .= transfunc(vSim_it, vChoice, mShocks_it)
-    end
-    function fill_it!(vSim_it1, vSim_it, intdim::Type{Separable_States}, vChoice, mShocks_it)
-        vSim_it1[1] = vChoice
-        vSim_it1[2:end] .= transfunc(vSim_it, mShocks_it)
-    end
-    function fill_it!(vSim_it1, vSim_it, intdim::Type{Separable_ExogStates}, vChoice, mShocks_it)
-        vSim_it1[1] = vChoice
-        if dimExogStates == 1
-            vSim_it1[2] = transfunc(vSim_it[2], mShocks_it) # splat because they're tuples
-        else
-            vSim_it1[2:end] .= transfunc(vSim_it[2:end], mShocks_it)
-        end
-    end
+    # function fill_it!(vSim_it1, vSim_it, intdim::Type{All}, vChoice, mShocks_it)
+    #     vSim_it1 .= transfunc(vSim_it, vChoice, mShocks_it)
+    # end
+    # function fill_it!(vSim_it1, vSim_it, intdim::Type{Separable}, vChoice, mShocks_it)
+    #     vSim_it1[1] = vChoice
+    #     vSim_it1[2:end] .= transfunc(vSim_it, vChoice, mShocks_it)
+    # end
+    # function fill_it!(vSim_it1, vSim_it, intdim::Type{Separable_States}, vChoice, mShocks_it)
+    #     vSim_it1[1] = vChoice
+    #     vSim_it1[2:end] .= transfunc(vSim_it, mShocks_it)
+    # end
+    # function fill_it!(vSim_it1, vSim_it, intdim::Type{Separable_ExogStates}, vChoice, mShocks_it)
+    #     vSim_it1[1] = vChoice
+    #     if dimExogStates == 1
+    #         vSim_it1[2] = transfunc(vSim_it[2], mShocks_it) # splat because they're tuples
+    #     else
+    #         vSim_it1[2:end] .= transfunc(vSim_it[2:end], mShocks_it)
+    #     end
+    # end
 
     function initialize!(vSim_i1, shocksInit_i)
         if initialize_exact
@@ -122,9 +163,11 @@ function _simulate(p::DDP{dimStates,1}, sol::AbstractDDPSolution, shocks::DDPSho
 			vChoice_i[t] = policy(vSim_i[:,t]...)
 
 			if dimShocks > 1
-				fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice_i[t], mShocks_i[:,t])
+				get_transition!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice_i[t], mShocks_i[:,t])
 			else
-				fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice_i[t], mShocks_i[:,t][1])
+				# fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice_i[t], mShocks_i[:,t][1])
+				# fill_it!(p, @view(vSim_i[:,t+1]), vSim_i[:,t], vChoice_i[t], mShocks_i[:,t][1])
+				get_transition!(p.transfunc, @view(vSim_i[:,t+1]), vSim_i[:,t], vChoice_i[t], mShocks_i[:,t][1])
 			end
 
 			# if do_exog_exit
@@ -194,25 +237,25 @@ function _simulate(p::DDP{dimStates,2}, sol::AbstractDDPSolution, shocks::DDPSho
 	# end
 
     # get transition of firm i at period t (for period t + 1)
-    function fill_it!(vSim_it1, vSim_it, intdim::Type{All}, vChoice, mShocks_it)
-        vSim_it1 .= transfunc(vSim_it, vChoice, mShocks_it)
-    end
-    function fill_it!(vSim_it1, vSim_it, intdim::Type{Separable}, vChoice, mShocks_it)
-        vSim_it1[1:dimChoices] .= vChoice
-        vSim_it1[1+dimChoices:end] .= transfunc(vSim_it, vChoice, mShocks_it)
-    end
-    function fill_it!(vSim_it1, vSim_it,intdim::Type{Separable_States}, vChoice, mShocks_it)
-        vSim_it1[1:dimChoices] .= vChoice
-        vSim_it1[1+dimChoices:end] .= transfunc(vSim_it, mShocks_it)
-    end
-    function fill_it!(vSim_it1, vSim_it, intdim::Type{Separable_ExogStates}, vChoice, mShocks_it)
-        vSim_it1[1:dimChoices] .= vChoice
-        if dimExogStates == 1
-            vSim_it1[1+dimChoices:end] .= transfunc(vSim_it[1+dimChoices], mShocks_it)
-        else
-            vSim_it1[1+dimChoices:end] .= transfunc(vSim_it[1+dimChoices:end], mShocks_it)
-        end
-    end
+    # function fill_it!(vSim_it1, vSim_it, intdim::Type{All}, vChoice, mShocks_it)
+    #     vSim_it1 .= transfunc(vSim_it, vChoice, mShocks_it)
+    # end
+    # function fill_it!(vSim_it1, vSim_it, intdim::Type{Separable}, vChoice, mShocks_it)
+    #     vSim_it1[1:dimChoices] .= vChoice
+    #     vSim_it1[1+dimChoices:end] .= transfunc(vSim_it, vChoice, mShocks_it)
+    # end
+    # function fill_it!(vSim_it1, vSim_it,intdim::Type{Separable_States}, vChoice, mShocks_it)
+    #     vSim_it1[1:dimChoices] .= vChoice
+    #     vSim_it1[1+dimChoices:end] .= transfunc(vSim_it, mShocks_it)
+    # end
+    # function fill_it!(vSim_it1, vSim_it, intdim::Type{Separable_ExogStates}, vChoice, mShocks_it)
+    #     vSim_it1[1:dimChoices] .= vChoice
+    #     if dimExogStates == 1
+    #         vSim_it1[1+dimChoices:end] .= transfunc(vSim_it[1+dimChoices], mShocks_it)
+    #     else
+    #         vSim_it1[1+dimChoices:end] .= transfunc(vSim_it[1+dimChoices:end], mShocks_it)
+    #     end
+    # end
 
     function initialize!(vSim_i1, shocksInit_i)
         if initialize_exact
@@ -251,9 +294,11 @@ function _simulate(p::DDP{dimStates,2}, sol::AbstractDDPSolution, shocks::DDPSho
 			end
 
 			if dimShocks > 1
-				fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice_i[:,t], mShocks_i[:,t])
+				get_transition!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice_i[:,t], mShocks_i[:,t])
 			else
-				fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice_i[:,t], mShocks_i[:,t][1])
+				# fill_it!(@view(vSim_i[:,t+1]), vSim_i[:,t], intdim, vChoice_i[:,t], mShocks_i[:,t][1])
+				# fill_it!(p, @view(vSim_i[:,t+1]), vSim_i[:,t], vChoice_i[:,t], mShocks_i[:,t][1])
+				get_transition!(p.transfunc, @view(vSim_i[:,t+1]), vSim_i[:,t], vChoice_i[:,t], mShocks_i[:,t][1])
 			end
 
 			# if do_exog_exit

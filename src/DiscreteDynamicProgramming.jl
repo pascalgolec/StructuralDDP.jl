@@ -24,6 +24,7 @@ module DiscreteDynamicProgramming
 	include("utils.jl")
 
 	# type constructor
+	include("Transition.jl")
 	include("DiscreteDynamicProblem.jl")
 	# include("DiscreteDynamicProblem_interface.jl")
 
