@@ -2,7 +2,7 @@
 
 This package solves and simulates discrete dynamic choice models with value function iteration. It has a simple and transparent syntax for defining dynamic optimization problems and is optimized for speed. The available options take advantage of properties of the problem which lead to orders of a magnitude speedup without relying on parallelization.
 
-The general workflow is to define a problem, solve it, simulate it, and then analyze it. The full code for solving, simulating and plotting an example is:
+The general workflow is to define a problem, solve it, simulate it, and then analyze it. The full code for an example is:
 
 ```julia
 using DiscreteDynamicProgramming
@@ -12,7 +12,7 @@ sim = simulate(sol, nPeriods=50, nFirms=5)
 df_sim = DataFrame(sim)
 using Plots, StatPlots
 @df df_sim plot(:period, :state_1, group=:firm,
-    xlabel="period", ylabel="capital stock")
+    xlabel="years", ylabel="capital stock")
 ```
 
 where the individual pieces are described below.
@@ -31,28 +31,31 @@ where
 - ``r(s_t, a_t)`` is the current reward
 - ``β`` is the discount factor
 
-The state variables evolve according to a transition function ``\Phi(s, a, \varepsilon')`` depending on ``(s_t, a_t)`` and i.i.d shocks ``\varepsilon_{t+1}``. For a more formal definiton, see the [QuantEcon lectures](https://lectures.quantecon.org/jl/discrete_dp.html#Discrete-DPs). We can write the problem in a recursive form:
+The state variables evolve according to a transition function ``\Phi(s_t, a_t, \varepsilon_{t+1})`` depending on ``(s_t, a_t)`` and i.i.d shocks ``\varepsilon_{t+1}``. For a more formal definiton, see the [QuantEcon lectures](https://lectures.quantecon.org/jl/discrete_dp.html#Discrete-DPs). We can write the problem in a recursive form:
 
 ```math
 V(s) = \max_a r(s, a) + \beta \mathbb{E} V(s') \\
 \text{where } s' = \Phi(s, a, \varepsilon')
 ```
 
-where ``s'`` corresponds to next period's state ``s_{t+1}``.
+where ``s`` and ``s'`` correspond to the current state ``s_t`` and next period's state ``s_{t+1}``, respectively.
 
 We will solve a capital investment model with convex adjustment costs as an example. It is defined as follows:
 
 ```math
-V(K,z) = \max_I K^\alpha e^z - I - \frac{\gamma}{2} \frac{I^2}{K} + \beta \mathbb{E} V(K', z') \\
-\text{where } K' = (1-\delta)K + I \\
+V(K,z) = \max_i K^\alpha e^z - i K - \frac{\gamma}{2} i^2 K + \beta \mathbb{E} V(K', z') \\
+\text{where } K' = (1-\delta + i) K \\
 z' = \rho z + \sigma \varepsilon, \quad \varepsilon \sim \mathcal{N}(0,1)
 ```
 
-where ``K`` is current and ``K'`` next period's capital, ``I`` is capital investment. Capital depreciates at the rate ``\delta``. Investment ``I`` adds to the capital stock but takes a period to become productive. The parameter ``\gamma`` determines the adjustment costs for investment, over and above the cost of capital ``I``. The productivity of capital is determined by ``z``, which follows an AR(1) process with autocorrelation ``\rho`` and volatility ``\sigma``. There are decreasing returns to scale for ``\alpha < 1``, so there is an optimal scale of the firm depending on ``z``. So the problem of the firm is to choose the optimal scale for next period, taking into account that next period's productivity ``z'`` is not perfectly known and large adjustments are disproportianally costly.
+where ``K`` is current and ``K'`` next period's capital and ``i`` is the (net) capital investment rate. Capital depreciates at the rate ``\delta``. Investment ``i`` adds to the capital stock but takes a period to become productive. The parameter ``\gamma`` determines the adjustment costs for investment, over and above the cost of capital ``i K``. The productivity of capital is determined by ``z``, which follows an AR(1) process with autocorrelation ``\rho`` and volatility ``\sigma``. There are decreasing returns to scale for ``\alpha < 1``, so there is an optimal scale of the firm depending on ``z``. The problem of the firm is to choose the optimal scale for next period.
 
-We define the problem by providing the state and action space, the reward function, the transition function and the factor at which future rewards are discounted.
+We set up the problem by defining the state and action space, the reward function, the transition function and the factor at which future rewards are discounted.
 
 ```julia
+using DiscreteDynamicProgramming, Distributions
+
+# CapitalAdjustModel
 β = 0.9 # discount factor
 α = 0.67 # returns to scale parameter
 ρ = 0.6 # persistence of producitivity
@@ -69,32 +72,31 @@ maxz =  3*stdz
 vz = collect(LinRange(minz, maxz, nz))
 
 nK = 100 # number of nodes for K
-K_ss = α * exp(0.)/ ((1-β)/β*(1+γ*δ) + δ)) ^ (1/(1-α) # analytical steady state of K
+K_ss = α * exp(0.)/ ((1-β)/β*(1+γ*δ) + δ) ^ (1/(1-α)) # analytical steady state of K
 log_K_min = 0.1 * log(K_ss)
 log_K_max = 2 * log(K_ss)
 vK   = exp.(collect(LinRange(log_K_min, log_K_max, nK))) # log-spaced grid for K
 
-nI = 100 # number of nodes for I
-K_diff = K_max - K_min
-vI = collect(LinRange(-K_diff/2, K_diff/2, nI))
+ni = 100 # number of nodes for i
+vi = collect(LinRange(-0.5, 2., ni))
 
 tStateVectors = (vK, vz)
-tChoiceVectors = (vI,)
+tChoiceVectors = (vi,)
 
 
 # define reward and transition functions
 function reward(vStates, vChoices)
     K, z = vStates # note how the order corresponds to tStateVectors
-    Kprime = vChoices[1]
-    capx = Kprime - (1-δ)*K
-    return K^α * exp(z) + γ/2*capx^2/K
+    i = vChoices[1]
+    return K^α * exp(z) - i*K - γ/2 * i^2 * K
 end
 
 function transition(vStates, vChoices, vShocks)
     K, z = vStates # note how the order corresponds to tStateVectors
-    Kprime = vChoices[1]
+    i = vChoices[1]
+    Kprime = (1-δ+i)*K
     zprime  = ρ*z + σ * vShocks[1]
-    return K, zprime
+    return Kprime, zprime
 end
 
 shockdistribution = Normal() # one-dimensional standard normal shock
@@ -110,7 +112,9 @@ prob = DiscreteDynamicProblem(
             β)
 ```
 
-The solver supports any type of univariate distribution distribution and multivariate-normal distributions. The [Distributions.jl package](https://juliastats.github.io/Distributions.jl/stable/) contains the syntax for implementing these distributions.
+The `DiscreteDynamicProblem` constructor creates a problem instance. The order of the variables must be exacly as in the example above.
+
+The package supports any type of univariate shock distribution and multivariate-normal shock distributions. [Distributions.jl](https://juliastats.github.io/Distributions.jl/stable/) contains the syntax for implementing different shock distributions.
 
 The state space is strictly enforced - the state variables are always forced to stay within their bounds upper and lower bounds.
 
@@ -118,16 +122,16 @@ Note that in the problem definition above, the transition of the state variables
 
 ## Step 2: solve problem
 
-We can solve the model with the function `solve`, which returns the (discrete) value and optimal policy for each point in the state-space.
+We can solve the model with the function `solve`, which returns the value and optimal policy for each point in the state-space.
 
 ```julia
 sol = solve(prob)
 ```
 
-The result of `solve` is a solution object. We can access the value and policy of the fifth grid point of the first state and the third grid point of the second state by:
+The result of `solve` is a solution object. We can retreive th value function with `value` and the policy function with `policy`. For example, the value and policy for the fifth grid point of the `K` and the third grid point of `z` are:
 ```julia
-value(sol)[5, 3]
-policy(sol)[5, 3]
+value(sol)[5, 3] # 18.9
+policy(sol)[5, 3] # 0.611
 ```
 
 If there are multiple choice variables then `policy(sol)` returns a tuple, so we would have to specify that we for example are interested in the second choice variable:
@@ -137,14 +141,14 @@ policy(sol)[2][5, 3]
 
 The `policy` and `value` objects that are returned by default act as a continuous solution via an interpolation. We can access the interpolated values by treating them as functions, for example:
 ```julia
-policy(sol)(10., 0.5) # the optimal policy for state one = 10. and state two = 0.5
+policy(sol)(10., 0.5) # 0.274 = the optimal policy for state one = 10. and state two = 0.5
 ```
-Note the difference between these: indexing with `[i]` is the policy at the ith grid point, while `(k)` is an interpolation for state `k`. Also note that if an interpolation outside of the state grid is requested, then the value/policy at the closest grid points is returned instead.
+Note the difference between these: indexing with `[i,j]` is the policy at the (i,j)th grid point, while `(K,z)` is an interpolation for state `(K,z)`. Also note that if an interpolation outside of the state grid is requested, then the value/policy at the closest grid points is returned instead.
 
 The solver can be controlled using different options which are discribed in the [Solver Options section](#Solver-Options-1). For example, we can tell the solver to precompute the reward for the different combinations of states and choices before starting the value function iteration:
 
 ```julia
-sol = solve(prob; rewardmat=:prebuild)
+sol = solve(prob; rewardcall=:pre)
 ```
 
 Experimenting with the solver options is essential if one wants to solve the model as fast as possible.
@@ -165,9 +169,10 @@ sim_policy = policy(sim)
 sim_val = value(sim)
 ```
 
-Convenience methods which convert the simulation object into an array or dataframe:
+We can convert the simulation object into an array with `Array(sim)`. The order of the variables is states, choices and value (if requested).
+
+We can also convert the simulation object into a dataframe:
 ```julia
-a_sim = Array(sim)
 df_sim = DataFrame(sim)
 ```
 
@@ -366,6 +371,8 @@ createDiscreteDynamicProblem(<other variables>;
 ```
 
 If we have a problem where our choice variables are not exacly equal to some of the state variables, then we need to specify additionally which state variables the firm chooses at t=0. This is achieved with the option `tChoiceVectorsZero`, i.e. `tChoiceVectorsZero = (1,)` for the neoclassical model. If `tChoiceVectorsZero` is not specified, then the solver/simulator uses indices of the choice variables for the dynamic optimization.
+
+The keyword argument `initialize_exact` controls whether the simulator should use the sophisticated method or else resort to the default. The default is `true`.
 
 ## Fixed shock draws
 

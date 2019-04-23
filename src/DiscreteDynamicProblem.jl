@@ -27,14 +27,11 @@ struct InitializationOptions{nChoiceVarsZero,C0<:Int}
 		func::Function, tChoiceVectorsZero::NTuple{nChoiceVarsZero,C0}) where
 			{nChoiceVarsZero,C0<:Int}
 
-		if problem == nothing
-			return nothing
-		else
-			tChoiceVectorsZero[1] == 1 || error(
-			"Bad tChoiceVectorsZero: the first state variable must be the (first) choice variable in the intialization problem.")
+		tChoiceVectorsZero[1] == 1 || error(
+		"Bad tChoiceVectorsZero: the first state variable must be the (first) choice variable in the intialization problem.")
 
-			new(problem, func, tChoiceVectorsZero)
-		end
+		new(problem, func, tChoiceVectorsZero)
+
 	end
 end
 InitializationOptions(problem::Function, func::Function,
@@ -42,13 +39,13 @@ InitializationOptions(problem::Function, func::Function,
 	InitializationOptions{nChoiceVarsZero,C0}(problem, func, tChoiceVectorsZero)
 
 
-struct DiscreteDynamicProblemOptions{RFP<:FuncOrNothing}
+struct DiscreteDynamicProblemOptions{RFP<:FuncOrNothing, I<:Union{InitializationOptions, Nothing}}
 
 	"""The partial reward function."""
 	rewardfunc_partial::RFP
 
 	"""Options for exact initialization."""
-	initialize::Union{InitializationOptions, Nothing}
+	initialize::I
 
 end
 const DDPOptions = DiscreteDynamicProblemOptions
@@ -65,7 +62,7 @@ $(FIELDS)
 """
 struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC,D<:Distribution}
 
-	tStateVectors::NTuple{nStateVars, Vector{Float64}} #where N # can use NTuple{N, Vector{Float64}} where N
+	tStateVectors::NTuple{nStateVars, Vector{Float64}}
     tChoiceVectors::NTuple{nChoiceVars, typeC}
 
     """The reward function defining current period rewards as a function of states and choices."""
@@ -76,16 +73,16 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC,D<:Distribution}
     transfunc::Function
 
 	"""The integration dimension of the transition function."""
-    intdim::Type{ID} where ID<:IntDim # not really necessary, can just have it as a parameter in type...
+    intdim::Type{ID} where ID<:IntDim
 
     """The distribution of the shock(s)."""
     shockdist::D
 
 	"""The discount factor for future rewards."""
-    β::Float64 # important to specify here for type stability
+    β::Float64
 
 	"""Optional information for problem definition."""
-	options::Union{DDPOptions, Nothing}
+	options::DDPOptions
 
 
 	function DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC}(
@@ -129,11 +126,6 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC,D<:Distribution}
 			tStateVectors, tChoiceVectors,
 			rewardfunc, transfunc_inbounds, intdim,
 			shockdist, β, options)
-
-		# new{nStateVars,nChoiceVars,typeC}(
-		# 	tStateVectors, tChoiceVectors,
-		# 	rewardfunc, transfunc, intdim,
-		# 	shockdist, β, options)
 	end
 
 end
@@ -184,7 +176,11 @@ function DDP(
 	intdim in (:All, :Separable, :Separable_ExogStates, :Separable_States) ||
 		error("Provided wrong integration dimension $intdim.")
 
-	init_options = InitializationOptions(initializationproblem, initializefunc, tChoiceVectorsZero)
+	if initializationproblem == nothing
+		init_options = nothing
+	else
+		init_options = InitializationOptions(initializationproblem, initializefunc, tChoiceVectorsZero)
+	end
 
 	ddp_options = DDPOptions(rewardfunc_partial, init_options)
 
@@ -212,8 +208,13 @@ end
 getnonchoicevars(p::DDP{dimS,dimC,C}) where {dimS,dimC,C<:AbstractVector} = tuple() # i.e. intdim = :All
 getnonchoicevars(tStateVectors, tChoiceVectors::Nothing) = nothing
 """Retreive exogenous states at t=0."""
-getnonchoicevarszero(p::DDP) = getnonchoicevars(p.tStateVectors, p.options.initialize.tChoiceVectorsZero)
-
+function getnonchoicevarszero(p::DDP)
+	if p.options.initialize == nothing
+		return nothing
+	else
+		return 	getnonchoicevars(p.tStateVectors, p.options.initialize.tChoiceVectorsZero)
+	end
+end
 
 """Retreive the choice vectors from the state vector tuple."""
 getchoicevars(p::DDP) = getchoicevars(p.tStateVectors, p.tChoiceVectors)
@@ -224,4 +225,10 @@ getchoicevars(tStateVectors::NTuple{N1,T1}, tChoiceVectors::NTuple{N2,Vector{T2}
 	{N1, T1, N2, T2} = tChoiceVectors
 getchoicevars(tStateVectors, tChoiceVectors::Nothing) = nothing
 """Retreive endogenous states at t=0."""
-getchoicevarszero(p::DDP) = getchoicevars(p.tStateVectors, p.options.initialize.tChoiceVectorsZero)
+function getchoicevarszero(p::DDP)
+	if p.options.initialize == nothing
+		return nothing
+	else
+		return getchoicevars(p.tStateVectors, p.options.initialize.tChoiceVectorsZero)
+	end
+end

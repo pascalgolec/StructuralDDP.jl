@@ -40,7 +40,7 @@ end
 struct DDPSolutionZero{NS,NC,NE,valueType,policyType,
 		value0Type,policy0Type} <: AbstractDDPSolution{NS,NC}
 
-   prob::DDP
+	prob::DDP
 	value::valueType
 	policy::NTuple{NC,policyType}
 	value0::value0Type
@@ -49,14 +49,13 @@ struct DDPSolutionZero{NS,NC,NE,valueType,policyType,
 end
 
 function createsolution(p::DDP, meshValFun::Array{T,NS},
-                                tmeshPolFun::NTuple{NC,Array{T,NS}},
-                                initialize_exact::Bool = false) where {T,NS,NC}
+                                tmeshPolFun::NTuple{NC,Array{T,NS}}) where {T,NS,NC}
 
 	value = itparray(meshValFun, p.tStateVectors)
   	policy = [itparray(pol, p.tStateVectors) for pol in tmeshPolFun]
   	policy = tuple(policy...)
 
-   if !initialize_exact
+   if p.options.initialize == nothing
       return DDPSolution{NS,NC,typeof(value),typeof(policy[1])}(p, value, policy)
    else
       meshValFunZero, tmeshPolFunZero = initialendogstatevars(p, meshValFun)

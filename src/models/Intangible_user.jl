@@ -15,7 +15,8 @@ function Intangible(;
 	nN = 50,
 	nz = 3,
 
-	intdim = :Separable_ExogStates)
+	intdim = :Separable_ExogStates,
+	initialize_exact = true)
 
 
 	# initial standard deviation of transitiory shock
@@ -133,14 +134,20 @@ function Intangible(;
 		error("$intdim wrong intdim")
 	end
 
-	tChoiceVectorsZero = (1,2)
+	if initialize_exact
+		tChoiceVectorsZero = (1,2)
 
-	initializationproblem(value, vChoices) = value - (1+C0)*vChoices[1] - (1+C0)*vChoices[2]
+		initializationproblem(value, vChoices) = value - (1+C0)*vChoices[1] - (1+C0)*vChoices[2]
 
-	function initialize(shock)
-	    z0 = shock * sqrt(σ^2 / (1-ρ^2))
-		# z0 = inbounds(z0, tStateVectors[3][1], tStateVectors[3][end])
-		return z0
+		function initialize(shock)
+		    z0 = shock * sqrt(σ^2 / (1-ρ^2))
+			# z0 = inbounds(z0, tStateVectors[3][1], tStateVectors[3][end])
+			return z0
+		end
+	else
+		tChoiceVectorsZero = nothing
+		initializationproblem = nothing
+		initialize = nothing
 	end
 
 	DDP(tStateVectors,

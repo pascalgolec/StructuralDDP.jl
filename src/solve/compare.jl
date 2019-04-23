@@ -1,6 +1,6 @@
 """Compare different solutions, useful for when testing monotonicity and concavity."""
-function compare(sol1::DDPSolution,
-        sol2::DDPSolution;
+function compare(sol1::AbstractDDPSolution,
+        sol2::AbstractDDPSolution;
 		str::String = "compare solutions",
         tol::Real = 1e-4)
     @testset "$str" begin

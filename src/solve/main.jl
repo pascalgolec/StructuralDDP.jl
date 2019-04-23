@@ -17,7 +17,6 @@ if optimal actions are monotonically increasing in their respective state variab
 Assumes that the action is next period's state.
 - `;concavity::Union{Bool,Vector{Bool}}(false)`:  exploit the concavity of the value
 function in the choice of next period's state.
-- `:initialize_exact::Bool(false)`: TODO
 - `:numquadnodes::Vector{Int}`: number of quadrature nodes to use for calculating expectations.
 
 ##### Returns
@@ -33,7 +32,6 @@ function solve(p::DDP;
     rewardcall::Symbol = :jit,
     monotonicity::Union{Bool,Vector{Bool}} = false,
     concavity::Union{Bool,Vector{Bool}} = false,
-    initialize_exact::Bool = false,
     numquadnodes::Vector{Int} = 5*ones(Int64, length(p.shockdist.μ)),
 	mTransition::Union{Nothing, Array{Float64,2}} = nothing,
     intdim::Type{T} = p.intdim, # if want to override type in the model, mostly for testing
@@ -67,7 +65,7 @@ function solve(p::DDP;
             rewardcall, monotonicity, concavity)
     end
 
-    createsolution(p, meshValFun, tmeshPolFun, initialize_exact)
+    createsolution(p, meshValFun, tmeshPolFun)
 end
 
 function display_iter(iter::Int, disp_each_iter::Int, max_diff::Float64)

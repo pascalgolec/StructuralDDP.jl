@@ -10,7 +10,7 @@ sol_neo_prebuild_partial = solve(p_neo; rewardcall=:pre_partial)
 sol_neo_nobuild = solve(p_neo; rewardcall=:jit)
 
 p_intan = createmodel(:Intangible; nK = 15, nN = 10, nz = 3, intdim=:Separable_ExogStates,)
-diopt = Dict(:concavity => true, :monotonicity => true, :initialize_exact=>false)
+diopt = Dict(:concavity => true, :monotonicity => true)
 sol_intan_prebuild = solve(p_intan; diopt..., rewardcall=:pre)
 sol_intan_prebuild_partial = solve(p_intan; diopt..., rewardcall=:pre_partial)
 sol_intan_nobuild = solve(p_intan; diopt..., rewardcall=:jit)

@@ -2,8 +2,8 @@ using DiscreteDynamicProgramming
 using Test
 using DataFrames
 
-# todo: find a better way to test rather than just calling the function
-# must test for different intdims
+# todo: find a better way to test rather than just calling the simulate function
+
 dipar = Dict(:nK => 40, :nz => 5, :γ => 2., :F => 0., :τ => 0.3)
 p_neo_all = createmodel(:NeoClassicalSimple; dipar..., :intdim=>:All)
 p_neo_sep = createmodel(:NeoClassicalSimple; dipar..., :intdim=>:Separable)
@@ -13,8 +13,7 @@ p_neo_sep_exogstates = createmodel(:NeoClassicalSimple; dipar..., :intdim=>:Sepa
 optdict = Dict(
 	:monotonicity=>true,
 	:concavity=>true,
-	:rewardcall=>:pre_partial,
-	:initialize_exact=>true)
+	:rewardcall=>:pre_partial)
 
 
 sol_neo_all = solve(p_neo_all; optdict...)
@@ -58,9 +57,7 @@ p_int_sep_exogstates = createmodel(model; dipar..., :intdim=>:Separable_ExogStat
 optdict = Dict(
 	:monotonicity=>true,
 	:concavity=>true,
-	:rewardcall=>:pre_partial,
-	:initialize_exact=>true
-	)
+	:rewardcall=>:pre_partial)
 
 sol_int_all = solve(p_int_all; optdict...)
 sol_int_sep = solve(p_int_sep; optdict...)

@@ -14,7 +14,9 @@ function NeoClassicalSimple(;
 	nK = 100,
 	nz = 20,
 
-	intdim = :Separable_ExogStates)
+	# for testing
+	intdim = :Separable_ExogStates,
+	initialize_exact = true)
 
 
     # calculate Amin, Amax
@@ -100,13 +102,19 @@ function NeoClassicalSimple(;
 	end
 
 
-	tChoiceVectorsZero = (1,)
+	if initialize_exact
+		tChoiceVectorsZero = (1,)
 
-	initializationproblem(value, choice) = value - (1 + (1-β)/β + C0) * choice
+		initializationproblem(value, choice) = value - (1 + (1-β)/β + C0) * choice
 
-	function initialize(shock)
-	    z0 = shock * sqrt(σ^2 / (1-ρ^2))
-		return z0
+		function initialize(shock)
+		    z0 = shock * sqrt(σ^2 / (1-ρ^2))
+			return z0
+		end
+	else
+		tChoiceVectorsZero = nothing
+		initializationproblem = nothing
+        initializefunc = nothing
 	end
 
 	DDP(tStateVectors,
@@ -121,15 +129,4 @@ function NeoClassicalSimple(;
         initializefunc = initialize,
 		tChoiceVectorsZero = tChoiceVectorsZero,
         )
-
-	# DDP(
-	#
-	# 				tStateVectors,
-	# 				tChoiceVectors,
-	# 				myrewardfunc,
-	# 				transfunc,
-	# 				Separable_ExogStates,
-	# 				Normal(),
-	# 				β,
-	# 				nothing)
 end
