@@ -37,7 +37,7 @@ warn_memory(bytes, 650000, "Neo Separable_States: Solver")
 sol_neoclassical_Separable_ExogStates = solve(p_neoclassical_Separable_ExogStates; diopt...)
 val, t, bytes = @timed solve(p_neoclassical_Separable_ExogStates; diopt...)
 warn_time(t, 0.01, "Neo Separable_ExogStates: Solver")
-warn_memory(bytes, 200000, "Neo Separable_ExogStates: Solver")
+warn_memory(bytes, 210000, "Neo Separable_ExogStates: Solver")
 
 # SIMULATE
 shocks = drawshocks(p_neoclassical_All, nFirms=10^4, nPeriods=50)
@@ -45,7 +45,7 @@ shocks = drawshocks(p_neoclassical_All, nFirms=10^4, nPeriods=50)
 simulate(sol_neoclassical_All, shocks)
 val, t, bytes = @timed simulate(sol_neoclassical_All, shocks)
 warn_time(t, 0.25, "Neo All: Simulator")
-warn_memory(bytes, 220000000, "Neo All: Simulator")
+warn_memory(bytes, 221000000, "Neo All: Simulator")
 
 simulate(sol_neoclassical_Separable, shocks)
 val, t, bytes = @timed simulate(sol_neoclassical_Separable, shocks)
@@ -54,7 +54,7 @@ warn_memory(bytes, 260000000, "Neo Separable: Simulator")
 
 simulate(sol_neoclassical_Separable_States, shocks)
 val, t, bytes = @timed simulate(sol_neoclassical_Separable_States, shocks)
-warn_time(t, 0.28, "Neo Separable_States: Simulator")
+warn_time(t, 0.24, "Neo Separable_States: Simulator")
 warn_memory(bytes, 260000000, "Neo Separable_States: Simulator")
 
 simulate(sol_neoclassical_Separable_ExogStates, shocks)
@@ -71,13 +71,12 @@ p_int_Sep = createmodel(model; dipar..., intdim = :Separable)
 p_int_Sep_States = createmodel(model; dipar..., intdim = :Separable_States)
 p_int_Sep_ExogStates = createmodel(model; dipar..., intdim = :Separable_ExogStates)
 
-diopt = Dict(
-	:monotonicity=>[false,false], :concavity=>[false,false],
+diopt = Dict(:monotonicity=>[false,false], :concavity=>[false,false],
 	:rewardcall=>:pre)
 
 sol_int_All = solve(p_int_All; diopt...)
 val, t, bytes = @timed solve(p_int_All; diopt...)
-warn_time(t, 2., "Intangible All: Solver")
+warn_time(t, 2.1, "Intangible All: Solver")
 warn_memory(bytes, 860000000, "Intangible All: Solver")
 
 sol_int_Sep = solve(p_int_Sep; diopt...)
@@ -93,7 +92,7 @@ warn_memory(bytes, 2000000, "Intangible Separable_States: Solver")
 sol_int_Sep_ExogStates = solve(p_int_Sep_ExogStates; diopt...)
 val, t, bytes = @timed solve(p_int_Sep_ExogStates; diopt...)
 warn_time(t, 0.1, "Intangible Separable_ExogStates: Solver")
-warn_memory(bytes, 550000, "Intangible Separable_ExogStates: Solver")
+warn_memory(bytes, 552000, "Intangible Separable_ExogStates: Solver")
 
 # SIMULATE
 shocks = drawshocks(p_int_All, nFirms=10^3, nPeriods=50)

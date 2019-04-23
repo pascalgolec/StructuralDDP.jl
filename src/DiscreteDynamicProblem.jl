@@ -13,20 +13,20 @@ abstract type Separable_ExogStates <: IntDim end
 const Separable_Union = Union{Separable, Separable_States, Separable_ExogStates}
 
 
-struct InitializationOptions{nChoiceVarsZero,C0<:Int}
+struct InitializationOptions{nChoiceVarsZero,C0<:Int,P<:Function,F<:Function}
 	"""Objective function at t=0 to choose initial endogenous state variables."""
-	problem::Function
+	problem::P
 
 	"""Function that maps initial shocks and initial policy into state variables."""
-	func::Function
+	func::F
 
 	"""Pointer towards choice of initial state variables."""
 	tChoiceVectorsZero::NTuple{nChoiceVarsZero, C0}
 
-	function InitializationOptions{nChoiceVarsZero,C0}(problem::Function,
+	function InitializationOptions{nChoiceVarsZero,C0,P,F}(problem::Function,
 		func::Function, tChoiceVectorsZero::NTuple{nChoiceVarsZero,C0},
 		tStateVectors::NTuple{nStateVars,Vector{Float64}}) where
-			{nChoiceVarsZero,C0<:Int,nStateVars}
+			{nChoiceVarsZero,C0<:Int,nStateVars,P,F}
 
 		tChoiceVectorsZero[1] == 1 || error(
 		"Bad tChoiceVectorsZero: the first state variable must be the (first) choice variable in the intialization problem.")
@@ -34,7 +34,7 @@ struct InitializationOptions{nChoiceVarsZero,C0<:Int}
 		tExogStateVectorsZero = getnonchoicevars(tStateVectors, tChoiceVectorsZero)
 		func_inbounds = wrapinbounds(func, tExogStateVectorsZero)
 
-		new(problem, func_inbounds, tChoiceVectorsZero)
+		new{nChoiceVarsZero,C0,typeof(problem),typeof(func_inbounds)}(problem, func_inbounds, tChoiceVectorsZero)
 		# new(problem, func, tChoiceVectorsZero)
 
 	end
@@ -42,7 +42,7 @@ end
 InitializationOptions(problem::Function, func::Function,
 	tChoiceVectorsZero::NTuple{nChoiceVarsZero,C0},
 	tStateVectors::NTuple{nStateVars,Vector{Float64}}) where {nChoiceVarsZero,C0,nStateVars} =
-	InitializationOptions{nChoiceVarsZero,C0}(problem, func,
+	InitializationOptions{nChoiceVarsZero,C0,typeof(problem),typeof(func)}(problem, func,
 		tChoiceVectorsZero,tStateVectors)
 
 
@@ -67,20 +67,20 @@ Defines an infinite-horizon discrete choice dynamic optimization problem.
 
 $(FIELDS)
 """
-struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC,D<:Distribution}
+struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC,ID<:IntDim,RF,TF,D<:Distribution}
 
 	tStateVectors::NTuple{nStateVars, Vector{Float64}}
     tChoiceVectors::NTuple{nChoiceVars, typeC}
 
     """The reward function defining current period rewards as a function of states and choices."""
-    rewardfunc::Function
+    rewardfunc::RF
 
 	"""The transition function of the state variables, depending on the
 	integration dimension as a function of states, choices and shocks."""
-    transfunc::Function
+    transfunc::TF
 
 	"""The integration dimension of the transition function."""
-    intdim::Type{ID} where ID<:IntDim
+    intdim::Type{ID}
 
     """The distribution of the shock(s)."""
     shockdist::D
@@ -129,7 +129,7 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC,D<:Distribution}
 			transfunc_inbounds = wrapinbounds(transfunc, tExogStateVectors)
 	    end
 
-		new{nStateVars,nChoiceVars,typeC,typeof(shockdist)}(
+		new{nStateVars,nChoiceVars,typeC,intdim,typeof(rewardfunc),typeof(transfunc_inbounds),typeof(shockdist)}(
 			tStateVectors, tChoiceVectors,
 			rewardfunc, transfunc_inbounds, intdim,
 			shockdist, β, options)
