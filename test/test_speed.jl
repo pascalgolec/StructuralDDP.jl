@@ -72,7 +72,8 @@ p_int_Sep_States = createmodel(model; dipar..., intdim = :Separable_States)
 p_int_Sep_ExogStates = createmodel(model; dipar..., intdim = :Separable_ExogStates)
 
 diopt = Dict(
-	:monotonicity=>[false,false], :concavity=>[false,false])
+	:monotonicity=>[false,false], :concavity=>[false,false],
+	:rewardcall=>:pre)
 
 sol_int_All = solve(p_int_All; diopt...)
 val, t, bytes = @timed solve(p_int_All; diopt...)
