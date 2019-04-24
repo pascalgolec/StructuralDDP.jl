@@ -153,6 +153,12 @@ function _simulate(p::DDP{NS,NC}, sol::AbstractDDPSolution, shocks::AbstractDDPS
 
 		end # period t
 
+		if get_value
+			vVal_i[nPeriods+1] = value(vSim_i[:,nPeriods+1]...)
+		end
+
+		get_choice_t!(vChoice_i, policy, vSim_i, nPeriods+1)
+
 	end # firm i
 
 	if get_value

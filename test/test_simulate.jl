@@ -1,6 +1,7 @@
 using DiscreteDynamicProgramming
 using Test
 using DataFrames
+tol = 1e-4
 
 # todo: find a better way to test rather than just calling the simulate function
 
@@ -24,18 +25,6 @@ sol_neo_sep_exogstates = solve(p_neo_sep_exogstates; optdict...)
 shocks_neo = drawshocks(p_neo_all, nPeriods=40, nFirms=100)
 
 @testset "Simulate Neoclassical" begin
-	@testset "initialize_inexact" begin
-	    simulate(sol_neo_all, shocks_neo, initialize_exact=false)
-	    simulate(sol_neo_sep, shocks_neo, initialize_exact=false)
-	    simulate(sol_neo_sep_states, shocks_neo, initialize_exact=false)
-	    simulate(sol_neo_sep_exogstates, shocks_neo, initialize_exact=false)
-	end
-	@testset "initialize_exact" begin
-	    simulate(sol_neo_all, shocks_neo, initialize_exact=true)
-	    simulate(sol_neo_sep, shocks_neo, initialize_exact=true)
-	    simulate(sol_neo_sep_states, shocks_neo, initialize_exact=true)
-	    simulate(sol_neo_sep_exogstates, shocks_neo, initialize_exact=true)
-	end
 	@testset "conversion" begin
 		sim = simulate(sol_neo_sep_exogstates, shocks_neo, get_value=true)
 	    @test typeof(DataFrame(sim)) <: DataFrame
@@ -43,6 +32,26 @@ shocks_neo = drawshocks(p_neo_all, nPeriods=40, nFirms=100)
 		sim = simulate(sol_neo_sep_exogstates, shocks_neo, get_value=false)
 	    @test typeof(DataFrame(sim)) <: DataFrame
 		@test typeof(Array(sim)) <: AbstractArray
+	end
+	@testset "initialize_inexact" begin
+		sim_opt = Dict(:initialize_exact=>false, :get_value=>true)
+	    sim_1 = simulate(sol_neo_all, shocks_neo; sim_opt...)
+	    sim_2 = simulate(sol_neo_sep, shocks_neo; sim_opt...)
+	    sim_3 = simulate(sol_neo_sep_states, shocks_neo; sim_opt...)
+	    sim_4 = simulate(sol_neo_sep_exogstates, shocks_neo; sim_opt...)
+		@test isapprox(Array(sim_1), Array(sim_2), rtol=tol)
+		@test isapprox(Array(sim_2), Array(sim_3), rtol=tol)
+		@test isapprox(Array(sim_3), Array(sim_4), rtol=tol)
+	end
+	@testset "initialize_exact" begin
+		sim_opt = Dict(:initialize_exact=>true, :get_value=>true)
+	    sim_1 = simulate(sol_neo_all, shocks_neo; sim_opt...)
+	    sim_2 = simulate(sol_neo_sep, shocks_neo; sim_opt...)
+	    sim_3 = simulate(sol_neo_sep_states, shocks_neo; sim_opt...)
+	    sim_4 = simulate(sol_neo_sep_exogstates, shocks_neo; sim_opt...)
+		@test isapprox(Array(sim_1), Array(sim_2), rtol=tol)
+		@test isapprox(Array(sim_2), Array(sim_3), rtol=tol)
+		@test isapprox(Array(sim_3), Array(sim_4), rtol=tol)
 	end
 end
 
@@ -67,18 +76,6 @@ sol_int_sep_exogstates = solve(p_int_sep_exogstates; optdict...)
 shocks_int = drawshocks(p_int_all, nPeriods=20, nFirms=10)
 
 @testset "Simulate Intangible" begin
-	@testset "initialize_inexact" begin
-	    simulate(sol_int_all, shocks_int, initialize_exact=false)
-	    simulate(sol_int_sep, shocks_int, initialize_exact=false)
-	    simulate(sol_int_sep_states, shocks_int, initialize_exact=false)
-	    simulate(sol_int_sep_exogstates, shocks_int, initialize_exact=false)
-	end
-	@testset "initialize_exact" begin
-	    simulate(sol_int_all, shocks_int, initialize_exact=true)
-	    simulate(sol_int_sep, shocks_int, initialize_exact=true)
-	    simulate(sol_int_sep_states, shocks_int, initialize_exact=true)
-	    simulate(sol_int_sep_exogstates, shocks_int, initialize_exact=true)
-	end
 	@testset "conversion" begin
 		sim = simulate(sol_int_sep_exogstates, shocks_neo, get_value=true)
 	    @test typeof(DataFrame(sim)) <: DataFrame
@@ -86,5 +83,25 @@ shocks_int = drawshocks(p_int_all, nPeriods=20, nFirms=10)
 		sim = simulate(sol_int_sep_exogstates, shocks_neo, get_value=false)
 	    @test typeof(DataFrame(sim)) <: DataFrame
 		@test typeof(Array(sim)) <: AbstractArray
+	end
+	@testset "initialize_inexact" begin
+		sim_opt = Dict(:initialize_exact=>false, :get_value=>true)
+	    sim_1 = simulate(sol_int_all, shocks_int; sim_opt...)
+	    sim_2 = simulate(sol_int_sep, shocks_int; sim_opt...)
+	    sim_3 = simulate(sol_int_sep_states, shocks_int; sim_opt...)
+	    sim_4 = simulate(sol_int_sep_exogstates, shocks_int; sim_opt...)
+		@test isapprox(Array(sim_1), Array(sim_2), rtol=tol)
+		@test isapprox(Array(sim_2), Array(sim_3), rtol=tol)
+		@test isapprox(Array(sim_3), Array(sim_4), rtol=tol)
+	end
+	@testset "initialize_exact" begin
+		sim_opt = Dict(:initialize_exact=>true, :get_value=>true)
+	    sim_1 = simulate(sol_int_all, shocks_int; sim_opt...)
+	    sim_2 = simulate(sol_int_sep, shocks_int; sim_opt...)
+	    sim_3 = simulate(sol_int_sep_states, shocks_int; sim_opt...)
+	    sim_4 = simulate(sol_int_sep_exogstates, shocks_int; sim_opt...)
+		@test isapprox(Array(sim_1), Array(sim_2), rtol=tol)
+		@test isapprox(Array(sim_2), Array(sim_3), rtol=tol)
+		@test isapprox(Array(sim_3), Array(sim_4), rtol=tol)
 	end
 end
