@@ -114,7 +114,7 @@ function NeoClassicalSimple(;
 	else
 		tChoiceVectorsZero = nothing
 		initializationproblem = nothing
-        initializefunc = nothing
+        initialize = nothing
 	end
 
 	DDP(tStateVectors,

@@ -13,12 +13,7 @@ struct Transition{ID<:IntDim,nChoices,nShocks,nExogStates,F}
 end
 (p::Transition)(args...) = p.f(args...)
 
-function get_transition(transfunc::Transition, vStates, args...)
-	vStatesPrime = similar(vStates)
-	get_transition!(transfunc, vStatesPrime, vStates, args...)
-	return vStatesPrime
-end
-
+"""Modify vStatesPrime in place."""
 function get_transition!(transfunc::Transition{All}, vStatesPrime,
 	vStates, vChoices, vShocks)
 	vStatesPrime .= transfunc(vStates, vChoices, vShocks)
@@ -34,6 +29,7 @@ function get_transition!(transfunc::Transition{Separable,NC}, vStatesPrime,
 	vStatesPrime[1:NC] .= vChoices
 	vStatesPrime[1+NC:end] .= transfunc(vStates, vChoices, vShocks)
 end
+
 function get_transition!(transfunc::Transition{Separable_States,1}, vStatesPrime,
 		vStates, vChoices, vShocks)
 	vStatesPrime[1] = vChoices

@@ -3,7 +3,7 @@
 # abstract type DiscreteDynamicModel end
 # const DDP = DiscreteDynamicModel
 
-struct InitializationOptions{nChoiceVarsZero,C0<:Int,P,F}
+struct InitializationOptions{NC0,C0<:Int,P,F}
 	"""Objective function at t=0 to choose initial endogenous state variables."""
 	problem::P
 
@@ -11,12 +11,12 @@ struct InitializationOptions{nChoiceVarsZero,C0<:Int,P,F}
 	func::F
 
 	"""Pointer towards choice of initial state variables."""
-	tChoiceVectorsZero::NTuple{nChoiceVarsZero, C0}
+	tChoiceVectorsZero::NTuple{NC0, C0}
 
-	function InitializationOptions{nChoiceVarsZero,C0,P,F}(problem,
-		func, tChoiceVectorsZero::NTuple{nChoiceVarsZero,C0},
-		tStateVectors::NTuple{nStateVars,Vector{Float64}}) where
-			{nChoiceVarsZero,C0<:Int,nStateVars,P,F}
+	function InitializationOptions{NC0,C0,P,F}(problem,
+		func, tChoiceVectorsZero::NTuple{NC0,C0},
+		tStateVectors::NTuple{NS,Vector{Float64}}) where
+			{NC0,C0<:Int,NS,P,F}
 
 		tChoiceVectorsZero[1] == 1 || error(
 		"Bad tChoiceVectorsZero: the first state variable must be the (first) choice variable in the intialization problem.")
@@ -24,15 +24,14 @@ struct InitializationOptions{nChoiceVarsZero,C0<:Int,P,F}
 		tExogStateVectorsZero = getnonchoicevars(tStateVectors, tChoiceVectorsZero)
 		func_inbounds = wrapinbounds(func, tExogStateVectorsZero)
 
-		new{nChoiceVarsZero,C0,typeof(problem),typeof(func_inbounds)}(problem, func_inbounds, tChoiceVectorsZero)
-		# new(problem, func, tChoiceVectorsZero)
+		new{NC0,C0,typeof(problem),typeof(func_inbounds)}(problem, func_inbounds, tChoiceVectorsZero)
 
 	end
 end
 InitializationOptions(problem, func,
-	tChoiceVectorsZero::NTuple{nChoiceVarsZero,C0},
-	tStateVectors::NTuple{nStateVars,Vector{Float64}}) where {nChoiceVarsZero,C0,nStateVars} =
-	InitializationOptions{nChoiceVarsZero,C0,typeof(problem),typeof(func)}(problem, func,
+	tChoiceVectorsZero::NTuple{NC0,C0},
+	tStateVectors::NTuple{NS,Vector{Float64}}) where {NC0,C0,NS} =
+	InitializationOptions{NC0,C0,typeof(problem),typeof(func)}(problem, func,
 		tChoiceVectorsZero,tStateVectors)
 
 

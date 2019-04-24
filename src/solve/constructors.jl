@@ -28,23 +28,30 @@ end
 
 abstract type AbstractDDPSolution{NS,NC} end
 
+"""Solution object.
+Parameters:
+    - NS = number of states variables
+    - NC = number of choice variables"""
 struct DDPSolution{NS,NC,valueType,policyType} <: AbstractDDPSolution{NS,NC}
 
-	prob::DDP
-   value::valueType
-   policy::NTuple{NC,policyType}
+    prob::DDP
+    value::valueType
+    policy::NTuple{NC,policyType}
 
 end
 
-# includes solution for exact initialization
-struct DDPSolutionZero{NS,NC,NE0,valueType,policyType,
+"""Includes solution for exact initialization.
+Parameters:
+    - NE0 = number of exogenous states variables at t=0
+    - NC0 = number of choice variables at t=0"""
+struct DDPSolutionZero{NS,NC,NE0,NC0,valueType,policyType,
 		value0Type,policy0Type} <: AbstractDDPSolution{NS,NC}
 
 	prob::DDP
 	value::valueType
 	policy::NTuple{NC,policyType}
 	value0::value0Type
-	policy0::NTuple{NC,policy0Type}
+	policy0::NTuple{NC0,policy0Type}
 
 end
 
@@ -61,10 +68,11 @@ function createsolution(p::DDP, meshValFun::Array{T,NS},
       meshValFunZero, tmeshPolFunZero = initialendogstatevars(p, meshValFun)
 		tExogStateVectorsZero = getnonchoicevarszero(p)
 		NE0 = length(tExogStateVectorsZero)
+		NC0 = length(p.options.initialize.tChoiceVectorsZero)
 		value0 = itparray(meshValFunZero, tExogStateVectorsZero)
 		policy0 = [itparray(pol, tExogStateVectorsZero) for pol in tmeshPolFunZero]
 		policy0 = tuple(policy0...)
-      return DDPSolutionZero{NS,NC,NE0,typeof(value),typeof(policy[1]),
+      return DDPSolutionZero{NS,NC,NE0,NC0,typeof(value),typeof(policy[1]),
 			typeof(value0),typeof(policy0[1])}(p, value, policy, value0, policy0)
    end
 end
