@@ -1,7 +1,4 @@
 
-using DiscreteDynamicProgramming
-using Test
-mytol = 1e-4
 using QuantEcon: tauchen
 
 model = :NeoClassicalSimple

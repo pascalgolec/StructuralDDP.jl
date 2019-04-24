@@ -1,16 +1,5 @@
-# construct matrices of indirect utility and initial choice depending on exogenous variables
-# so in the neoclassical model, only have a grid with K0 as a function of z0
-
-
-#######################
-# For state-action representation
-#######################
-# to do:
-# - only works if choice vector is equal to state vector
-# - only works if first state is choice state?
-# note: could be more elegant to have a SingleChoiceVar and a TwoChoiceVar subtype of DDP
-# to allocate to method.. will depend on how user inputs stuff
-
+"""Solve the initializationproblem: construct matrices of indirect utility and
+initial choice depending on exogenous variables."""
 initialendogstatevars(p::DDP, meshValFun::Array{Float64}) =
     _initialendogstatevars(
         p.options.initialize.problem, meshValFun,

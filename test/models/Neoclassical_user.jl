@@ -1,3 +1,5 @@
+using NLsolve, Distributions
+
 function NeoClassicalSimple(;
 	α = 0.67,
 	β = 0.9,

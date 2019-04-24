@@ -1,22 +1,36 @@
-
 using DiscreteDynamicProgramming, DataFrames, Gadfly
+using InteractiveUtils, BenchmarkTools
 
-p_neoclassical = createmodel(:NeoClassicalSimple; nK = 300, nz = 15, γ = 2., F = 0., β=0.95)
-t_neo = @timed solve(p_neoclassical, intdim = :separable,
-	concavity = false, monotonicity = false,
-	rewardmat=:prebuild)
-t_neo_fast = @timed solve(p_neoclassical, intdim = :separable,
-	concavity = true, monotonicity = true,
-	rewardmat=:prebuild_partial)
+include("../test/models/Neoclassical_user.jl")
+include("../test/models/Intangible_user.jl")
+createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
 
-p_intan = createmodel(:Intangible; nK = 50, nN = 25, nz=5, β=0.95)
-t_intan = @timed solve(p_intan, intdim = :separable,
-	concavity = false, monotonicity = false, rewardmat=:prebuild)
-t_intan_fast = @timed solve(p_intan, intdim = :separable,
-	concavity = true, monotonicity = true, rewardmat=:prebuild_partial)
+model_par = Dict(:nK => 300, :nz => 15, :γ => 2., :β=>0.95)
+p_neo = createmodel(:NeoClassicalSimple; model_par..., intdim=:Separable_ExogStates)
 
-test1 = "neoclassical model"
-test2 = "intangibles model"
+# precompile
+solve(p_neo; concavity = false, monotonicity = false, rewardcall=:pre)
+solve(p_neo, concavity = true, monotonicity = true,
+	rewardcall=:pre_partial)
+
+# measure
+t_neo = @timed solve(p_neo; concavity = false, monotonicity = false, rewardcall=:pre)
+t_neo_fast = @timed solve(p_neo, concavity = true, monotonicity = true,
+	rewardcall=:pre_partial)
+
+model_par = Dict(:nK => 50, :nN=>25, :nz=>5, :γ=>2., :β=>0.95)
+p_intan = createmodel(:Intangible; model_par..., intdim=:Separable_ExogStates)
+
+solve(p_intan, concavity = false, monotonicity = false, rewardcall=:pre)
+solve(p_intan, concavity = true, monotonicity = true, rewardcall=:pre_partial)
+
+t_intan = @timed solve(p_intan,
+	concavity = false, monotonicity = false, rewardcall=:pre)
+t_intan_fast = @timed solve(p_intan,
+	concavity = true, monotonicity = true, rewardcall=:pre_partial)
+
+test1 = "one choice var"
+test2 = "two choice var"
 method1 = "standard"
 method2 = "accelerated"
 df = DataFrame(test = test1, method = method1, time = t_neo[2])

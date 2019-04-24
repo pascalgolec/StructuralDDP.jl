@@ -4,7 +4,6 @@ module DiscreteDynamicProgramming
 	using QuantEcon: qnwnorm, qnwunif, qnwlogn, gridmake, DiscreteDP, VFI
 	using Interpolations, Distributions, TreeViews, DataFrames
 	using SparseArrays, LinearAlgebra
-	using NLsolve # to find steady state
 	using Test
 
 	import QuantEcon: solve
@@ -13,28 +12,17 @@ module DiscreteDynamicProgramming
 
 	using DocStringExtensions
 
-	export DiscreteDynamicProblem
+	export DiscreteDynamicProblem, DDP
 	export createmodel
-	export solve, transitionmatrix, value, policy
-	export drawshocks, simulate, policy, states, value
-	export compare
-
-	# using DiscreteDynamicModels
+	export solve, transitionmatrix, value, policy, compare
+	export drawshocks, simulate, policy, states, value, DataFrame
 
 	include("utils.jl")
 
 	# type constructor
-	include("Transition.jl")
-	include("DiscreteDynamicProblem.jl")
-	# include("DiscreteDynamicProblem_interface.jl")
-
-	# Models
-	include("models/Neoclassical_user.jl")
-	include("models/Intangible_user.jl")
-
-	# for using createmodel syntax:
-	createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
-	# e.g. createmodel(:NeoClassicalSimple; nK = 30, nz=15)
+	include("problem/Transition.jl")
+	include("problem/DiscreteDynamicProblem.jl")
+	include("problem/DiscreteDynamicProblem_interface.jl")
 
 	# Solver
 	include("solve/constructors.jl")
@@ -45,11 +33,15 @@ module DiscreteDynamicProgramming
 	include("solve/twochoicevar.jl")
 	include("solve/state_action.jl")
 	include("solve/initialendogstatevars.jl")
-	include("solve/compare.jl")
 
 	# simulator
 	include("simulate/constructor.jl")
 	include("simulate/shocks.jl")
 	include("simulate/simulate.jl")
+
+	# Models for testing
+	include("../test/models/Neoclassical_user.jl")
+	include("../test/models/Intangible_user.jl")
+	createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
 
 end

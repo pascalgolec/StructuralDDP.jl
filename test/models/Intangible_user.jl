@@ -1,3 +1,5 @@
+using NLsolve, Distributions
+
 function Intangible(;
 	β   = 0.90,
 	α  = 0.67,

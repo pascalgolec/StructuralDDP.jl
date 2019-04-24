@@ -143,7 +143,6 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC,ID<:IntDim,RF,TF,D<:D
 end
 
 
-
 const DDP = DiscreteDynamicProblem
 DDP(tStateVectors::NTuple{nStateVars, Vector{Float64}},
 	tChoiceVectors::NTuple{nChoiceVars, typeC}, args...) where

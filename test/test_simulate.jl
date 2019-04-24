@@ -1,9 +1,4 @@
-using DiscreteDynamicProgramming
-using Test
 using DataFrames
-tol = 1e-4
-
-# todo: find a better way to test rather than just calling the simulate function
 
 dipar = Dict(:nK => 40, :nz => 5, :γ => 2., :F => 0., :τ => 0.3)
 p_neo_all = createmodel(:NeoClassicalSimple; dipar..., :intdim=>:All)
@@ -39,9 +34,9 @@ shocks_neo = drawshocks(p_neo_all, nPeriods=40, nFirms=100)
 	    sim_2 = simulate(sol_neo_sep, shocks_neo; sim_opt...)
 	    sim_3 = simulate(sol_neo_sep_states, shocks_neo; sim_opt...)
 	    sim_4 = simulate(sol_neo_sep_exogstates, shocks_neo; sim_opt...)
-		@test isapprox(Array(sim_1), Array(sim_2), rtol=tol)
-		@test isapprox(Array(sim_2), Array(sim_3), rtol=tol)
-		@test isapprox(Array(sim_3), Array(sim_4), rtol=tol)
+		@test isapprox(Array(sim_1), Array(sim_2), rtol=mytol)
+		@test isapprox(Array(sim_2), Array(sim_3), rtol=mytol)
+		@test isapprox(Array(sim_3), Array(sim_4), rtol=mytol)
 	end
 	@testset "initialize_exact" begin
 		sim_opt = Dict(:initialize_exact=>true, :get_value=>true)
@@ -49,9 +44,9 @@ shocks_neo = drawshocks(p_neo_all, nPeriods=40, nFirms=100)
 	    sim_2 = simulate(sol_neo_sep, shocks_neo; sim_opt...)
 	    sim_3 = simulate(sol_neo_sep_states, shocks_neo; sim_opt...)
 	    sim_4 = simulate(sol_neo_sep_exogstates, shocks_neo; sim_opt...)
-		@test isapprox(Array(sim_1), Array(sim_2), rtol=tol)
-		@test isapprox(Array(sim_2), Array(sim_3), rtol=tol)
-		@test isapprox(Array(sim_3), Array(sim_4), rtol=tol)
+		@test isapprox(Array(sim_1), Array(sim_2), rtol=mytol)
+		@test isapprox(Array(sim_2), Array(sim_3), rtol=mytol)
+		@test isapprox(Array(sim_3), Array(sim_4), rtol=mytol)
 	end
 end
 
@@ -90,9 +85,9 @@ shocks_int = drawshocks(p_int_all, nPeriods=20, nFirms=10)
 	    sim_2 = simulate(sol_int_sep, shocks_int; sim_opt...)
 	    sim_3 = simulate(sol_int_sep_states, shocks_int; sim_opt...)
 	    sim_4 = simulate(sol_int_sep_exogstates, shocks_int; sim_opt...)
-		@test isapprox(Array(sim_1), Array(sim_2), rtol=tol)
-		@test isapprox(Array(sim_2), Array(sim_3), rtol=tol)
-		@test isapprox(Array(sim_3), Array(sim_4), rtol=tol)
+		@test isapprox(Array(sim_1), Array(sim_2), rtol=mytol)
+		@test isapprox(Array(sim_2), Array(sim_3), rtol=mytol)
+		@test isapprox(Array(sim_3), Array(sim_4), rtol=mytol)
 	end
 	@testset "initialize_exact" begin
 		sim_opt = Dict(:initialize_exact=>true, :get_value=>true)
@@ -100,8 +95,8 @@ shocks_int = drawshocks(p_int_all, nPeriods=20, nFirms=10)
 	    sim_2 = simulate(sol_int_sep, shocks_int; sim_opt...)
 	    sim_3 = simulate(sol_int_sep_states, shocks_int; sim_opt...)
 	    sim_4 = simulate(sol_int_sep_exogstates, shocks_int; sim_opt...)
-		@test isapprox(Array(sim_1), Array(sim_2), rtol=tol)
-		@test isapprox(Array(sim_2), Array(sim_3), rtol=tol)
-		@test isapprox(Array(sim_3), Array(sim_4), rtol=tol)
+		@test isapprox(Array(sim_1), Array(sim_2), rtol=mytol)
+		@test isapprox(Array(sim_2), Array(sim_3), rtol=mytol)
+		@test isapprox(Array(sim_3), Array(sim_4), rtol=mytol)
 	end
 end

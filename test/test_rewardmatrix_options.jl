@@ -1,8 +1,3 @@
-using DiscreteDynamicProgramming
-using Test
-mytol = 1e-4
-
-
 p_neo = createmodel(:NeoClassicalSimple; nK = 40, nz = 11, γ = 2., F = 0., τ = 0., κ=0.,
 	intdim = :Separable)
 sol_neo_prebuild = solve(p_neo; rewardcall=:pre)

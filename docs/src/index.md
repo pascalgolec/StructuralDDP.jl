@@ -25,11 +25,7 @@ Each infinite-horizon dynamic maximization problem has an objective function as 
 \mathbb{E} \sum_{t=0}^{\infty} \beta^t r(s_t, a_t)
 ```
 
-where
-
-- ``s_t`` are the state variables and ``a_t`` the choice variable(s).
-- ``r(s_t, a_t)`` is the current reward
-- ``β`` is the discount factor
+where ``s_t`` are the state variables and ``a_t`` the choice variable(s), ``r(s_t, a_t)`` is the current reward and ``β`` is the discount factor.
 
 The state variables evolve according to a transition function ``\Phi(s_t, a_t, \varepsilon_{t+1})`` depending on ``(s_t, a_t)`` and i.i.d shocks ``\varepsilon_{t+1}``. For a more formal definiton, see the [QuantEcon lectures](https://lectures.quantecon.org/jl/discrete_dp.html#Discrete-DPs). We can write the problem in a recursive form:
 
@@ -48,7 +44,7 @@ V(K,z) = \max_i K^\alpha e^z - i K - \frac{\gamma}{2} i^2 K + \beta \mathbb{E} V
 z' = \rho z + \sigma \varepsilon, \quad \varepsilon \sim \mathcal{N}(0,1)
 ```
 
-where ``K`` is current and ``K'`` next period's capital and ``i`` is the (net) capital investment rate. Capital depreciates at the rate ``\delta``. Investment ``i`` adds to the capital stock but takes a period to become productive. The parameter ``\gamma`` determines the adjustment costs for investment, over and above the cost of capital ``i K``. The productivity of capital is determined by ``z``, which follows an AR(1) process with autocorrelation ``\rho`` and volatility ``\sigma``. There are decreasing returns to scale for ``\alpha < 1``, so there is an optimal scale of the firm depending on ``z``. The problem of the firm is to choose the optimal scale for next period.
+where ``K`` is current and ``K'`` next period's capital and ``i`` is the (net) capital investment rate. Capital depreciates at the rate ``\delta``. Investment ``i`` adds to the capital stock but takes a period to become productive. The parameter ``\gamma`` determines the adjustment costs for investment, over and above the cost of capital. The productivity of capital is determined by ``z``, which follows an AR(1) process with autocorrelation ``\rho`` and volatility ``\sigma``. There are decreasing returns to scale for ``\alpha < 1``, so there is an optimal scale of the firm depending on ``z``. The problem of the firm is to choose the optimal scale for next period.
 
 We set up the problem by defining the state and action space, the reward function, the transition function and the factor at which future rewards are discounted.
 
@@ -112,13 +108,13 @@ prob = DiscreteDynamicProblem(
             β)
 ```
 
-The `DiscreteDynamicProblem` constructor creates a problem instance. The order of the variables must be exacly as in the example above.
+The `DiscreteDynamicProblem` constructor creates a problem instance. It is important that the order of the arguments in the `reward` function, `transition` function and `DiscreteDynamicProblem` are the same as in the example above.
 
 The package supports any type of univariate shock distribution and multivariate-normal shock distributions. [Distributions.jl](https://juliastats.github.io/Distributions.jl/stable/) contains the syntax for implementing different shock distributions.
 
-The state space is strictly enforced - the state variables are always forced to stay within their bounds upper and lower bounds.
-
 Note that in the problem definition above, the transition of the state variables is a function of states, choices and shocks. The solver will integrate over a high dimension of variables when calculating expectations, which is rather slow. The [problem options section](#Problem-Options-1) explains how to reformulate a large family of problems including the one above to gain orders of magnitude speedup.
+
+The definition of the discrete state and action space means that the problem is solved for each point in the state space, where there finite number of possible actions. When simulating the model, linear interpolation is used to approximate the solution between grid points. Note that the state space is strict - the state variables are always forced to stay within their bounds upper and lower bounds.
 
 ## Step 2: solve problem
 
@@ -128,7 +124,7 @@ We can solve the model with the function `solve`, which returns the value and op
 sol = solve(prob)
 ```
 
-The result of `solve` is a solution object. We can retreive th value function with `value` and the policy function with `policy`. For example, the value and policy for the fifth grid point of the `K` and the third grid point of `z` are:
+The result of `solve` is a solution object. We can retreive the value function with `value` and the policy function with `policy`. For example, the value and policy for the fifth grid point of the `K` and the third grid point of `z` are:
 ```julia
 value(sol)[5, 3] # 18.9
 policy(sol)[5, 3] # 0.611
@@ -141,11 +137,11 @@ policy(sol)[2][5, 3]
 
 The `policy` and `value` objects that are returned by default act as a continuous solution via an interpolation. We can access the interpolated values by treating them as functions, for example:
 ```julia
-policy(sol)(10., 0.5) # 0.274 = the optimal policy for state one = 10. and state two = 0.5
+policy(sol)(10.2, 0.5) # 0.273 = optimal policy for K = 10.2 and z = 0.5
 ```
-Note the difference between these: indexing with `[i,j]` is the policy at the (i,j)th grid point, while `(K,z)` is an interpolation for state `(K,z)`. Also note that if an interpolation outside of the state grid is requested, then the value/policy at the closest grid points is returned instead.
+Note the difference between these: indexing with `[i,j]` is the policy at the (i,j)th grid point, while `(K,z)` is an interpolation for state $(K,z)$. Also note that if an interpolation outside of the state grid is requested, then the value/policy at the closest grid points is returned instead.
 
-The solver can be controlled using different options which are discribed in the [Solver Options section](#Solver-Options-1). For example, we can tell the solver to precompute the reward for the different combinations of states and choices before starting the value function iteration:
+The solver can be controlled using different options which are discribed in the [Solver Options section](#Solver-Options-1). For example, we can tell the solver to precompute the reward for all different combinations of states and choices before starting the value function iteration:
 
 ```julia
 sol = solve(prob; rewardcall=:pre)
@@ -182,13 +178,13 @@ using Plots
 histogram(df_sim.state_1, xlabel="K",legend=false)
 ```
 
-Or the time of capital of each firm takes:
+or the each firm's capital stock over time:
 ```julia
-using StatPlots
+using StatsPlots
 @df df_sim plot(:period, :state_1, group=:firm, xlabel="time", ylabel="K")
 ```
 
-By default, all firms start with the same state variables in the simulation. More details about this and more sophisticated starting points are in the [simulator options section](#Simulator-Options-1).
+By default, all firms start with the same state variables in the simulation. The [simulator options section](#Simulator-Options-1) contains more details about this and more sophisticated methods to intialize the simulation.
 
 # Problem Options
 
@@ -196,7 +192,7 @@ By default, all firms start with the same state variables in the simulation. Mor
 
 The solver must calculate expectations of future states. By default, it must integrate over all state variables, choice variables and shocks, i.e. ``s_{t+1} = \Phi(s_t, a_t, \varepsilon_{t+1})``. Many problems can be rewritten in a way such that we can integrate over fewer variables, which leads to orders of magnitude speedup.
 
-The first step is to rewrite the problem such that the action is equal to the corresponding next period's state. In our example, the action ``a`` of the firm then is not investment but simply next period's capital stock ``K'``.
+The first step is to rewrite the problem such that the action is equal to the corresponding next period's state. In our example, the action ``a`` of the firm then is not the investment rate but simply next period's capital stock ``K'``.
 
 ```math
 V(K,z) = \max_a K^\alpha e^z - (a - (1-\delta) K) - \frac{\gamma}{2} \frac{(a - (1-\delta) K)^2}{K} + \beta \mathbb{E} V(K', z') \\
@@ -255,14 +251,14 @@ prob = DiscreteDynamicProblem(...,
 Note that the transition function only takes the exogenous states and shocks as an input and that the integration dimension now is of the type `:Separable_ExogStates`.
 
 
-The following summarises the four different types of integration dimensions:
+Summarizing he four different types of integration dimensions:
 
 - `:All` - next period states as a function of states, actions and shocks, i.e. ``s' = \Phi(s, a, \varepsilon')``. This formulation is the slowest and corresponds to the baseline example.
 - `:Separable` - next period exogenous states as a function of all states, actions and shocks, i.e. ``s'_e = \Phi(s, a, \varepsilon')``.
 - `:Separable_States` - next period exogenous states as a function of all states and shocks, i.e. ``s'_e = \Phi(s, \varepsilon')``.
 - `:Separable_ExogStates` - next period exogenous states as a function of only exogenous states and shocks, i.e. ``s'_e = \Phi(s_e, \varepsilon')``.
 
-For the solver to be fast one should use the lowest possible dimension. For all separable integration dimensions one must specify which state vector corresponds to the choice vector, i.e. `tChoiceVectors = (1,)`. Important: when defining the state space `tStateVectors`, the endogenous state variable(s) must come first.
+For the solver to be fast one should use the lowest possible dimension possible. For all separable integration dimensions one must specify which state vector corresponds to the choice vector, i.e. `tChoiceVectors = (1,)`. Important: when defining the state space `tStateVectors`, the endogenous state variable(s) must come before the exogenous variables.
 
 ## Concise notation
 
@@ -287,11 +283,13 @@ There are different options available which make solving the model faster. One s
 
 ### Monotonicity and concavity
 
+From experience, these two options can lead to orders of magnitude speedup.
+
 The `monotonicity` keyword allows the solver to exploit the monotonicity of the choice of next period's state in the current state. Put differently, if ``s^{d*}_{t+1}`` is the optimal choice for ``s^{d*}_t``, then the optimal choice for ``s^{d'}_t \geq s^{d*}_t`` is ``s^{d'}_{t+1} \geq s^{d*}_{t+1}`` (keeping fixed the other state variables). The default is `false`.
 
 The `concavity` keyword allows the solver to exploit the concavity of the value function in the choice of next period's state. Put differently, if ``V(s^{d'}_{t+1}, s^d_t, s^s_t) < V(s^{d*}_{t+1}, s^d_t, s^s_t)``, then also ``V(s^d_{t+1}, s^d_t, s^s_t) < V(s^{d'}_{t+1}, s^d_t, s^s_t)`` for any ``s^d_{t+1} > s^{d'}_{t+1}``. The default is `false`.
 
-A handy way to check whether the problem fulfils these conditions is the `compare` function. It checks whether tow different solutions are identical:
+A handy way to check whether the problem fulfils these conditions is the `compare` function. It checks whether two different solutions are identical:
 
 ```julia
 sol = solve(prob; concavity=false)
@@ -313,10 +311,10 @@ The `rewardcall` keyword determines whether (part of) the reward for each state-
 `:pre_partial` - precompute part of the reward before the VFI that only depends on states, but not choices. From experience, this option is the fastest when combined with monotonicity and concavity. To exploit this option, we must supply the inner and outer part of the reward function when defining the problem. The outer part is the same argument in `DDP` as the standard reward function and the partial reward function enters as a keyword arguement `rewardfunc_partial`. In the solver we must then specify that the reward should be partially precomputed.
 
 ```julia
-function reward(Partial_Reward, vStateVars, Kprime)
+function reward(partial_reward, vStateVars, Kprime)
     K = vStateVars[1]
-    capx = Kprime - (1-δ)K
-    return (1-τ)*(Partial_Reward - F*K - γ/2*(capx/K- δ)^2 * K) - (1-κ*(capx<0))*capx + τ * δ * K
+    i = Kprime/K - (1-δ)
+    return partial_reward - γ/2*i^2 * K) - i*K
 end
 reward_partial(vStateVars) = vStateVars[1]^α * exp(vStateVars[2])
 
@@ -329,7 +327,7 @@ prob = DiscreteDynamicProblem(
     β;
     rewardfunc_partial = reward_partial)
 
-solve(prob, rewardcall = :pre_partial)
+solve(prob; rewardcall = :pre_partial)
 ```
 
 
@@ -347,19 +345,19 @@ sol = solve(prob, mTransition = tauchen(nz, ρ, σ))
 ## Miscellaneous
 
 - `epsilon`: Value for epsilon-optimality. Determines how accurate the solution is. Default is 1e-3.
-- `max_iter`: Maximum number of iterations before stopping. Defaults to 1e5.
+- `max_iter`: Maximum number of iterations before stopping. Default is 500.
 - `disp`: whether to display number of iterations and epsilon-convergence during solving. Default is false.
 - `disp_each_iter`: wait how many iterations for displaying status during solving. Default is 10.
 
 # Simulator Options
 
-The keyword `get_value` determines whether the simulator should also compute the value at the beginning of each time period. This takes more time. The default is `get_value = false.`.
+The keyword `get_value` determines whether the simulator should also compute the value at the beginning of each time period. This takes more time. The default is `get_value = false`.
 
 ## Initialization
 
-The default setting how the initial state variables are drawn at t=0 is the burn-in method. Here, each firm starts with states that are the median values of the state space. The idea is to simulate the model for more periods than necessary and then only analyse the simulated values after 60 periods or so on, depending on the persistence in the model.
+The default setting of how the initial state variables are drawn at t=0 is the burn-in method. Here, each firm starts with states that are the median values of the state space. The idea is to simulate the model for more periods than necessary and then only analyse the simulated values after 60 periods or so on, depending on the persistence in the model.
 
-There is also an option for more sophisticated initialization, where the initial endogenous state variables are chosen by the firm subject to a loss function and the exogenous ones are predetermined or random. In the example, the initial state variables are determined as follows:
+There is also an option for more sophisticated initialization, where the initial endogenous state variables are chosen by the firm subject to a loss function and the exogenous ones are predetermined or random. In the example, we assume the initial state variables are determined as follows:
 
 ```math
 V_0(z_0) = \max_{K_0} V(K_0,z_0) - (1 + (1 + C0) * K_0 \\
@@ -367,21 +365,21 @@ V_0(z_0) = \max_{K_0} V(K_0,z_0) - (1 + (1 + C0) * K_0 \\
 ε_0 \sim \mathcal{N}(0,1)
 ```
 
-The initial productivity `z_0` is drawn from a normal distribution. Depending on `z_0`, the firm chooses it's initial capital stock `K_0` to maximize it's continuation value, accounting for the fact that there is a deadweight cost `C_0` to acquire `K_0`. If `C_0 > 0`, then `K_0` will be optimally chosen above it's steady state value.
+The initial productivity $z_0$ is drawn from a normal distribution. Depending on $z_0$, the firm chooses it's initial capital stock $K_0$ to maximize it's continuation value, accounting for the fact that there is a deadweight cost $C_0$ to acquire $K_0$. If $C_0 > 0$, then $K_0$ will be optimally chosen below it's steady state value.
 
-This probelm entails coding the following functions as an additional input when constucting `DiscreteDynamicProblem`:
+We must code the following as an additional input when constucting `DiscreteDynamicProblem`:
 
 ```julia
 initprob(value, vChoices) = value - (1 + (1-β)/β + C0) * vChoices[1]
 init(vShocks) = vShocks[1] * sqrt(σ^2 / (1-ρ^2)) # = z0
-prob = DiscreteDynamicProblem(<other variables>;
+prob = DiscreteDynamicProblem(...;
     initializationproblem = initprob,
     initializefunc = init,
     shockdist_initial = Normal(),
     tChoiceVectorsZero = (1,)) # which state variable does the firm choose at t=0
 ```
 
-The `solve` function then also finds the optimal policy at t=0 when the problem is defined this way. We can also access the solutions via:
+The `solve` function then also finds the optimal policy at t=0 when the problem is defined this way. We can access the solutions via:
 
 ```julia
 sol = solve(prob)
@@ -413,3 +411,4 @@ This can be useful for doing comparative statics on the model parameters, and wa
 - allow parametric types in problem definition of state and choice vectors, i.e. `AbstractVector{T}` instead of `Vector{Float64}`
 - allow `LabelledArrays.jl` in problem definition
 - allow discontinuities in the reward function with `monotonicity` and `concavity`
+- support firm exit

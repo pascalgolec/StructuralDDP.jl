@@ -1,9 +1,3 @@
-using DiscreteDynamicProgramming
-using Test
-mytol = 1e-4
-
-# CHANGE TO F > 0
-
 # Single choice variable
 dipar = Dict(:nK => 40, :nz => 5, :γ => 2., :F => 0., :τ => 0.)
 p_neoclassical = createmodel(:NeoClassicalSimple; dipar..., intdim = :Separable_ExogStates)

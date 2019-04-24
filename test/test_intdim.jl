@@ -1,11 +1,3 @@
-
-using DiscreteDynamicProgramming
-# include("utils.jl")
-using Test
-mytol = 1e-4
-
-# CHANGE TO F > 0
-
 model = :NeoClassicalSimple
 dipar = Dict(:nK => 40, :nz => 5, :γ => 0.5, :F => 0., :τ => 0.3)
 p_neoclassical_All = createmodel(model; dipar..., intdim = :All)
