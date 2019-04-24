@@ -11,25 +11,29 @@ initialize_choices(sol::DDPSolutionZero{NS,NC,NE0,NC0}, vExogStates0) where {NS,
 initialize_choices(sol::DDPSolutionZero{NS,NC,NE0,1}, vExogStates0) where {NS,NC,NE0} =
 	sol.policy0[1](vExogStates0...)
 
-
-function initialize_exact!(vStates0, sol::DDPSolutionZero{NS,NC,NE0,1},
-		init_opt::InitializationOptions{1}, vShocks) where {NS,NC,NE0}
-	# if dimShocks == 1
-		vStates0[2:end] .= init_opt.func(vShocks[1])
-	# else
-	# 	vStates0[2:end] .= initializefunc(vShocks)
-	# end
-	vStates0[1] = initialize_choices(sol, vStates0[2:end])
-end
-
+"""Initialization with shocks and choices"""
 function initialize_exact!(vStates0, sol::DDPSolutionZero{NS,NC,NE0,NC0},
 		init_opt::InitializationOptions{NC0}, vShocks) where {NS,NC,NE0,NC0}
-	# if dimShocks == 1
-		vStates0[1+NC0:end] .= init_opt.func(vShocks[1])
-	# else
-	# 	vStates0[1+NC0:end] .= init_opt.func(vShocks)
-	# end
+	vStates0[1+NC0:end] .= init_opt.func(vShocks)
 	vStates0[1:NC0] .= initialize_choices(sol, vStates0[1+NC0:end])
+end
+"""when initial shock is one-dimensional."""
+function initialize_exact!(vStates0, sol::DDPSolutionZero{NS,NC,NE0,NC0},
+		init_opt::InitializationOptions{NC0,1}, vShocks) where {NS,NC,NE0,NC0}
+	vStates0[1+NC0:end] .= init_opt.func(vShocks[1])
+	vStates0[1:NC0] .= initialize_choices(sol, vStates0[1+NC0:end])
+end
+"""Only one choice variable"""
+function initialize_exact!(vStates0, sol::DDPSolutionZero{NS,NC,NE0,1},
+		init_opt::InitializationOptions{1}, vShocks) where {NS,NC,NE0}
+	vStates0[2:end] .= init_opt.func(vShocks)
+	vStates0[1] = initialize_choices(sol, vStates0[2:end])
+end
+"""Only one choice variable and shock is one-dimensional."""
+function initialize_exact!(vStates0, sol::DDPSolutionZero{NS,NC,NE0,1},
+		init_opt::InitializationOptions{1,1}, vShocks) where {NS,NC,NE0}
+	vStates0[2:end] .= init_opt.func(vShocks[1])
+	vStates0[1] = initialize_choices(sol, vStates0[2:end])
 end
 
 
@@ -77,22 +81,22 @@ simulate(sol::AbstractDDPSolution;
 			nFirms::Int64 = 100, kwargs...) =
 	_simulate(sol.prob, sol, drawshocks(sol.prob, nPeriods=nPeriods, nFirms=nFirms); kwargs...)
 
-simulate(sol::AbstractDDPSolution, shocks::DDPShocks; kwargs...) =
+simulate(sol::AbstractDDPSolution, shocks::AbstractDDPShocks; kwargs...) =
 	_simulate(sol.prob, sol, shocks; kwargs...)
 
 simulate(p::DDP; kwargs...) =
 	_simulate(p, drawshocks(p); kwargs...)
-simulate(p::DDP, shocks::DDPShocks; kwargs...) =
+simulate(p::DDP, shocks::AbstractDDPShocks; kwargs...) =
 	_simulate(p, solve(p), shocks; kwargs...)
 
 
-_simulate(p::DDP, sol::AbstractDDPSolution, shocks::DDPShocks;
+_simulate(p::DDP, sol::AbstractDDPSolution, shocks::AbstractDDPShocks;
         initialize_exact::Bool = typeof(sol) <: DDPSolutionZero,
 		get_value::Bool = false) =
 		_simulate(p, sol, shocks, p.transfunc, p.options.initialize,
 				initialize_exact, get_value)
 
-function _simulate(p::DDP{NS,NC}, sol::AbstractDDPSolution, shocks::DDPShocks,
+function _simulate(p::DDP{NS,NC}, sol::AbstractDDPSolution, shocks::AbstractDDPShocks,
 				transfunc::Transition{ID,NC,dimShocks},
 				init_opt::Union{InitializationOptions,Nothing},
 				initialize_exact::Bool,
@@ -122,8 +126,14 @@ function _simulate(p::DDP{NS,NC}, sol::AbstractDDPSolution, shocks::DDPShocks,
 		vChoice_i = @view aChoice[:,:,i]
         mShocks_i = @view shocks.aSim[:,:,i]
 
+		if initialize_exact
+        	mShocks0_i = @view shocks.aInit[:,1,i]
+		else
+			mShocks0_i = nothing
+		end
+
 		initialize!(@view(vSim_i[:,1]), initialize_exact, sol, init_opt,
-				 @view(mShocks_i[:,1]))
+				 mShocks0_i)
 
 		for t = 1 : nPeriods
 
@@ -141,9 +151,9 @@ function _simulate(p::DDP{NS,NC}, sol::AbstractDDPSolution, shocks::DDPShocks,
 			# 	end
 			# end # exit condition
 
-		end
+		end # period t
 
-	end # firm loop
+	end # firm i
 
 	if get_value
 		return DDPSimulation(p, sol, mVal, aSim, aChoice)

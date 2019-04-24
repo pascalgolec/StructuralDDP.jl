@@ -357,40 +357,59 @@ The keyword `get_value` determines whether the simulator should also compute the
 
 ## Initialization
 
-The default setting how the initial state variables are drawn at t=0 is the burn-in method. Here, each firm starts with states that are the median values of the state space. The idea is to simulate the model for more periods than necessary and then only analyse the simulated values after 60 periods or so on, depending on the model.
+The default setting how the initial state variables are drawn at t=0 is the burn-in method. Here, each firm starts with states that are the median values of the state space. The idea is to simulate the model for more periods than necessary and then only analyse the simulated values after 60 periods or so on, depending on the persistence in the model.
 
-There is also an option for more sophisticated initialization, where the initial endogenous state variables are chosen by the firm subject to a loss function and the exogenous ones are predetermined or random. For the neoclassical model, this entails coding the following functions as an additional input into the problem:
+There is also an option for more sophisticated initialization, where the initial endogenous state variables are chosen by the firm subject to a loss function and the exogenous ones are predetermined or random. In the example, the initial state variables are determined as follows:
+
+```math
+V_0(z_0) = \max_{K_0} V(K_0,z_0) - (1 + (1 + C0) * K_0 \\
+\text{where } z_0 = \sqrt{\frac{\sigma^2}{1-\rho^2}} ε_0 \\
+ε_0 \sim \mathcal{N}(0,1)
+```
+
+The initial productivity `z_0` is drawn from a normal distribution. Depending on `z_0`, the firm chooses it's initial capital stock `K_0` to maximize it's continuation value, accounting for the fact that there is a deadweight cost `C_0` to acquire `K_0`. If `C_0 > 0`, then `K_0` will be optimally chosen above it's steady state value.
+
+This probelm entails coding the following functions as an additional input when constucting `DiscreteDynamicProblem`:
 
 ```julia
 initprob(value, vChoices) = value - (1 + (1-β)/β + C0) * vChoices[1]
 init(vShocks) = vShocks[1] * sqrt(σ^2 / (1-ρ^2)) # = z0
-createDiscreteDynamicProblem(<other variables>;
+prob = DiscreteDynamicProblem(<other variables>;
     initializationproblem = initprob,
     initializefunc = init,
-    tChoiceVectorsZero = (1,))
+    shockdist_initial = Normal(),
+    tChoiceVectorsZero = (1,)) # which state variable does the firm choose at t=0
 ```
 
-If we have a problem where our choice variables are not exacly equal to some of the state variables, then we need to specify additionally which state variables the firm chooses at t=0. This is achieved with the option `tChoiceVectorsZero`, i.e. `tChoiceVectorsZero = (1,)` for the neoclassical model. If `tChoiceVectorsZero` is not specified, then the solver/simulator uses indices of the choice variables for the dynamic optimization.
+The `solve` function then also finds the optimal policy at t=0 when the problem is defined this way. We can also access the solutions via:
 
-The keyword argument `initialize_exact` controls whether the simulator should use the sophisticated method or else resort to the default. The default is `true`.
+```julia
+sol = solve(prob)
+value0(sol)[5] # initial value if z0 = fifth grid point
+value0(sol)(0.5) # initial value if z0 = 0.5
+policy0(sol)[5] # initial policy K_0 if z0 = fifth grid point
+policy0(sol)[5, 3] # initial policy K_0 if z0 = 0.5
+```
+
+Even if the initializationproblem is specified this way, there is still an option to resort to the burn-in method. The keyword argument `initialize_exact` controls whether the simulator should use the sophisticated method or not. The default is `true`.
 
 ## Fixed shock draws
 
-It is also possible to simulate a model solution using the identical draw of shocks:
+It is also possible to simulate a model solution using an identical draw of shocks:
 
 ```julia
 shocks = drawshocks(prob, nPeriods = 60, nFirms = 100)
 sim = simulate(sol, shocks)
 ```
 
-Note: the draw of shocks refers to the supplied shock distribution in the problem defintion. If the shock distribution is parametrized, for example by its variance, then one should not do comparative statics on those parameters.
+This can be useful for doing comparative statics on the model parameters, and wants to be sure that the shocks do not change. Note: the draw of shocks refers to the supplied shock distribution in the problem defintion. If the shock distribution is parametrized, for example by its variance, then one should not do comparative statics on those parameters.
 
 # notes
 
 ## To do
 
-- [ ] support more than two choice variables when the integration dimension is `separable`
-- [ ] plotrecipe for `DDPSolution`
-- [ ] allow parametric types in problem definition of state and choice vectors, i.e. `AbstractVector{T}` instead of `Vector{Float64}`
-- [ ] allow `LabelledArrays.jl` in problem definition
-- [ ] allow discontinuities in the reward function with `monotonicity` and `concavity`
+- support more than two choice variables when the integration dimension is `separable`
+- plotrecipe for `DDPSolution`
+- allow parametric types in problem definition of state and choice vectors, i.e. `AbstractVector{T}` instead of `Vector{Float64}`
+- allow `LabelledArrays.jl` in problem definition
+- allow discontinuities in the reward function with `monotonicity` and `concavity`

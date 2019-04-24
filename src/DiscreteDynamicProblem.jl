@@ -3,20 +3,24 @@
 # abstract type DiscreteDynamicModel end
 # const DDP = DiscreteDynamicModel
 
-struct InitializationOptions{NC0,C0<:Int,P,F}
+struct InitializationOptions{NC0,NSh,C0<:Int,D<:Distribution,P,F}
 	"""Objective function at t=0 to choose initial endogenous state variables."""
 	problem::P
 
 	"""Function that maps initial shocks and initial policy into state variables."""
 	func::F
 
+	"""Distribution of initial shocks."""
+	shockdist::D
+
 	"""Pointer towards choice of initial state variables."""
 	tChoiceVectorsZero::NTuple{NC0, C0}
 
-	function InitializationOptions{NC0,C0,P,F}(problem,
-		func, tChoiceVectorsZero::NTuple{NC0,C0},
+	function InitializationOptions{NC0,NSh,C0,D,P,F}(problem,
+		func, shockdist,
+		tChoiceVectorsZero::NTuple{NC0,C0},
 		tStateVectors::NTuple{NS,Vector{Float64}}) where
-			{NC0,C0<:Int,NS,P,F}
+			{NC0,NSh,C0<:Int,NS,D,P,F}
 
 		tChoiceVectorsZero[1] == 1 || error(
 		"Bad tChoiceVectorsZero: the first state variable must be the (first) choice variable in the intialization problem.")
@@ -24,15 +28,17 @@ struct InitializationOptions{NC0,C0<:Int,P,F}
 		tExogStateVectorsZero = getnonchoicevars(tStateVectors, tChoiceVectorsZero)
 		func_inbounds = wrapinbounds(func, tExogStateVectorsZero)
 
-		new{NC0,C0,typeof(problem),typeof(func_inbounds)}(problem, func_inbounds, tChoiceVectorsZero)
+		new{NC0,NSh,C0,typeof(shockdist),typeof(problem),typeof(func_inbounds)}(
+			problem, func_inbounds, shockdist, tChoiceVectorsZero)
 
 	end
 end
-InitializationOptions(problem, func,
+InitializationOptions(problem, func, shockdist::Distribution,
 	tChoiceVectorsZero::NTuple{NC0,C0},
 	tStateVectors::NTuple{NS,Vector{Float64}}) where {NC0,C0,NS} =
-	InitializationOptions{NC0,C0,typeof(problem),typeof(func)}(problem, func,
-		tChoiceVectorsZero,tStateVectors)
+	InitializationOptions{NC0,length(shockdist),C0,typeof(shockdist),
+		typeof(problem),typeof(func)}(
+		problem, func, shockdist, tChoiceVectorsZero,tStateVectors)
 
 
 struct DiscreteDynamicProblemOptions{RFP, I<:Union{InitializationOptions, Nothing}}
@@ -136,23 +142,6 @@ struct DiscreteDynamicProblem{nStateVars,nChoiceVars,typeC,ID<:IntDim,RF,TF,D<:D
 
 end
 
-"""Returns a modified version of the function f that if forced to stay between
-the bounds defined by the tuple of vectors tVectors"""
-function wrapinbounds(f, tVectors::NTuple{N,Vector{C}}) where {N,C}
-	lowerbounds::NTuple{N,C} = minimum.(tVectors)
-	upperbounds::NTuple{N,C} = maximum.(tVectors)
-	return function f2(args...)
-		inbounds.(f(args...), lowerbounds, upperbounds)
-	end
-end
-function wrapinbounds(f, tVectors::NTuple{1,Vector{C}}) where {C}
-	lowerbounds::C = minimum(tVectors[1])
-	upperbounds::C = maximum(tVectors[1])
-	return function f1(args...)
-		inbounds(f(args...), lowerbounds, upperbounds)
-	end
-end
-
 
 
 const DDP = DiscreteDynamicProblem
@@ -176,6 +165,7 @@ function DDP(
             rewardfunc_partial = nothing,
             initializationproblem = nothing,
             initializefunc = nothing,
+			shockdist_initial::Union{Distribution,Nothing} = shockdist,
             tChoiceVectorsZero::Union{NTuple{C0,Int64},Nothing} = nothing,
             ) where {I <: IntDim, dimStates, dimChoices, typeC<:Union{Vector{Float64}, Int64},
                 C0}
@@ -195,7 +185,7 @@ function DDP(
 		# init_options = InitializationOptions(initializationproblem, initializefunc_inbounds,
 		# 	tChoiceVectorsZero)
 		init_options = InitializationOptions(initializationproblem, initializefunc,
-			tChoiceVectorsZero, tStateVectors)
+			shockdist_initial, tChoiceVectorsZero, tStateVectors)
 	end
 
 	ddp_options = DDPOptions(rewardfunc_partial, init_options)

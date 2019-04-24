@@ -80,3 +80,7 @@ end
 value(sol::AbstractDDPSolution) = sol.value
 policy(sol::AbstractDDPSolution) = sol.policy
 policy(sol::AbstractDDPSolution{NS,1}) where NS = sol.policy[1]
+
+value0(sol::DDPSolutionZero) = sol.value0
+policy0(sol::DDPSolutionZero) = sol.policy0
+policy0(sol::DDPSolutionZero{NS,1}) where NS  = sol.policy0[1]

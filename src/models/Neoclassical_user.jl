@@ -111,10 +111,12 @@ function NeoClassicalSimple(;
 		    z0 = shock * sqrt(σ^2 / (1-ρ^2))
 			return z0
 		end
+		shockdist_initial = Normal()
 	else
 		tChoiceVectorsZero = nothing
 		initializationproblem = nothing
         initialize = nothing
+		shockdist_initial = nothing
 	end
 
 	DDP(tStateVectors,
@@ -127,6 +129,7 @@ function NeoClassicalSimple(;
         rewardfunc_partial = mygrossprofits,
         initializationproblem = initializationproblem,
         initializefunc = initialize,
+		shockdist_initial = shockdist_initial,
 		tChoiceVectorsZero = tChoiceVectorsZero,
         )
 end

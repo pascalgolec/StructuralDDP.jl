@@ -144,10 +144,12 @@ function Intangible(;
 			# z0 = inbounds(z0, tStateVectors[3][1], tStateVectors[3][end])
 			return z0
 		end
+		shockdist_initial = Normal()
 	else
 		tChoiceVectorsZero = nothing
 		initializationproblem = nothing
 		initialize = nothing
+		shockdist_initial = nothing
 	end
 
 	DDP(tStateVectors,
@@ -160,6 +162,7 @@ function Intangible(;
         rewardfunc_partial = mygrossprofits,
         initializationproblem = initializationproblem,
         initializefunc = initialize,
+		shockdist_initial = shockdist_initial,
 		tChoiceVectorsZero = tChoiceVectorsZero,
         )
 end
