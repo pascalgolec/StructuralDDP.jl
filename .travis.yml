@@ -1,18 +1,10 @@
 jobs:
   include:
     - stage: "Documentation"
-      julia:
-        - nightly
-        - release
-        - 1.1
-      matrix:
-        allow_failures:
-          - julia: nightly
+      julia: 1.1
       notifications:
         email: true
-      os:
-        - linux
-        - osx
+      os: osx
       script:
         - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
                                                Pkg.instantiate()'
