@@ -11,7 +11,3 @@ The following figure compares the speed of standard solution methods (value func
 ![alt text](benchmark/compare.svg "Benchmarking acceleration")
 
 In the structured approach we specified that only some of the state variables should be integrated when calculating expectations, that the optimal choices are monotone in some of the states and that the value function is concave in some of the states and finally that part of the reward matrix should be pre-built before calling the solver.
-
-# notes
-
-It features different options to add structure to the problem and provide information about its properties. A wide range of problems can be solved very fast this way.

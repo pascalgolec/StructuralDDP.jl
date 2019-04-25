@@ -1,0 +1,24 @@
+site_name:           StructuralDDP.jl
+repo_url:            https://github.com/pascalgolec/StructuralDDP.jl
+site_description:    Structured Discrete Dynamic Programming in Julia
+site_author:         Pascal Golec
+theme:               readthedocs
+
+markdown_extensions:
+  - codehilite
+  - extra
+  - tables
+  - fenced_code
+  - mdx_math # For LaTeX
+
+extra_css:
+  - assets/Documenter.css
+
+extra_javascript:
+  - https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML
+  - assets/mathjaxhelper.js
+
+docs_dir: 'build'
+
+pages:
+index.md
