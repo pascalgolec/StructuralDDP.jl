@@ -20,5 +20,5 @@ extra_javascript:
 
 docs_dir: 'build'
 
-pages:
-index.md
+nav:
+- Introduction: index.md
