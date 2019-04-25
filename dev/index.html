@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>StructuralDDP.jl Documentation · StructuralDDP.jl</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link href="assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><h1>StructuralDDP.jl</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="search/"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li class="current"><a class="toctext" href>StructuralDDP.jl Documentation</a><ul class="internal"><li><a class="toctext" href="#Step-1:-define-problem-1">Step 1: define problem</a></li><li><a class="toctext" href="#Step-2:-solve-problem-1">Step 2: solve problem</a></li><li><a class="toctext" href="#Step-3:-simulate-1">Step 3: simulate</a></li><li class="toplevel"><a class="toctext" href="#Problem-Options-1">Problem Options</a></li><li><a class="toctext" href="#Lower-integration-dimension-for-speed-1">Lower integration dimension for speed</a></li><li><a class="toctext" href="#Concise-notation-1">Concise notation</a></li><li class="toplevel"><a class="toctext" href="#Solver-Options-1">Solver Options</a></li><li><a class="toctext" href="#For-speed-1">For speed</a></li><li><a class="toctext" href="#Transition-matrix-1">Transition matrix</a></li><li><a class="toctext" href="#Miscellaneous-1">Miscellaneous</a></li><li class="toplevel"><a class="toctext" href="#Simulator-Options-1">Simulator Options</a></li><li><a class="toctext" href="#Initialization-1">Initialization</a></li><li><a class="toctext" href="#Fixed-shock-draws-1">Fixed shock draws</a></li><li class="toplevel"><a class="toctext" href="#Example-Models-1">Example Models</a></li></ul></li></ul></nav><article id="docs"><header><nav><ul><li><a href>StructuralDDP.jl Documentation</a></li></ul><a class="edit-page" href="https://github.com/pascalgolec/StructuralDDP.jl/blob/master/docs/src/index.md"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>StructuralDDP.jl Documentation</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id="StructuralDDP.jl-Documentation-1" href="#StructuralDDP.jl-Documentation-1">StructuralDDP.jl Documentation</a></h1><p>This package defines, solves and simulates discrete dynamic optimization problems with value function iteration fast. It features different options to add structure to the problem and provide information about its properties. A wide range of problems can be solved very fast this way.</p><p>The general workflow is to define a problem, solve it, simulate it, and then analyze it. The full code for an example is:</p><pre><code class="language-julia">using StructuralDDP
+prob = CapitalAdjustModel(nK=150, nz=15, ρ=0.5, σ=0.3, γ=2.)
+sol = solve(prob)
+sim = simulate(sol, nPeriods=50, nFirms=5)
+df_sim = DataFrame(sim)
+using Plots, StatPlots
+@df df_sim plot(:period, :state_1, group=:firm,
+    xlabel=&quot;years&quot;, ylabel=&quot;capital stock&quot;)</code></pre><p>where the individual pieces are described below.</p><h2><a class="nav-anchor" id="Step-1:-define-problem-1" href="#Step-1:-define-problem-1">Step 1: define problem</a></h2><p>Each infinite-horizon dynamic maximization problem has an objective function as follows</p><div>\[\mathbb{E} \sum_{t=0}^{\infty} \beta^t r(s_t, a_t)\]</div><p>where <span>$s_t$</span> are the state variables and <span>$a_t$</span> the choice variable(s), <span>$r(s_t, a_t)$</span> is the current reward and <span>$β$</span> is the discount factor.</p><p>The state variables evolve according to a transition function <span>$\Phi(s_t, a_t, \varepsilon_{t+1})$</span> depending on <span>$(s_t, a_t)$</span> and i.i.d shocks <span>$\varepsilon_{t+1}$</span>. For a more formal definiton, see the <a href="https://lectures.quantecon.org/jl/discrete_dp.html#Discrete-DPs">QuantEcon lectures</a>. We can write the problem in a recursive form:</p><div>\[V(s) = \max_a r(s, a) + \beta \mathbb{E} V(s&#39;) \\
+\text{where } s&#39; = \Phi(s, a, \varepsilon&#39;)\]</div><p>where <span>$s$</span> and <span>$s&#39;$</span> correspond to the current state <span>$s_t$</span> and next period&#39;s state <span>$s_{t+1}$</span>, respectively.</p><p>We will solve a capital investment model with convex adjustment costs as an example. It is defined as follows:</p><div>\[V(K,z) = \max_i K^\alpha e^z - i K - \frac{\gamma}{2} i^2 K + \beta \mathbb{E} V(K&#39;, z&#39;) \\
+\text{where } K&#39; = (1-\delta + i) K \\
+z&#39; = \rho z + \sigma \varepsilon, \quad \varepsilon \sim \mathcal{N}(0,1)\]</div><p>where <span>$K$</span> is current and <span>$K&#39;$</span> next period&#39;s capital and <span>$i$</span> is the (net) capital investment rate. Capital depreciates at the rate <span>$\delta$</span>. Investment <span>$i$</span> adds to the capital stock but takes a period to become productive. The parameter <span>$\gamma$</span> determines the adjustment costs for investment, over and above the cost of capital. The productivity of capital is determined by <span>$z$</span>, which follows an AR(1) process with autocorrelation <span>$\rho$</span> and volatility <span>$\sigma$</span>. There are decreasing returns to scale for <span>$\alpha &lt; 1$</span>, so there is an optimal scale of the firm depending on <span>$z$</span>. The problem of the firm is to choose the optimal scale for next period.</p><p>We set up the problem by defining the state and action space, the reward function, the transition function and the factor at which future rewards are discounted.</p><pre><code class="language-julia">using StructuralDDP, Distributions
+
+# CapitalAdjustModel
+β = 0.9 # discount factor
+α = 0.67 # returns to scale parameter
+ρ = 0.6 # persistence of producitivity
+σ = 0.3 # volatility of productivity
+δ = 0.15 # deprectiation rate of capital
+γ = 2.0 # convex adjustment cost parameter
+
+
+# define state and action space
+nz = 5 # number of nodes for z
+stdz = sqrt(σ^2/(1-ρ^2))
+minz = -3*stdz
+maxz =  3*stdz
+vz = collect(LinRange(minz, maxz, nz))
+
+nK = 100 # number of nodes for K
+K_ss = α * exp(0.)/ ((1-β)/β*(1+γ*δ) + δ) ^ (1/(1-α)) # analytical steady state of K
+log_K_min = 0.1 * log(K_ss)
+log_K_max = 2 * log(K_ss)
+vK   = exp.(collect(LinRange(log_K_min, log_K_max, nK))) # log-spaced grid for K
+
+ni = 100 # number of nodes for i
+vi = collect(LinRange(-0.5, 2., ni))
+
+tStateVectors = (vK, vz)
+tChoiceVectors = (vi,)
+
+
+# define reward and transition functions
+function reward(vStates, vChoices)
+    K, z = vStates # note how the order corresponds to tStateVectors
+    i = vChoices[1]
+    return K^α * exp(z) - i*K - γ/2 * i^2 * K
+end
+
+function transition(vStates, vChoices, vShocks)
+    K, z = vStates # note how the order corresponds to tStateVectors
+    i = vChoices[1]
+    Kprime = (1-δ+i)*K
+    zprime  = ρ*z + σ * vShocks[1]
+    return Kprime, zprime
+end
+
+shockdistribution = Normal() # one-dimensional standard normal shock
+
+
+# construct problem
+prob = DiscreteDynamicProblem(
+            tStateVectors,
+            tChoiceVectors,
+            reward,
+            transition,
+            shockdistribution,
+            β)</code></pre><p>The <code>DiscreteDynamicProblem</code> constructor creates a problem instance. It is important that the order of the arguments in the <code>reward</code> function, <code>transition</code> function and <code>DiscreteDynamicProblem</code> are the same as in the example above.</p><p>The package supports any type of univariate shock distribution and multivariate-normal shock distributions. <a href="https://juliastats.github.io/Distributions.jl/stable/">Distributions.jl</a> contains the syntax for implementing different shock distributions.</p><p>Note that in the problem definition above, the transition of the state variables is a function of states, choices and shocks. The solver will integrate over a high dimension of variables when calculating expectations, which is rather slow. The <a href="#Problem-Options-1">problem options section</a> explains how to reformulate a large family of problems including the one above to gain orders of magnitude speedup.</p><p>The definition of the discrete state and action space means that the problem is solved for each point in the state space, where there finite number of possible actions. When simulating the model, linear interpolation is used to approximate the solution between grid points. Note that the state space is strict - the state variables are always forced to stay within their bounds upper and lower bounds.</p><h2><a class="nav-anchor" id="Step-2:-solve-problem-1" href="#Step-2:-solve-problem-1">Step 2: solve problem</a></h2><p>We can solve the model with the function <code>solve</code>, which returns the value and optimal policy for each point in the state-space.</p><pre><code class="language-julia">sol = solve(prob)</code></pre><p>The result of <code>solve</code> is a solution object. We can retreive the value function with <code>value</code> and the policy function with <code>policy</code>. For example, the value and policy for the fifth grid point of the <code>K</code> and the third grid point of <code>z</code> are:</p><pre><code class="language-julia">value(sol)[5, 3] # 18.9
+policy(sol)[5, 3] # 0.611</code></pre><p>If there are multiple choice variables then <code>policy(sol)</code> returns a tuple, so we would have to specify that we for example are interested in the second choice variable:</p><pre><code class="language-julia">policy(sol)[2][5, 3]</code></pre><p>The <code>policy</code> and <code>value</code> objects that are returned by default act as a continuous solution via an interpolation. We can access the interpolated values by treating them as functions, for example:</p><pre><code class="language-julia">policy(sol)(10.2, 0.5) # 0.273 = optimal policy for K = 10.2 and z = 0.5</code></pre><p>Note the difference between these: indexing with <code>[i,j]</code> is the policy at the (i,j)th grid point, while <code>(K,z)</code> is an interpolation for state <span>$(K,z)$</span>. Also note that if an interpolation outside of the state grid is requested, then the value/policy at the closest grid points is returned instead.</p><p>The solver can be controlled using different options which are discribed in the <a href="#Solver-Options-1">Solver Options section</a>. For example, we can tell the solver to precompute the reward for all different combinations of states and choices before starting the value function iteration:</p><pre><code class="language-julia">sol = solve(prob; rewardcall=:pre)</code></pre><p>Experimenting with the solver options is essential if one wants to solve the model as fast as possible.</p><h2><a class="nav-anchor" id="Step-3:-simulate-1" href="#Step-3:-simulate-1">Step 3: simulate</a></h2><p>We can simulate a panel:</p><pre><code class="language-julia">sim = simulate(sol, nPeriods = 60, nFirms = 100)</code></pre><p>The function <code>simulate</code> returns a simulation object, from which we can retreive the simulated states, choices and value as individual arrays:</p><pre><code class="language-julia">sim_states = states(sim)
+sim_policy = policy(sim)
+sim_val = value(sim)</code></pre><p>We can convert the simulation object into an array with <code>Array(sim)</code>. The order of the variables is states, choices and value (if requested).</p><p>We can also convert the simulation object into a dataframe:</p><pre><code class="language-julia">df_sim = DataFrame(sim)</code></pre><p>We can then use the dataframe to analyse the simulation, for example by plotting a histogram:</p><pre><code class="language-julia">using Plots
+histogram(df_sim.state_1, xlabel=&quot;K&quot;,legend=false)</code></pre><p>or the each firm&#39;s capital stock over time:</p><pre><code class="language-julia">using StatsPlots
+@df df_sim plot(:period, :state_1, group=:firm, xlabel=&quot;time&quot;, ylabel=&quot;K&quot;)</code></pre><p>By default, all firms start with the same state variables in the simulation. The <a href="#Simulator-Options-1">simulator options section</a> contains more details about this and more sophisticated methods to intialize the simulation.</p><h1><a class="nav-anchor" id="Problem-Options-1" href="#Problem-Options-1">Problem Options</a></h1><h2><a class="nav-anchor" id="Lower-integration-dimension-for-speed-1" href="#Lower-integration-dimension-for-speed-1">Lower integration dimension for speed</a></h2><p>The solver must calculate expectations of future states. By default, it must integrate over all state variables, choice variables and shocks, i.e. <span>$s_{t+1} = \Phi(s_t, a_t, \varepsilon_{t+1})$</span>. Many problems can be rewritten in a way such that we can integrate over fewer variables, which leads to orders of magnitude speedup.</p><p>The first step is to rewrite the problem such that the action is equal to the corresponding next period&#39;s state. In our example, the action <span>$a$</span> of the firm then is not the investment rate but simply next period&#39;s capital stock <span>$K&#39;$</span>.</p><div>\[V(K,z) = \max_a K^\alpha e^z - i K - \frac{\gamma}{2} i^2 K + \beta \mathbb{E} V(K&#39;, z&#39;) \\
+i \equiv \frac{a}{K} - (1-\delta) \\
+\text{where } K&#39; = a \\
+z&#39; = \rho z + \sigma \varepsilon, \quad \varepsilon \sim \mathcal{N}(0,1)\]</div><p>By separating endogenous and exogenous state variables, resp. <span>$K$</span> and <span>$z$</span>, this way, we can define the problem as follows:</p><pre><code class="language-julia">tStateVectors = (vK, vz)
+tChoiceVectors = (1,) # specify which state corresponds to the choice
+function transfunc(vStates, vChoices, vShocks)
+    z = vStateVars[2]
+    zprime  = ρ*z + σ * vShocks[1];
+    return  zprime # only integrate z
+end
+prob = DiscreteDynamicProblem(...,
+            transfunc,
+            tChoiceVectors;
+            intdim = :Separable) # specify the integration dimension</code></pre><p>We need to specify which state corresponds to the choice, only return <span>$z&#39;$</span> in the transition function and specify that our integration dimension is of the type <code>:Separable</code>.</p><p>In our example however we can do even better if we tell the solver that the choice of <code>Kprime</code> does not affect the transition of <span>$z$</span>.</p><pre><code class="language-julia">tStateVectors = (vK, vz)
+tChoiceVectors = (1,)
+function transfunc(vStates, vShocks) # no choices as input
+    z = vStateVars[2]
+    zprime  = ρ*z + σ * vShocks[1];
+    return  zprime
+end
+prob = DiscreteDynamicProblem(...,
+            transfunc,
+            tChoiceVectors;
+            intdim = :Separable_States) # specify the integration dimension</code></pre><p>Note that the transition function only takes states and shocks as an input and that the integration dimension now is of the type <code>:Separable_States</code>. In our example however we can do even better if we tell the solver that also the endogenous state <span>$K$</span> does not affect the transition of <span>$z$</span>.</p><pre><code class="language-julia">function transfunc(vExogStates, vShocks)
+    z = vExogStates[1] # note the different index for z
+    zprime  = ρ*z + σ * vShocks[1];
+    return  zprime
+end
+prob = DiscreteDynamicProblem(...,
+            transfunc,
+            tChoiceVectors;
+            intdim = :Separable_ExogStates) # specify the integration dimension</code></pre><p>Note that the transition function only takes the exogenous states and shocks as an input and that the integration dimension now is of the type <code>:Separable_ExogStates</code>.</p><p>Summarizing he four different types of integration dimensions:</p><ul><li><code>:All</code> - next period states as a function of states, actions and shocks, i.e. <span>$s&#39; = \Phi(s, a, \varepsilon&#39;)$</span>. This formulation is the slowest and corresponds to the baseline example.</li><li><code>:Separable</code> - next period exogenous states as a function of all states, actions and shocks, i.e. <span>$s&#39;_e = \Phi(s, a, \varepsilon&#39;)$</span>.</li><li><code>:Separable_States</code> - next period exogenous states as a function of all states and shocks, i.e. <span>$s&#39;_e = \Phi(s, \varepsilon&#39;)$</span>.</li><li><code>:Separable_ExogStates</code> - next period exogenous states as a function of only exogenous states and shocks, i.e. <span>$s&#39;_e = \Phi(s_e, \varepsilon&#39;)$</span>.</li></ul><p>For the solver to be fast one should use the lowest possible dimension possible. For all separable integration dimensions one must specify which state vector corresponds to the choice vector, i.e. <code>tChoiceVectors = (1,)</code>. Important: when defining the state space <code>tStateVectors</code>, the endogenous state variable(s) must come before the exogenous variables.</p><h2><a class="nav-anchor" id="Concise-notation-1" href="#Concise-notation-1">Concise notation</a></h2><p>In some problems one may only have one shock or one choice variable. In this case, one can write the reward- and transition functions more concisely in terms as numbers as inputs as opposed to vectors:</p><pre><code class="language-julia">function reward(vStateVars, Kprime)
+    (K, z) = vStateVars
+    capx = Kprime - (1-δ)*K
+    return K^α * exp(z) + γ/2*(capx/K- δ)^2 * K
+end
+function transition(z, shock)
+    return zprime  = ρ*z + σ * shock
+end</code></pre><h1><a class="nav-anchor" id="Solver-Options-1" href="#Solver-Options-1">Solver Options</a></h1><h2><a class="nav-anchor" id="For-speed-1" href="#For-speed-1">For speed</a></h2><p>There are different options available which make solving the model faster. One should check whether one can lower the integration dimension of the problem first though, described in <a href="#Problem-Options-1">the problem options section</a>.</p><h3><a class="nav-anchor" id="Monotonicity-and-concavity-1" href="#Monotonicity-and-concavity-1">Monotonicity and concavity</a></h3><p>From experience, these two options can lead to orders of magnitude speedup.</p><p>The <code>monotonicity</code> keyword allows the solver to exploit the monotonicity of the choice of next period&#39;s state in the current state. Put differently, if <span>$s^{d*}_{t+1}$</span> is the optimal choice for <span>$s^{d*}_t$</span>, then the optimal choice for <span>$s^{d&#39;}_t \geq s^{d*}_t$</span> is <span>$s^{d&#39;}_{t+1} \geq s^{d*}_{t+1}$</span> (keeping fixed the other state variables). The default is <code>false</code>.</p><p>The <code>concavity</code> keyword allows the solver to exploit the concavity of the value function in the choice of next period&#39;s state. Put differently, if <span>$V(s^{d&#39;}_{t+1}, s^d_t, s^s_t) &lt; V(s^{d*}_{t+1}, s^d_t, s^s_t)$</span>, then also <span>$V(s^d_{t+1}, s^d_t, s^s_t) &lt; V(s^{d&#39;}_{t+1}, s^d_t, s^s_t)$</span> for any <span>$s^d_{t+1} &gt; s^{d&#39;}_{t+1}$</span>. The default is <code>false</code>.</p><p>A handy way to check whether the problem fulfils these conditions is the <code>compare</code> function. It checks whether two different solutions are identical:</p><pre><code class="language-julia">sol = solve(prob; concavity=false)
+sol_conc = solve(prob; concavity=true)
+compare(sol, sol_conc; tol=1e-4)</code></pre><p>Note: <code>monotonicity</code> and <code>concavity</code> currently only work if the integration dimension is separable. The options don&#39;t work if there are discontinuities in the reward function.</p><h3><a class="nav-anchor" id="Prebuilding-the-reward-matrix-1" href="#Prebuilding-the-reward-matrix-1">Prebuilding the reward matrix</a></h3><p>The <code>rewardcall</code> keyword determines whether (part of) the reward for each state-action pair should be precomputed before the value function iteration. Prebuilding requires more memory but less computations during the VFI.</p><p><code>:jit</code> - the reward is calculated during the VFI whenever it is required, i.e. just in time. This requires little memory but more computations during the VFI. This is the default.</p><p><code>:pre</code> - precompute the reward for each possible combination of states and actions before the VFI. This requires more memory but less computations during the VFI.</p><p><code>:pre_partial</code> - precompute part of the reward before the VFI that only depends on states, but not choices. From experience, this option is the fastest when combined with monotonicity and concavity. To exploit this option, we must supply the inner and outer part of the reward function when defining the problem. The outer part is the same argument in <code>DDP</code> as the standard reward function and the partial reward function enters as a keyword arguement <code>rewardfunc_partial</code>. In the solver we must then specify that the reward should be partially precomputed.</p><pre><code class="language-julia">function reward(partial_reward, vStates, vChoices)
+    K = vStateVars[1]
+    Kprime = vChoices[1]
+    i = Kprime/K - (1-δ)
+    return partial_reward - γ/2*i^2 * K) - i*K
+end
+reward_partial(vStates) = vStates[1]^α * exp(vStates[2])
+
+prob = DiscreteDynamicProblem(
+    tStateVectors,
+    tChoiceVectors,
+    reward,
+    transition,
+    shockdistribution,
+    β;
+    rewardfunc_partial = reward_partial)
+
+solve(prob; rewardcall = :pre_partial)</code></pre><h2><a class="nav-anchor" id="Transition-matrix-1" href="#Transition-matrix-1">Transition matrix</a></h2><p>The solver calculates a markov transition matrix from the transition function using quadrature methods. We can control the number of quadrature nodes for each shock as with the keyword argument <code>numquadnodes</code>. The default is <code>[5]</code>.</p><p>It is also possible to supply your own transition matrix with the keyword argument <code>mTransition</code>:</p><pre><code class="language-julia">using QuantEcon: tauchen
+sol = solve(prob, mTransition = tauchen(nz, ρ, σ))</code></pre><h2><a class="nav-anchor" id="Miscellaneous-1" href="#Miscellaneous-1">Miscellaneous</a></h2><ul><li><code>epsilon</code>: Value for epsilon-optimality. Determines how accurate the solution is. Default is 1e-3.</li><li><code>max_iter</code>: Maximum number of iterations before stopping. Default is 500.</li><li><code>disp</code>: whether to display number of iterations and epsilon-convergence during solving. Default is false.</li><li><code>disp_each_iter</code>: wait how many iterations for displaying status during solving. Default is 10.</li></ul><h1><a class="nav-anchor" id="Simulator-Options-1" href="#Simulator-Options-1">Simulator Options</a></h1><p>The keyword <code>get_value</code> determines whether the simulator should also compute the value at the beginning of each time period. This takes more time. The default is <code>get_value = false</code>.</p><h2><a class="nav-anchor" id="Initialization-1" href="#Initialization-1">Initialization</a></h2><p>The default setting of how the initial state variables are drawn at t=0 is the burn-in method. Here, each firm starts with states that are the median values of the state space. The idea is to simulate the model for more periods than necessary and then only analyse the simulated values after 60 periods or so on, depending on the persistence in the model.</p><p>There is also an option for more sophisticated initialization, where the initial endogenous state variables are chosen by the firm subject to a loss function and the exogenous ones are predetermined or random. In the example, we assume the initial state variables are determined as follows:</p><div>\[V_0(z_0) = \max_{K_0} V(K_0,z_0) - (1 + (1 + C0) * K_0 \\
+\text{where } z_0 = \sqrt{\frac{\sigma^2}{1-\rho^2}} ε_0 \\
+ε_0 \sim \mathcal{N}(0,1)\]</div><p>The initial productivity <span>$z_0$</span> is drawn from a normal distribution. Depending on <span>$z_0$</span>, the firm chooses it&#39;s initial capital stock <span>$K_0$</span> to maximize it&#39;s continuation value, accounting for the fact that there is a deadweight cost <span>$C_0$</span> to acquire <span>$K_0$</span>. If <span>$C_0 &gt; 0$</span>, then <span>$K_0$</span> will be optimally chosen below it&#39;s steady state value.</p><p>We must code the following as an additional input when constucting <code>DiscreteDynamicProblem</code>:</p><pre><code class="language-julia">initprob(value, vChoices) = value - (1 + (1-β)/β + C0) * vChoices[1]
+init(vShocks) = vShocks[1] * sqrt(σ^2 / (1-ρ^2)) # = z0
+prob = DiscreteDynamicProblem(...;
+    initializationproblem = initprob,
+    initializefunc = init,
+    shockdist_initial = Normal(),
+    tChoiceVectorsZero = (1,)) # which state variable does the firm choose at t=0</code></pre><p>The <code>solve</code> function then also finds the optimal policy at t=0 when the problem is defined this way. We can access the solutions via:</p><pre><code class="language-julia">sol = solve(prob)
+value0(sol)[5] # initial value if z0 = fifth grid point
+value0(sol)(0.5) # initial value if z0 = 0.5
+policy0(sol)[5] # initial policy K_0 if z0 = fifth grid point
+policy0(sol)[5, 3] # initial policy K_0 if z0 = 0.5</code></pre><p>Even if the initializationproblem is specified this way, there is still an option to resort to the burn-in method. The keyword argument <code>initialize_exact</code> controls whether the simulator should use the sophisticated method or not. The default is <code>true</code>.</p><h2><a class="nav-anchor" id="Fixed-shock-draws-1" href="#Fixed-shock-draws-1">Fixed shock draws</a></h2><p>It is also possible to simulate a model solution using an identical draw of shocks:</p><pre><code class="language-julia">shocks = drawshocks(prob, nPeriods = 60, nFirms = 100)
+sim = simulate(sol, shocks)</code></pre><p>This can be useful for doing comparative statics on the model parameters, and wants to be sure that the shocks do not change. Note: the draw of shocks refers to the supplied shock distribution in the problem defintion. If the shock distribution is parametrized, for example by its variance, then one should not do comparative statics on those parameters.</p><h1><a class="nav-anchor" id="Example-Models-1" href="#Example-Models-1">Example Models</a></h1><p>There are two example models contained in the <code>test/models</code> folder:</p><div class="admonition warning"><div class="admonition-title">Missing docstring.</div><div class="admonition-text"><p>Missing docstring for <code>StructuralDDP.CapitalAdjustModel</code>. Check Documenter&#39;s build log for details.</p></div></div><div class="admonition warning"><div class="admonition-title">Missing docstring.</div><div class="admonition-text"><p>Missing docstring for <code>StructuralDDP.CapitalAdjustModel2</code>. Check Documenter&#39;s build log for details.</p></div></div><footer><hr/></footer></article></body></html>
