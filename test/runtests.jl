@@ -2,10 +2,10 @@ using StructuralDDP
 using Test
 mytol = 1e-4
 
-# # load models
-# include("models/CapitalAdjustModel.jl")
-# include("models/CapitalAdjustModel2.jl")
-# createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
+# load models
+include("models/CapitalAdjustModel.jl")
+include("models/CapitalAdjustModel2.jl")
+createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
 
 include("test_transitionmatrix.jl")
 include("test_rewardmatrix_options.jl")

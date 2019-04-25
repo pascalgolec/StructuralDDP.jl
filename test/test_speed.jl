@@ -1,5 +1,10 @@
 using StructuralDDP
 
+# load models
+include("models/CapitalAdjustModel.jl")
+include("models/CapitalAdjustModel2.jl")
+createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
+
 function warn_time(t, border, preprint)
 	t < border || @warn preprint * " took longer than usual: $t vs $border seconds"
 end

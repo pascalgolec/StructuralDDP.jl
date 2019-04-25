@@ -9,9 +9,9 @@ using StructuralDDP
 using DataFrames, Gadfly
 using InteractiveUtils, BenchmarkTools
 
-# include("../test/models/CapitalAdjustModel.jl")
-# include("../test/models/CapitalAdjustModel2.jl")
-# createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
+include("../test/models/CapitalAdjustModel.jl")
+include("../test/models/CapitalAdjustModel2.jl")
+createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
 
 par_1 = Dict(:nK => 150, :nz => 5, :γ => 2., :β=>0.9)
 p_1_sa = createmodel(:CapitalAdjustModel; par_1..., intdim=:All)
