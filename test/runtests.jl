@@ -1,3 +1,5 @@
+#!/usr/bin/env julia
+
 using StructuralDDP
 using Test
 mytol = 1e-4
