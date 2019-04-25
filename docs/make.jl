@@ -6,4 +6,6 @@ makedocs(sitename="StructuralDDP.jl",
 	doctest = false)
 
 deploydocs(#deps = Deps.pip("mkdocs", "python-markdown-math"),
-    repo = "github.com/pascalgolec/StructuralDDP.jl.git")
+    repo = "github.com/pascalgolec/StructuralDDP.jl.git",
+	# target = "build",
+	)
