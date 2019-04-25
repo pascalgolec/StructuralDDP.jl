@@ -1,22 +1,51 @@
 using NLsolve, Distributions
 
-function NeoClassicalSimple(;
+@doc raw"""
+	CapitalAdjustModel(; kwargs...)
+
+Construct capital investment model with one type of capital and one
+productivity shock and convex adjustment costs. The recursive formulation is:
+
+```math
+\begin{equation*}
+V(K,z) = \max_a K^\alpha e^z - i K - \frac{\gamma}{2} i^2 K + \beta \mathbb{E} V(K', z') \\
+i \equiv \frac{a}{K} - (1-\delta) \\
+\text{where } K' = a \\
+z' = \rho z + \sigma \varepsilon, \quad \varepsilon \sim \mathcal{N}(0,1)
+\end{equation*}
+```
+
+The firm solves the following problem to initialize at t=0:
+
+```math
+\begin{equation*}
+V_0(z_0) = \max_{K_0} V(K_0,z_0) - (1 + C0) * K_0 \\
+\text{where } z_0 = \sqrt{\frac{\sigma^2}{1-\rho^2}} ε_0 \\
+ε_0 \sim \mathcal{N}(0,1)
+\end{equation*}
+```
+
+Example:
+
+```julia
+using DiscreteDynamicProgramming
+prob = CapitalAdjustModel(nK=150, nz=15, ρ=0.5, σ=0.3, γ=2.)
+```
+
+"""
+function CapitalAdjustModel(;
 	α = 0.67,
 	β = 0.9,
 	ρ = 0.6,
 	σ = 0.3,
 	δ = 0.15,
 	γ = 2.0,
-	F = 0.01,
 	C0 = 0.6,
-	π = 0.,
-	τ = 0.35,
-	κ = 0.,
 
 	nK = 100,
 	nz = 20,
 
-	# for testing
+	# options for testing
 	intdim = :Separable_ExogStates,
 	initialize_exact = true)
 
@@ -33,8 +62,8 @@ function NeoClassicalSimple(;
         function f2!(F,x)
             (V_K, K_log) = x
 
-            F[1] = - 1 - γ * 0 * (1-τ) + V_K
-            F[2] = V_K - β*( exp(z)*α*exp(K_log)^(α-1)*(1-τ) + τ*δ + (1-δ)*V_K)
+            F[1] = - 1 - γ + V_K
+            F[2] = V_K - β*( exp(z)*α*exp(K_log)^(α-1) + (1-δ)*V_K)
         end
 
         return nlsolve(f2!, [1.1; 1.])
@@ -47,23 +76,22 @@ function NeoClassicalSimple(;
 
     tStateVectors = (vK, vz) # tuple of basis vectors
 
-	function myrewardfunc(vStateVars, choice)
-		(K, z) = vStateVars
-		Kprime = choice
-		capx = Kprime - (1-δ)*K
-		action = (Kprime != K)
-		oibdp = K^α * exp(z) - F*K*action - γ/2*(capx/K- δ)^2 * K
-		return oibdp*(1-τ) + τ * δ * K - (1-κ*(capx<0))*capx
+	function reward(vStates, vChoices)
+	    K, z = vStates
+	    Kprime = vChoices[1]
+		i = Kprime/K - (1-δ)
+	    return K^α * exp(z) - i*K - γ/2 * i^2 * K
 	end
 
-	# including output, i.e. partial rewardfunc
-	function myrewardfunc(Output, vStateVars, Kprime)
-        K = vStateVars[1]
-	    capx = Kprime - (1-δ)K
-	    out = (1-τ)*(Output - F*K - γ/2*(capx/K- δ)^2 * K) - (1-κ*(capx<0))*capx + τ * δ * K
+	# including output, i.e. for partial rewardfunc
+	function reward(partial_reward, vStates, vChoices)
+	    K = vStates[1]
+		Kprime = vChoices[1]
+	    i = Kprime/K - (1-δ)
+	    return partial_reward - i*K - γ/2 * i^2 * K
 	end
 
-	mygrossprofits(vStateVars) = vStateVars[1]^α * exp(vStateVars[2])
+	reward_partial(vStates) = vStates[1]^α * exp(vStates[2])
 
 	if intdim == :All
 
@@ -92,8 +120,8 @@ function NeoClassicalSimple(;
 		tChoiceVectors = (1,)
 
 	elseif intdim == :Separable_ExogStates
-	    transfunc = function mytransfunc3(ExogState, shock)
-	        z = ExogState
+	    transfunc = function mytransfunc3(vExogStates, shock)
+	        z = vExogStates[1]
 	        zprime  = ρ*z + σ * shock;
 	        return zprime
 	    end
@@ -123,12 +151,12 @@ function NeoClassicalSimple(;
 
 	DDP(tStateVectors,
         tChoiceVectors,
-        myrewardfunc,
+        reward,
         transfunc,
 		Normal(), # give distribution of shocks: standard normal
 		β;
 		intdim = intdim,
-        rewardfunc_partial = mygrossprofits,
+        rewardfunc_partial = reward_partial,
         initializationproblem = initializationproblem,
         initializefunc = initialize,
 		shockdist_initial = shockdist_initial,

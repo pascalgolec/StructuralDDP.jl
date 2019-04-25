@@ -1,61 +1,11 @@
 # DiscreteDynamicProgramming
 
-This package solves and simulates discrete dynamic choice models with value function iteration fast. By taking advantage of properties of the problem, a wide array of problems can be solved very fast without requiring parallelization.
+This package defines, solves and simulates discrete dynamic optimization problems with value function iteration fast. It features different options to add structure to the problem and provide information about its properties. A wide range of problems can be solved very fast this way.
 
-The following figure shows the time time to solve a model with one choice varaible (neoclassical) and two choice variables (intangibles) when using the acceleration methods in the toolbox versus not.
+The following figure compares the speed of standard solution methods (value function iteration using a state-action representation) with the structured approach for solving a capital investment model with one or two types of capital.
 
 ![alt text](benchmark/compare.svg "Benchmarking acceleration")
 
-It used to be that for doing structural estimation, you needed a toolbox and be good at programming. This toolbox solves this problem, so you can focus on the economics.
+In the structured approach we specified that only some of the state variables should be integrated when calculating expectations, that the optimal choices are monotone in some of the states and that the value function is concave in some of the states and finally that part of the reward matrix should be pre-built before calling the solver.
 
-# To Do
-
-- [ ] streamline model constructor. Put myself into shoes of user, try to create a model. End user shouldn't have to deal with types
-	- rewardfunc vs rewardfunc_partial: how to implement for user?
-- [ ] get rid of DDM, use DDP
-- [ ] change name of grossprofits to rewardfunc_partial or something
-- [x] make tChoiceVectors optional (only if use SA)
-    - in the problem constructor, make optional
-    - remove it in separable and intermediate solver functions and other functions
-    - change name of bEndogStatevars, to choicevars
-- [x] merge with master branch
-- [ ] write documentation
-- [ ] implement plotrecipe
-- [ ] think about whether should include accountingvars() into this package
-- [ ] :F is when the reward function has discontinuities
-    - do later when design is fixed, because it may depend on it..
-- [ ] firm exit
-
-
-## Solver/simulator
-- [ ] have :F in the solver for fixed adjustment costs
-	- what is the generalization of fixed adjustment costs?
-- [ ] make grid for K variable?
-	- simulate with small grid, then tighten the grid
-- [ ] Check ApproxFun.jl, whether can use algorhythm for any function approximation type (not just linear, but also Chebychev, Polynomial etc)
-	- at the moment the solver does not interpolate, the simulator uses linear interpolation
-- [ ] more transparent indexing in loops
-
-## Models
-- [ ] index state variables as dict instead of position (`tStateVector[:K]` instead of `tStateVector[1]`)
-	- http://www.stochasticlifestyle.com/zero-cost-abstractions-in-julia-indexing-vectors-by-name-with-labelledarrays/
-	- in value/policy function output, will have to find a good way to index then...
-- [ ] calculate steady state for Intangibles model
-- [ ] create model by supplying symbol always
-- [ ] make sure solvers give the same answer for learning model
-- [ ] include abilitmaimaiy to copy a model instance and change some parameters
-
-## Concerning releasing it
-
-- Finalizing the package guide [here](http://www.stochasticlifestyle.com/finalizing-julia-package-documentation-testing-coverage-publishing/)
-- [ ] Ask people in the department if package could be useful, what kind of model they would like to see preprogrammed there
-- [ ] Could libraries be called DiscreteDynamicModels, DiscreteDynamicEconomicModelsLibrary, SMM?
-	- The DiscreteDynamicModels and Library is similar to QuantEcon actually, but with faster solvers and real-world economic models
-		- need to provide reward function, transition function
-	- Differentialequations has solvers and library separated, could emulate that
-- probably good to have a post on my blog, explaining how to do it with a real world case
-- Plot recipe so that people can plot the solution (check DiffEq.jl)
-- DiscreteDynamicModels
-- Check ApproxFun.jl, whether can use algorhythm for any function approximation type (not just linear, but also Chebychev, Polynomial etc)
-- The NY Fed created DSGE.jl, lots of people use it
-- For deprecating leadslagsffe: could look at TimeSeries.jl, although it is orthogonal to DataFrames.jl. They are not merged yet.
+The package also allows problems to be defined using their mathematical formulation with minimal additional input. There is no need to calculate any matrices for example. One only has to provide a reward function, a transition function, as well as state and action spaces.

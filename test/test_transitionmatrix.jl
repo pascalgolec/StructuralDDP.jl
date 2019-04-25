@@ -1,43 +1,43 @@
 
 using QuantEcon: tauchen
 
-model = :NeoClassicalSimple
-dipar_neo = Dict(:nK => 100, :nz => 20, :β => 0.9, :ρ => 0.6, :σ => 0.3)
-p_neo_all = createmodel(model; dipar_neo..., intdim = :All)
-p_neo_sep = createmodel(model; dipar_neo..., intdim = :Separable)
-p_neo_sep_states = createmodel(model; dipar_neo..., intdim = :Separable_States)
-p_neo_sep_exogstates = createmodel(model; dipar_neo..., intdim = :Separable_ExogStates)
+model = :CapitalAdjustModel
+dipar_1 = Dict(:nK => 100, :nz => 20, :β => 0.9, :ρ => 0.6, :σ => 0.3)
+p_1_all = createmodel(model; dipar_1..., intdim = :All)
+p_1_sep = createmodel(model; dipar_1..., intdim = :Separable)
+p_1_sep_states = createmodel(model; dipar_1..., intdim = :Separable_States)
+p_1_sep_exogstates = createmodel(model; dipar_1..., intdim = :Separable_ExogStates)
 
-T_neo_all = transitionmatrix(p_neo_all)
-T_neo_sep = transitionmatrix(p_neo_sep)
-T_neo_sep_states = transitionmatrix(p_neo_sep_states)
-T_neo_sep_exogstates = transitionmatrix(p_neo_sep_exogstates)
+T_1_all = transitionmatrix(p_1_all)
+T_1_sep = transitionmatrix(p_1_sep)
+T_1_sep_states = transitionmatrix(p_1_sep_states)
+T_1_sep_exogstates = transitionmatrix(p_1_sep_exogstates)
 
-model = :Intangible
-dipar_int = Dict(:nK => 20, :nN=>15, :nz => 3, :β => 0.9, :ρ => 0.6, :σ => 0.3)
-p_int_all = createmodel(model; dipar_int..., intdim = :All)
-p_int_sep = createmodel(model; dipar_int..., intdim = :Separable)
-p_int_sep_states = createmodel(model; dipar_int..., intdim = :Separable_States)
-p_int_sep_exogstates = createmodel(model; dipar_int..., intdim = :Separable_ExogStates)
+model = :CapitalAdjustModel2
+dipar_2 = Dict(:nK => 20, :nN=>15, :nz => 3, :β => 0.9, :ρ => 0.6, :σ => 0.3)
+p_2_all = createmodel(model; dipar_2..., intdim = :All)
+p_2_sep = createmodel(model; dipar_2..., intdim = :Separable)
+p_2_sep_states = createmodel(model; dipar_2..., intdim = :Separable_States)
+p_2_sep_exogstates = createmodel(model; dipar_2..., intdim = :Separable_ExogStates)
 
-T_int_all = transitionmatrix(p_int_all)
-T_int_sep = transitionmatrix(p_int_sep)
-T_int_sep_states = transitionmatrix(p_int_sep_states)
-T_int_sep_exogstates = transitionmatrix(p_int_sep_exogstates)
+T_2_all = transitionmatrix(p_2_all)
+T_2_sep = transitionmatrix(p_2_sep)
+T_2_sep_states = transitionmatrix(p_2_sep_states)
+T_2_sep_exogstates = transitionmatrix(p_2_sep_exogstates)
 
 @testset "transition matrix" begin
 
 	@testset "compare" begin
 
-		@testset "Neoclassical" begin
+		@testset "CapitalAdjustModel" begin
 
-			T_all = T_neo_all
-			T_sep = T_neo_sep
-			T_sep_states = T_neo_sep_states
-			T_sep_exogstates = T_neo_sep_exogstates
+			T_all = T_1_all
+			T_sep = T_1_sep
+			T_sep_states = T_1_sep_states
+			T_sep_exogstates = T_1_sep_exogstates
 
-			nK = dipar_neo[:nK]
-			nz = dipar_neo[:nz]
+			nK = dipar_1[:nK]
+			nz = dipar_1[:nz]
 
 			# compare All and Separable
 			# to do
@@ -51,16 +51,16 @@ T_int_sep_exogstates = transitionmatrix(p_int_sep_exogstates)
 
 		end
 
-		@testset "Intangible" begin
+		@testset "CapitalAdjustModel2" begin
 
-			T_all = T_int_all
-			T_sep = T_int_sep
-			T_sep_states = T_int_sep_states
-			T_sep_exogstates = T_int_sep_exogstates
+			T_all = T_2_all
+			T_sep = T_2_sep
+			T_sep_states = T_2_sep_states
+			T_sep_exogstates = T_2_sep_exogstates
 
-			nK = dipar_int[:nK]
-			nN = dipar_int[:nN]
-			nz = dipar_int[:nz]
+			nK = dipar_2[:nK]
+			nN = dipar_2[:nN]
+			nz = dipar_2[:nz]
 
 			# compare All and Separable
 			# to do
@@ -76,16 +76,16 @@ T_int_sep_exogstates = transitionmatrix(p_int_sep_exogstates)
 
 	end # compare
 
-	@testset "external" begin
+	@testset "external transitionmatrix" begin
 
-		nz = dipar_neo[:nz]
-		ρ = dipar_neo[:ρ]
-		σ = dipar_neo[:σ]
+		nz = dipar_1[:nz]
+		ρ = dipar_1[:ρ]
+		σ = dipar_1[:σ]
 
 		# have same nodes as in tauchen?
 		@test isapprox(collect(tauchen(nz, ρ, σ).state_values),
-			p_neo_sep_exogstates.tStateVectors[2], rtol = mytol)
-		solve(p_neo_sep_exogstates, mTransition = tauchen(nz, ρ, σ).p)
+			p_1_sep_exogstates.tStateVectors[2], rtol = mytol)
+		solve(p_1_sep_exogstates, mTransition = tauchen(nz, ρ, σ).p)
 
 	end
 

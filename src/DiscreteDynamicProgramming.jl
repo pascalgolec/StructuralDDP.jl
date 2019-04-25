@@ -4,13 +4,11 @@ module DiscreteDynamicProgramming
 	using QuantEcon: qnwnorm, qnwunif, qnwlogn, gridmake, DiscreteDP, VFI
 	using Interpolations, Distributions, TreeViews, DataFrames
 	using SparseArrays, LinearAlgebra
-	using Test
+	using Test, DocStringExtensions
 
 	import QuantEcon: solve
 	import DataFrames: DataFrame
 	import Base: Array
-
-	using DocStringExtensions
 
 	export DiscreteDynamicProblem, DDP
 	export createmodel
@@ -39,9 +37,10 @@ module DiscreteDynamicProgramming
 	include("simulate/shocks.jl")
 	include("simulate/simulate.jl")
 
-	# Models for testing
-	include("../test/models/Neoclassical_user.jl")
-	include("../test/models/Intangible_user.jl")
+	# Models for developing
+	include("../test/models/CapitalAdjustModel.jl")
+	include("../test/models/CapitalAdjustModel2.jl")
 	createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
+	export CapitalAdjustModel, CapitalAdjustModel2, createmodel
 
 end

@@ -195,7 +195,8 @@ The solver must calculate expectations of future states. By default, it must int
 The first step is to rewrite the problem such that the action is equal to the corresponding next period's state. In our example, the action ``a`` of the firm then is not the investment rate but simply next period's capital stock ``K'``.
 
 ```math
-V(K,z) = \max_a K^\alpha e^z - (a - (1-\delta) K) - \frac{\gamma}{2} \frac{(a - (1-\delta) K)^2}{K} + \beta \mathbb{E} V(K', z') \\
+V(K,z) = \max_a K^\alpha e^z - i K - \frac{\gamma}{2} i^2 K + \beta \mathbb{E} V(K', z') \\
+i \equiv \frac{a}{K} - (1-\delta) \\
 \text{where } K' = a \\
 z' = \rho z + \sigma \varepsilon, \quad \varepsilon \sim \mathcal{N}(0,1)
 ```
@@ -311,12 +312,13 @@ The `rewardcall` keyword determines whether (part of) the reward for each state-
 `:pre_partial` - precompute part of the reward before the VFI that only depends on states, but not choices. From experience, this option is the fastest when combined with monotonicity and concavity. To exploit this option, we must supply the inner and outer part of the reward function when defining the problem. The outer part is the same argument in `DDP` as the standard reward function and the partial reward function enters as a keyword arguement `rewardfunc_partial`. In the solver we must then specify that the reward should be partially precomputed.
 
 ```julia
-function reward(partial_reward, vStateVars, Kprime)
+function reward(partial_reward, vStates, vChoices)
     K = vStateVars[1]
+    Kprime = vChoices[1]
     i = Kprime/K - (1-δ)
     return partial_reward - γ/2*i^2 * K) - i*K
 end
-reward_partial(vStateVars) = vStateVars[1]^α * exp(vStateVars[2])
+reward_partial(vStates) = vStates[1]^α * exp(vStates[2])
 
 prob = DiscreteDynamicProblem(
     tStateVectors,
@@ -402,9 +404,16 @@ sim = simulate(sol, shocks)
 
 This can be useful for doing comparative statics on the model parameters, and wants to be sure that the shocks do not change. Note: the draw of shocks refers to the supplied shock distribution in the problem defintion. If the shock distribution is parametrized, for example by its variance, then one should not do comparative statics on those parameters.
 
-# notes
+# Example Models
 
-## To do
+There are two example models contained in the `test/models` folder:
+
+```@docs
+DiscreteDynamicProgramming.CapitalAdjustModel
+DiscreteDynamicProgramming.CapitalAdjustModel2
+```
+
+# To do
 
 - support more than two choice variables when the integration dimension is `separable`
 - plotrecipe for `DDPSolution`
