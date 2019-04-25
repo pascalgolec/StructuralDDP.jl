@@ -1,9 +1,8 @@
-using Documenter, StructuralDDP
+using Documenter, DocumenterTools, StructuralDDP
 
 makedocs(sitename="StructuralDDP.jl",
 	modules = StructuralDDP,
-	authors = "Pascal GOlec",
-	format = :html,
+	authors = "Pascal Golec",
 	doctest = false)
 
 deploydocs(deps = Deps.pip("mkdocs", "python-markdown-math"),
