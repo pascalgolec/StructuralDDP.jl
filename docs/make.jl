@@ -5,7 +5,5 @@ makedocs(sitename="StructuralDDP.jl",
 	authors = "Pascal Golec",
 	doctest = false)
 
-deploydocs(deps = Deps.pip("mkdocs", "python-markdown-math"),
-    repo = "github.com/pascalgolec/StructuralDDP.jl.git",
-    julia  = "1.1",
-    osname = "osx")
+deploydocs(#deps = Deps.pip("mkdocs", "python-markdown-math"),
+    repo = "github.com/pascalgolec/StructuralDDP.jl.git")
