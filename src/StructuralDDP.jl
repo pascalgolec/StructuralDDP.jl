@@ -1,4 +1,4 @@
-module DiscreteDynamicProgramming
+module StructuralDDP
 
 	using BasisMatrices: Basis, SplineParams, nodes, BasisMatrix, Expanded
 	using QuantEcon: qnwnorm, qnwunif, qnwlogn, gridmake, DiscreteDP, VFI

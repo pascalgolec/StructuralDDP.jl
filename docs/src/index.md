@@ -1,11 +1,11 @@
-# DiscreteDynamicProgramming.jl Documentation
+# StructuralDDP.jl Documentation
 
-This package solves and simulates discrete dynamic choice models with value function iteration. It has a simple and transparent syntax for defining dynamic optimization problems and is optimized for speed. The available options take advantage of properties of the problem which lead to orders of a magnitude speedup without relying on parallelization.
+This package defines, solves and simulates discrete dynamic optimization problems with value function iteration fast. It features different options to add structure to the problem and provide information about its properties. A wide range of problems can be solved very fast this way.
 
 The general workflow is to define a problem, solve it, simulate it, and then analyze it. The full code for an example is:
 
 ```julia
-using DiscreteDynamicProgramming
+using StructuralDDP
 prob = CapitalAdjustModel(nK=150, nz=15, ρ=0.5, σ=0.3, γ=2.)
 sol = solve(prob)
 sim = simulate(sol, nPeriods=50, nFirms=5)
@@ -49,7 +49,7 @@ where ``K`` is current and ``K'`` next period's capital and ``i`` is the (net) c
 We set up the problem by defining the state and action space, the reward function, the transition function and the factor at which future rewards are discounted.
 
 ```julia
-using DiscreteDynamicProgramming, Distributions
+using StructuralDDP, Distributions
 
 # CapitalAdjustModel
 β = 0.9 # discount factor
@@ -409,15 +409,6 @@ This can be useful for doing comparative statics on the model parameters, and wa
 There are two example models contained in the `test/models` folder:
 
 ```@docs
-DiscreteDynamicProgramming.CapitalAdjustModel
-DiscreteDynamicProgramming.CapitalAdjustModel2
+StructuralDDP.CapitalAdjustModel
+StructuralDDP.CapitalAdjustModel2
 ```
-
-# To do
-
-- support more than two choice variables when the integration dimension is `separable`
-- plotrecipe for `DDPSolution`
-- allow parametric types in problem definition of state and choice vectors, i.e. `AbstractVector{T}` instead of `Vector{Float64}`
-- allow `LabelledArrays.jl` in problem definition
-- allow discontinuities in the reward function with `monotonicity` and `concavity`
-- support firm exit

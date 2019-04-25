@@ -30,7 +30,7 @@ V_0(z_0) = \max_{K_0,N_0} V(K_0,N_0,z_0) - (1 + C0) (K_0 + N_0) \\
 Example:
 
 ```julia
-using DiscreteDynamicProgramming
+using StructuralDDP
 prob = CapitalAdjustModel2(nK=30, nN=25, nz=5, ρ=0.5, σ=0.3, δ_K=0.1)
 ```
 

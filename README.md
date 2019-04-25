@@ -1,4 +1,4 @@
-# DiscreteDynamicProgramming
+# StructuralDDP
 
 This package defines, solves and simulates discrete dynamic optimization problems with value function iteration fast. It features different options to add structure to the problem and provide information about its properties. A wide range of problems can be solved very fast this way.
 

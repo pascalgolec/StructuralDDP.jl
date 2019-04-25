@@ -1,4 +1,4 @@
-using DiscreteDynamicProgramming
+using StructuralDDP
 
 function warn_time(t, border, preprint)
 	t < border || @warn preprint * " took longer than usual: $t vs $border seconds"

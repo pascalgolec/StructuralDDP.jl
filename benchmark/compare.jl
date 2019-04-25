@@ -5,7 +5,7 @@
 # todo: benchmark compared to POMDPs.jl instead of my own package
 # https://stackoverflow.com/questions/52885318/porting-an-example-from-quantecon-jl-to-pomdps-jl
 
-using DiscreteDynamicProgramming
+using StructuralDDP
 using DataFrames, Gadfly
 using InteractiveUtils, BenchmarkTools
 

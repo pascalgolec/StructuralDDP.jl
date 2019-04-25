@@ -12,8 +12,8 @@ function Base.show(io::IO, p::DiscreteDynamicProblem)
   println(io,summary(p))
 end
 
-TreeViews.hastreeview(x::DiscreteDynamicProgramming.DiscreteDynamicProblem) = true
-function TreeViews.treelabel(io::IO,x::DiscreteDynamicProgramming.DiscreteDynamicProblem,
+TreeViews.hastreeview(x::StructuralDDP.DiscreteDynamicProblem) = true
+function TreeViews.treelabel(io::IO,x::StructuralDDP.DiscreteDynamicProblem,
                              mime::MIME"text/plain" = MIME"text/plain"())
   show(io,mime,Base.Text(Base.summary(x)))
 end

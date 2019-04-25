@@ -1,0 +1,6 @@
+- support more than two choice variables when the integration dimension is `separable`
+- plotrecipe for `DDPSolution`
+- allow parametric types in problem definition of state and choice vectors, i.e. `AbstractVector{T}` instead of `Vector{Float64}`
+- allow `LabelledArrays.jl` in problem definition
+- allow discontinuities in the reward function with `monotonicity` and `concavity`
+- support firm exit

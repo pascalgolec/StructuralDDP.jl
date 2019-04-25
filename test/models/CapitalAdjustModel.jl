@@ -28,7 +28,7 @@ V_0(z_0) = \max_{K_0} V(K_0,z_0) - (1 + C0) * K_0 \\
 Example:
 
 ```julia
-using DiscreteDynamicProgramming
+using StructuralDDP
 prob = CapitalAdjustModel(nK=150, nz=15, ρ=0.5, σ=0.3, γ=2.)
 ```
 
