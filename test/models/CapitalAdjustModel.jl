@@ -19,7 +19,7 @@ The firm solves the following problem to initialize at t=0:
 
 ```math
 \begin{equation*}
-V_0(z_0) = \max_{K_0} V(K_0,z_0) - (1 + C0) * K_0 \\
+V_0(z_0) = \max_{K_0} V(K_0,z_0) - (1 + C0) K_0 \\
 \text{where } z_0 = \sqrt{\frac{\sigma^2}{1-\rho^2}} ε_0 \\
 ε_0 \sim \mathcal{N}(0,1)
 \end{equation*}
