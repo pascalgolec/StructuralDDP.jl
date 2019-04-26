@@ -17,6 +17,5 @@ jobs:
       julia: 1.1
       os: linux
       script:
-        - julia -e 'Pkg.clone(pwd())'
-        - julia -e 'Pkg.test("PkgName",coverage=true)'
+        - julia --project -e 'using Pkg; Pkg.test("StructuralDDP")'
       after_success: skip
