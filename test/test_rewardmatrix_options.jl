@@ -13,14 +13,14 @@ sol_1_nobuild
 @testset "reward matrix options" begin
 
 	@testset "SingleChoiceVar" begin
-		isapprox(sol_1_nobuild, sol_1_prebuild_partial, rtol=mytol)
-		isapprox(sol_1_nobuild, sol_1_prebuild, rtol=mytol)
-		isapprox(sol_1_prebuild, sol_1_prebuild_partial, rtol=mytol)
+		@test isapprox(sol_1_nobuild, sol_1_prebuild_partial, rtol=mytol)
+		@test isapprox(sol_1_nobuild, sol_1_prebuild, rtol=mytol)
+		@test isapprox(sol_1_prebuild, sol_1_prebuild_partial, rtol=mytol)
 	end
 
 	@testset "TwoChoiceVar" begin
-		isapprox(sol_2_nobuild, sol_2_prebuild_partial, rtol=mytol)
-		isapprox(sol_2_nobuild, sol_2_prebuild, rtol=mytol)
-		isapprox(sol_2_prebuild, sol_2_prebuild_partial, rtol=mytol)
+		@test isapprox(sol_2_nobuild, sol_2_prebuild_partial, rtol=mytol)
+		@test isapprox(sol_2_nobuild, sol_2_prebuild, rtol=mytol)
+		@test isapprox(sol_2_prebuild, sol_2_prebuild_partial, rtol=mytol)
 	end
 end
