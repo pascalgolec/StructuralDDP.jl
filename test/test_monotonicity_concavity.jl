@@ -15,9 +15,9 @@ sol_2_conc = solve(p_2; optdict..., monotonicity=[false,false], concavity=[true,
 
 @testset "monotonicity concavity" begin
 
-    compare(sol_1, sol_1_mon, str="CapitalAdjustModel_monotonicity",  tol=mytol)
-    compare(sol_1, sol_1_conc, str="CapitalAdjustModel_concavity", tol=mytol)
-    compare(sol_2, sol_2_mon, str="CapitalAdjustModel2_monotonicity", tol=mytol)
-    compare(sol_2, sol_2_conc, str="CapitalAdjustModel2_concavity", tol=mytol)
+    @test isapprox(sol_1, sol_1_mon,  rtol=mytol)
+    @test isapprox(sol_1, sol_1_conc, rtol=mytol)
+    @test isapprox(sol_2, sol_2_mon, rtol=mytol)
+    @test isapprox(sol_2, sol_2_conc, rtol=mytol)
 
 end

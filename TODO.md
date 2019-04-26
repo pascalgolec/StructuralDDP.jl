@@ -1,3 +1,4 @@
+- More example models (have two testmodels in test/models for now)
 - support more than two choice variables when the integration dimension is `separable`
 - plotrecipe for `DDPSolution`
 - allow parametric types in problem definition of state and choice vectors, i.e. `AbstractVector{T}` instead of `Vector{Float64}`

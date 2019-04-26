@@ -4,15 +4,15 @@ module StructuralDDP
 	using QuantEcon: qnwnorm, qnwunif, qnwlogn, gridmake, DiscreteDP, VFI
 	using Interpolations, Distributions, TreeViews, DataFrames
 	using SparseArrays, LinearAlgebra
-	using Test, DocStringExtensions
+	using DocStringExtensions
 
 	import QuantEcon: solve
 	import DataFrames: DataFrame
-	import Base: Array
+	import Base: Array, isapprox
 
 	export DiscreteDynamicProblem, DDP
 	export createmodel
-	export solve, transitionmatrix, value, policy, compare
+	export solve, transitionmatrix, value, policy
 	export drawshocks, simulate, policy, states, value, DataFrame
 
 	include("utils.jl")

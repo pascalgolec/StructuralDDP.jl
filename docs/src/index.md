@@ -1,6 +1,6 @@
 # StructuralDDP.jl Documentation
 
-This package defines, solves and simulates discrete dynamic optimization problems with value function iteration fast. It features different options to add structure to the problem and provide information about its properties. A wide range of problems can be solved very fast this way.
+This package defines, solves and simulates discrete dynamic optimization problems with value function iteration. It features different options to add structure to the problem and provide information about its properties. A wide range of problems can be solved very fast this way.
 
 The general workflow is to define a problem, solve it, simulate it, and then analyze it. The full code for an example is:
 
@@ -254,7 +254,7 @@ Note that the transition function only takes the exogenous states and shocks as 
 
 Summarizing he four different types of integration dimensions:
 
-- `:All` - next period states as a function of states, actions and shocks, i.e. ``s' = \Phi(s, a, \varepsilon')``. This formulation is the slowest and corresponds to the baseline example.
+- `:All` - next period states as a function of states, actions and shocks, i.e. ``s' = \Phi(s, a, \varepsilon')``. This formulation is the slowest and corresponds to the baseline example. In the background, the solver calls [QuanEcon's ddp.jl](https://github.com/QuantEcon/QuantEcon.jl/blob/master/src/markov/ddp.jl).
 - `:Separable` - next period exogenous states as a function of all states, actions and shocks, i.e. ``s'_e = \Phi(s, a, \varepsilon')``.
 - `:Separable_States` - next period exogenous states as a function of all states and shocks, i.e. ``s'_e = \Phi(s, \varepsilon')``.
 - `:Separable_ExogStates` - next period exogenous states as a function of only exogenous states and shocks, i.e. ``s'_e = \Phi(s_e, \varepsilon')``.
@@ -290,12 +290,12 @@ The `monotonicity` keyword allows the solver to exploit the monotonicity of the 
 
 The `concavity` keyword allows the solver to exploit the concavity of the value function in the choice of next period's state. Put differently, if ``V(s^{d'}_{t+1}, s^d_t, s^s_t) < V(s^{d*}_{t+1}, s^d_t, s^s_t)``, then also ``V(s^d_{t+1}, s^d_t, s^s_t) < V(s^{d'}_{t+1}, s^d_t, s^s_t)`` for any ``s^d_{t+1} > s^{d'}_{t+1}``. The default is `false`.
 
-A handy way to check whether the problem fulfils these conditions is the `compare` function. It checks whether two different solutions are identical:
+A handy way to check whether the problem fulfils these conditions is the `isapprox` function. It checks whether two different solutions are (almost) identical:
 
 ```julia
 sol = solve(prob; concavity=false)
 sol_conc = solve(prob; concavity=true)
-compare(sol, sol_conc; tol=1e-4)
+isapprox(sol, sol_conc; rtol=1e-4)
 ```
 
 Note: `monotonicity` and `concavity` currently only work if the integration dimension is separable. The options don't work if there are discontinuities in the reward function.
@@ -403,12 +403,3 @@ sim = simulate(sol, shocks)
 ```
 
 This can be useful for doing comparative statics on the model parameters, and wants to be sure that the shocks do not change. Note: the draw of shocks refers to the supplied shock distribution in the problem defintion. If the shock distribution is parametrized, for example by its variance, then one should not do comparative statics on those parameters.
-
-# Example Models
-
-There are two example models contained in the `test/models` folder:
-
-```@docs
-StructuralDDP.CapitalAdjustModel
-StructuralDDP.CapitalAdjustModel2
-```

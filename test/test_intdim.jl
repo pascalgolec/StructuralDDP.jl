@@ -32,13 +32,13 @@ sol_2_Separable_ExogStates = solve(p_2_Sep_ExogStates; optdict...)
 
 	@testset "compare solution methods" begin
 
-        compare(sol_1_All, sol_1_Separable, str="CapitalAdjustModel_1st_2nd", tol=mytol)
-        compare(sol_1_Separable, sol_1_Separable_States, str="CapitalAdjustModel_2nd_3rd", tol=mytol)
-        compare(sol_1_Separable_States, sol_1_Separable_ExogStates, str="CapitalAdjustModel_3rd_4th", tol=mytol)
+        @test isapprox(sol_1_All, sol_1_Separable, rtol=mytol)
+        @test isapprox(sol_1_Separable, sol_1_Separable_States, rtol=mytol)
+        @test isapprox(sol_1_Separable_States, sol_1_Separable_ExogStates, rtol=mytol)
 
-		compare(sol_2_All, sol_2_Separable, str="CapitalAdjustModel2_1st_2nd", tol=mytol)
-		compare(sol_2_Separable, sol_2_Separable_States, str="CapitalAdjustModel2_2nd_3rd", tol=mytol)
-        compare(sol_2_Separable_States, sol_2_Separable_ExogStates, str="CapitalAdjustModel2_3rd_4th", tol=mytol)
+		@test isapprox(sol_2_All, sol_2_Separable, rtol=mytol)
+		@test isapprox(sol_2_Separable, sol_2_Separable_States, rtol=mytol)
+        @test isapprox(sol_2_Separable_States, sol_2_Separable_ExogStates,rtol=mytol)
 
     end
 

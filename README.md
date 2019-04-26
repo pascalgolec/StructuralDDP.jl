@@ -1,7 +1,7 @@
 # StructuralDDP.jl
 
 
-[![][docs-dev-img]][docs-dev-url]
+[![][docs-dev-img]][docs-dev-url] [![][travis-img]][travis-url]
 
 
 This package defines, solves and simulates discrete dynamic optimization problems with fast value function iteration. It provides a simple and intuitive interface for working with [Markov decision processes (MDPs)](https://en.wikipedia.org/wiki/Markov_decision_process). It is similar to [POMDPs.jl](https://github.com/JuliaPOMDP/POMDPs.jl), but features different options to add structure to the problem and provide information about its properties. This way, a wide range of problems can be solved faster, without requiring parallelization.
@@ -16,5 +16,16 @@ The following figure compares the speed of standard solution methods (value func
 
 In the structured approach we specified that only some of the state variables should be integrated when calculating expectations, that the optimal choices are monotone in some of the states and that the value function is concave in some of the states and finally that part of the reward matrix should be pre-built before calling the solver.
 
+## Installation
+
+In the Julia REPL, press `]` to enter the Pkg mode. To add the package, use the `add` command
+
+```julia
+(v1.1) pkg> add https://github.com/pascalgolec/StructuralDDP.jl
+```
+
 [docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docs-dev-url]: https://pascalgolec.github.io/StructuralDDP.jl/dev
+
+[travis-img]: https://travis-ci.com//pascalgolec/StructuralDDP.jl.svg?branch=master
+[travis-url]: https://travis-ci.com/pascalgolec/StructuralDDP.jl

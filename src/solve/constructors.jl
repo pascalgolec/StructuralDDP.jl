@@ -86,20 +86,37 @@ policy0(sol::DDPSolutionZero) = sol.policy0
 policy0(sol::DDPSolutionZero{NS,1}) where NS  = sol.policy0[1]
 
 
-"""Compare different solutions, useful for when testing monotonicity and concavity."""
-function compare(sol1::AbstractDDPSolution,
-        sol2::AbstractDDPSolution;
-		str::String = "compare solutions",
-        tol::Real = 1e-4)
-    @testset "$str" begin
-        for field in fieldnames(typeof(sol1))
-			field1 = getfield(sol1,field)
-			field2 = getfield(sol2,field)
-            if typeof(field1) <: Tuple
-                [@test isapprox(field1[i], field2[i], rtol=tol) for i = 1 : length(field1)]
-            elseif typeof(field1) <: Array
-                @test isapprox(field1, field2, rtol=tol)
-            end
+"""Compare two DDP solutions. Returns true when they are approximately the same,
+otherwise false."""
+function isapprox(sol1::AbstractDDPSolution,
+        sol2::AbstractDDPSolution; kwargs...)
+
+	test = []
+    for field in fieldnames(typeof(sol1))
+		field1 = getfield(sol1,field)
+		field2 = getfield(sol2,field)
+        if typeof(field1) <: Tuple
+            append!(test,[isapprox(field1[i], field2[i]; kwargs...) for i = 1 : length(field1)])
+        elseif typeof(field1) <: AbstractArray
+            append!(test,isapprox(field1, field2; kwargs...))
         end
     end
+	return any(test)
 end
+
+# function compare(sol1::AbstractDDPSolution,
+#         sol2::AbstractDDPSolution;
+# 		str::String = "compare solutions",
+#         tol::Real = 1e-4)
+#     @testset "$str" begin
+#         for field in fieldnames(typeof(sol1))
+# 			field1 = getfield(sol1,field)
+# 			field2 = getfield(sol2,field)
+#             if typeof(field1) <: Tuple
+#                 [@test isapprox(field1[i], field2[i], rtol=tol) for i = 1 : length(field1)]
+#             elseif typeof(field1) <: Array
+#                 @test isapprox(field1, field2, rtol=tol)
+#             end
+#         end
+#     end
+# end

@@ -8,15 +8,19 @@ diopt = Dict(:concavity => true, :monotonicity => true)
 sol_2_prebuild = solve(p_2; diopt..., rewardcall=:pre)
 sol_2_prebuild_partial = solve(p_2; diopt..., rewardcall=:pre_partial)
 sol_2_nobuild = solve(p_2; diopt..., rewardcall=:jit)
+sol_1_nobuild
 
 @testset "reward matrix options" begin
 
-	compare(sol_1_nobuild, sol_1_prebuild_partial, str="SingleChoiceVar & jit & pre_partial", tol=mytol)
-	compare(sol_1_nobuild, sol_1_prebuild, str="SingleChoiceVar & jit & pre", tol=mytol)
-	compare(sol_1_prebuild, sol_1_prebuild_partial, str="SingleChoiceVar & pre & pre_partial", tol=mytol)
+	@testset "SingleChoiceVar" begin
+		isapprox(sol_1_nobuild, sol_1_prebuild_partial, rtol=mytol)
+		isapprox(sol_1_nobuild, sol_1_prebuild, rtol=mytol)
+		isapprox(sol_1_prebuild, sol_1_prebuild_partial, rtol=mytol)
+	end
 
-	compare(sol_2_nobuild, sol_2_prebuild_partial, str="TwoChoiceVar & jit & pre_partial", tol=mytol)
-	compare(sol_2_nobuild, sol_2_prebuild, str="TwoChoiceVar &jit & pre", tol=mytol)
-	compare(sol_2_prebuild, sol_2_prebuild_partial, str="TwoChoiceVar &pre & pre_partial", tol=mytol)
-
+	@testset "TwoChoiceVar" begin
+		isapprox(sol_2_nobuild, sol_2_prebuild_partial, rtol=mytol)
+		isapprox(sol_2_nobuild, sol_2_prebuild, rtol=mytol)
+		isapprox(sol_2_prebuild, sol_2_prebuild_partial, rtol=mytol)
+	end
 end
