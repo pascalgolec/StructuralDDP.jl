@@ -3,6 +3,10 @@ os: linux
 julia: 1.1
 notifications:
   email: true
+script:
+  - julia --project -e 'using Pkg; Pkg.test("StructuralDDP", coverage=true)'
+after_success:
+  - julia --project -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
 jobs:
   include:
     - stage: "Documentation"
@@ -12,10 +16,4 @@ jobs:
         - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
         - julia --project=docs/ docs/make.jl
       name: "HTML"
-      after_success: skip
-    - stage: "Test"
-      julia: 1.1
-      os: linux
-      script:
-        - julia --project -e 'using Pkg; Pkg.test("StructuralDDP")'
       after_success: skip
