@@ -19,4 +19,4 @@ jobs:
       script:
         - julia --project -e 'using Pkg; Pkg.test("StructuralDDP", coverage=true)'
       after_success:
-        - - julia --project -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+        - julia --project -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
