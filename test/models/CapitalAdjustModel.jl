@@ -41,6 +41,7 @@ function CapitalAdjustModel(;
 	δ = 0.15,
 	γ = 2.0,
 	C0 = 0.6,
+	F = 0.,
 
 	nK = 100,
 	nz = 20,
@@ -80,7 +81,8 @@ function CapitalAdjustModel(;
 	    K, z = vStates
 	    Kprime = vChoices[1]
 		i = Kprime/K - (1-δ)
-	    return K^α * exp(z) - i*K - γ/2 * i^2 * K
+		action = Kprime != K
+	    return K^α * exp(z) - i*K - F*K*action - γ/2 * i^2 * K
 	end
 
 	# including output, i.e. for partial rewardfunc
@@ -88,7 +90,8 @@ function CapitalAdjustModel(;
 	    K = vStates[1]
 		Kprime = vChoices[1]
 	    i = Kprime/K - (1-δ)
-	    return partial_reward - i*K - γ/2 * i^2 * K
+		action = Kprime != K
+	    return partial_reward - i*K - F*K*action - γ/2 * i^2 * K
 	end
 
 	reward_partial(vStates) = vStates[1]^α * exp(vStates[2])
@@ -149,6 +152,11 @@ function CapitalAdjustModel(;
 		shockdist_initial = nothing
 	end
 
+	function checkwhich(vStatesIndex)
+		vChoice = vStatesIndex[1]
+		return vChoice
+	end
+
 	DDP(tStateVectors,
         tChoiceVectors,
         reward,
@@ -161,5 +169,6 @@ function CapitalAdjustModel(;
         initializefunc = initialize,
 		shockdist_initial = shockdist_initial,
 		tChoiceVectorsZero = tChoiceVectorsZero,
+		get_additional_index = checkwhich,
         )
 end

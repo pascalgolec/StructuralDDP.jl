@@ -1,5 +1,5 @@
 # Single choice variable
-dipar = Dict(:nK => 40, :nz => 5, :γ => 2.)
+dipar = Dict(:nK => 40, :nz => 5, :γ => 2., :F=>0.02)
 p_1 = createmodel(:CapitalAdjustModel; dipar..., intdim = :Separable_ExogStates)
 sol_1 = solve(p_1; monotonicity = false, concavity = false)
 sol_1_mon = solve(p_1; monotonicity = true, concavity = false)

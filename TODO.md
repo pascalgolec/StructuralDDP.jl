@@ -1,7 +1,26 @@
+- allow discontinuities in the reward function with `monotonicity` and `concavity` for two choice variables
+- improve indexing inside VFI
+    - either define a type rewardmatrix and transitionmatrix
+        * they hold the information of how to index depending on i, j, jprime etc
+    - or count up the index in a smarter way, then don't have to calculate from scratch every time
 - More example models (have two testmodels in test/models for now)
 - support more than two choice variables when the integration dimension is `separable`
 - plotrecipe for `DDPSolution`
 - allow parametric types in problem definition of state and choice vectors, i.e. `AbstractVector{T}` instead of `Vector{Float64}`
 - allow `LabelledArrays.jl` in problem definition
-- allow discontinuities in the reward function with `monotonicity` and `concavity`
 - support firm exit
+- add @inbounds
+- :firm in DataFrame(sim) should be an CategoricalArray for easy plotting
+- document plotting with VegaLite.jl
+```julia
+f_sim.firm = CategoricalArray(df_sim.firm)
+plt = df_sim|> @vlplot(
+    :bar,
+    x={:state_1, bin=true, title="capital stock"},
+    y="count()")
+plt = df_sim|> @vlplot(
+    :line,
+    x={:period, title="years"},
+    y={:state_1, title="capital stock"},
+    color=:firm)
+```

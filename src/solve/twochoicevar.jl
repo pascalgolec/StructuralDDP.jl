@@ -125,7 +125,7 @@ function _solve2(rewardfunc, method::Type{T},
 	  					                                     getindex.(tStateVectors, (j, l, ix.I...)),
 														     (vChoiceOne[jprime], vChoiceTwo[lprime]))
             						elseif rewardcall == :jit
-            							  # need to be VERY careful with order of state vars here.. could get fucked up..
+            							  # need to be VERY careful with order of state vars here..
             							  reward = rewardfunc(getindex.(tStateVectors, (j, l, ix.I...)),
             												  (vChoiceOne[jprime], vChoiceTwo[lprime]))
             						elseif rewardcall == :pre
@@ -167,7 +167,7 @@ function _solve2(rewardfunc, method::Type{T},
                 	          iChoice1Start = jprime
                             end
                         elseif concavity1
-                            break # We break when we have achieved the max
+                            break # break when we have achieved the max
                         end
 
                     end #jprime

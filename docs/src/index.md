@@ -298,7 +298,26 @@ sol_conc = solve(prob; concavity=true)
 isapprox(sol, sol_conc; rtol=1e-4)
 ```
 
-Note: `monotonicity` and `concavity` currently only work if the integration dimension is separable. The options don't work if there are discontinuities in the reward function.
+Note: `monotonicity` and `concavity` currently only work if the integration dimension is separable.
+
+The options `monotonicity` and `concavity` typically only work if the reward function is continuous (and monotone). In some models the reward function is monotone apart from a discontinuity at one point. For example, we could assume that the firm incurs a cost proportional to its current capital stock when it chooses a different capital stock next peried, i.e. `K' \nq K`. In this case, it is possible to still use `monotonicity` and `concavity` if we add the following option in the problem definition. We must specify that we want to try an additional value of vChoices when finding the optimal choice for a given state:
+
+```julia
+function get_additional_index(vStatesIndex) # vStatesIndex is the state variable index
+	vChoice = vStatesIndex[1] # check Kprime = K
+	return vChoice
+end
+prob = DiscreteDynamicProblem(
+    tStateVectors,
+    tChoiceVectors,
+    reward,
+    transition,
+    shockdistribution,
+    β;
+    get_additional_index = get_additional_index)
+```
+
+This option only works for single choice variable problems at the moment.
 
 
 ### Prebuilding the reward matrix

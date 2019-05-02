@@ -14,7 +14,8 @@ _solve(p::DDP{nStateVars,1},
 			p.tStateVectors,
 			getchoicevars(p.tStateVectors, p.tChoiceVectors)[1],
 			getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
-			p.β)
+			p.β,
+			p.options.get_additional_index)
 
 # precondition is separable. have EndogStatevectors and exogstatevectors
 function _solve1(rewardfunc, method::Type{T},
@@ -24,7 +25,8 @@ function _solve1(rewardfunc, method::Type{T},
 				tStateVectors,#::NTuple{2,Vector{Float64}},
 				vChoices::Vector{Float64},
 				tOtherStateVectors, #::NTuple{1,Vector{Float64}}
-				β::Float64) where
+				β::Float64,
+				get_additional_index) where
 				T <: Separable_Union
 
     nChoices = length(vChoices)
@@ -67,6 +69,11 @@ function _solve1(rewardfunc, method::Type{T},
 	# will need beta times transpose of transition matrix
 	mTransition_βT = β * transpose(mTransition)
 
+	# whether to check outside of monotonicity/concavity
+	try_additional = any((monotonicity, concavity)) && get_additional_index!=nothing
+
+	check_jprime  = -1
+
     # VFI
     while maxDifference > tolerance
 
@@ -91,12 +98,10 @@ function _solve1(rewardfunc, method::Type{T},
 
 	            for jprime = iChoiceStart:nChoices
 
-					# reward using pre_partial output matrix
 					if rewardcall == :pre_partial
-						# reward = rewardfunc(mReward[j,i], vChoices[j], vChoices[jprime])
 						reward = rewardfunc(mReward[j,i], getindex.(tStateVectors, (j, ix.I...)), vChoices[jprime])
 					elseif rewardcall == :jit
-						# need to be VERY careful with order of state vars here.. could get fucked up..
+						# need to be VERY careful with order of state vars here..
 						reward = rewardfunc(getindex.(tStateVectors, (j, ix.I...)), vChoices[jprime])
 					elseif rewardcall == :pre
 						reward = mReward[jprime, j + nChoices * (i-1)] # nChoices x nStates
@@ -122,24 +127,34 @@ function _solve1(rewardfunc, method::Type{T},
 
 	            end #jprime
 
-				# # compare with discontinuity
-                # if isdefined(p.params, :F) || typeof(p) <: SalesAdjCosts
-                #     # compare with inaction: investing enough to keep K constant
-    			# 	reward = rewardfuncinaction(p, mReward[j,i], vChoices[j])
-				#
-                #     if intdim == :separable
-                #         inactionvalue = reward + mβEV[j, i]
-                #     elseif intdim == :intermediate
-                #         inactionvalue = reward + mβEV[j, j + nChoices *(i-1)] # mβEV is already discounted
-                #     end
-				#
-                #     if valueHighSoFar <= inactionvalue
-                #         # don't have interior K'
-                #         valueHighSoFar = inactionvalue
-                #         iChoice = j
-                #     end
-                # end
+				if try_additional
 
+					# check one more value outside of monotonicity and conc
+					check_jprime = get_additional_index((j, ix.I...))
+
+					if rewardcall == :pre_partial
+						reward = rewardfunc(mReward[j,i], getindex.(tStateVectors, (j, ix.I...)), vChoices[check_jprime])
+					elseif rewardcall == :jit
+						# need to be VERY careful with order of state vars here..
+						reward = rewardfunc(getindex.(tStateVectors, (j, ix.I...)), vChoices[check_jprime])
+					elseif rewardcall == :pre
+						reward = mReward[check_jprime, j + nChoices * (i-1)] # nChoices x nStates
+					end
+
+					if method == Separable_ExogStates
+	                    valueProvisional = reward + mβEV[check_jprime, i] # mβEV is nChoices x nExogStates
+                    elseif method == Separable_States
+						valueProvisional = reward + mβEV[check_jprime, j + nChoices *(i-1)] # mβEV is nChoices x nStates
+                    else # method == Separable
+						valueProvisional = reward + mβEV[check_jprime, check_jprime + nChoices*(j-1 + nChoices *(i-1))] # mβEV is nChoices x (nStates * nChoices)
+                    end
+
+					if valueHighSoFar <= valueProvisional # check is better than interior
+						valueHighSoFar = valueProvisional
+						iChoice = check_jprime
+					end
+
+				end
 
                 # # compare with liquidation
                 # if typeof(p) == LearningKExit
@@ -165,7 +180,6 @@ function _solve1(rewardfunc, method::Type{T},
 	        end #j
 
 	    end #i
-
 
         mValFunDiff .= mValFunNew .- mValFun
         mValFunDiffAbs .= abs.(mValFunDiff)
