@@ -1,9 +1,8 @@
 - allow discontinuities in the reward function with `monotonicity` and `concavity` for two choice variables
-- improve indexing inside VFI
-    - either define a type rewardmatrix and transitionmatrix
-        * they hold the information of how to index depending on i, j, jprime etc
-    - or count up the index in a smarter way, then don't have to calculate from scratch every time
+- improve indexing inside VFI: count up the index in a smarter way, then don't have to calculate from scratch every time
+    - **fix monotonicity/concavity for twochoicevar**
 - More example models (have two testmodels in test/models for now)
+- check [Event Handling and Callback Functions](http://docs.juliadiffeq.org/latest/features/callback_functions.html) in DifferentialEquations.jl
 - support more than two choice variables when the integration dimension is `separable`
 - plotrecipe for `DDPSolution`
 - allow parametric types in problem definition of state and choice vectors, i.e. `AbstractVector{T}` instead of `Vector{Float64}`

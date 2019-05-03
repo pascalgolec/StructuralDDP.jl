@@ -152,9 +152,13 @@ function CapitalAdjustModel(;
 		shockdist_initial = nothing
 	end
 
-	function checkwhich(vStatesIndex)
-		vChoice = vStatesIndex[1]
-		return vChoice
+	if F >0
+		function checkwhich(vStatesIndex)
+			vChoice = vStatesIndex[1]
+			return vChoice
+		end
+	else
+		checkwhich = nothing
 	end
 
 	DDP(tStateVectors,

@@ -52,7 +52,7 @@ function solve(p::DDP;
     end
 
     if intdim == All
-        meshValFun, tmeshPolFun = _solve(p, eval(intdim), mTransition, mReward, disp)
+        meshValFun, tmeshPolFun = _solve(p, intdim, mTransition, mReward, disp)
     else
         if typeof(p) <: DDP{NS,2} where NS
             # if user only supplied monotonivity/concavity for one option, extend to vector
@@ -62,7 +62,7 @@ function solve(p::DDP;
 
         meshValFun, tmeshPolFun = _solve(p, intdim, mTransition, mReward,
             disp, disp_each_iter, max_iter, epsilon,
-            rewardcall, monotonicity, concavity)
+            eval(rewardcall), monotonicity, concavity)
     end
 
     createsolution(p, meshValFun, tmeshPolFun)
@@ -73,3 +73,9 @@ function display_iter(iter::Int, disp_each_iter::Int, max_diff::Float64)
 		println(" Iteration = ", iter, " Sup Diff = ", round(max_diff, sigdigits=5))
 	end
 end
+
+# types for dispatch
+abstract type RewardCall end
+abstract type jit <: RewardCall end
+abstract type pre <: RewardCall end
+abstract type pre_partial <: RewardCall end

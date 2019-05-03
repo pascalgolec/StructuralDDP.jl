@@ -35,14 +35,11 @@ function _solve2(rewardfunc, method::Type{T},
     nStates = prod(length.(tStateVectors))
     nOtherStates = prod(length.(tOtherStateVectors))
 
-	mValFun    = zeros((nChoices, nOtherStates)) # matrix so that can multiply with mTransition
-	mValFunNew = zeros(nStates) # vector so that can index easily
-	# mValFunNew = zeros((nChoices, nOtherStates)) # vector so that can index easily
+    mValFun    = zeros((nChoices, nOtherStates))
+    mValFunNew = zeros((nChoices, nOtherStates))
 
-    mPolFunInd1 = zeros(Int16, nStates)
-    mPolFunInd2 = zeros(Int16, nStates)
-    # mPolFunInd1 = zeros(Int16, nChoices, nOtherStates)
-    # mPolFunInd2 = zeros(Int16, nChoices, nOtherStates)
+    mPolFunInd1 = zeros(Int16, nChoices, nOtherStates)
+    mPolFunInd2 = zeros(Int16, nChoices, nOtherStates)
 
     mβEV = zeros(nChoices, size(mTransition, 1)) # depends on intdim
 
@@ -58,10 +55,8 @@ function _solve2(rewardfunc, method::Type{T},
     end
 
     # initialize for less memory allocation
-	mValFunDiff = zeros(nStates)
-    mValFunDiffAbs = zeros(nStates)
-	# mValFunDiff = zeros(nChoices, nOtherStates)
-    # mValFunDiffAbs = zeros(nChoices, nOtherStates)
+	mValFunDiff = zeros(nChoices, nOtherStates)
+    mValFunDiffAbs = zeros(nChoices, nOtherStates)
 
     liquidationvalue::Float64 = -Inf
     inactionvalue::Float64 = -Inf
@@ -77,13 +72,9 @@ function _solve2(rewardfunc, method::Type{T},
     iChoice1::Int16 = 0
     iChoice2::Int16 = 0
 
-	# iChoice1Start::Int16 = 1
-    # vChoice2Start = ones(Int64, nChoiceOne)
-	# iChoice2inner = 0
-
-	iChoice2Start = 1
-    vChoice1Start = ones(Int64, nChoiceTwo)
-	iChoice1inner = 0
+	iChoice1Start::Int16 = 1
+    vChoice2Start = ones(Int64, nChoiceOne)
+	iChoice2inner = 0
 
 	i::Int64 = 0 # outer loop for other state vars
 	cnt = initialize_counter()
@@ -104,36 +95,36 @@ function _solve2(rewardfunc, method::Type{T},
 			i = i + 1
 			cnt.i_exogstate += 1
 
-            if monotonicity1
-                vChoice1Start[:] .= 1
+            if monotonicity2
+                vChoice2Start[:] .= 1
             end
 
             for l = 1:nChoiceTwo
 
                 # We start from previous choice (monotonicity of policy function)
-                if monotonicity2
-                   iChoice2Start = 1
+                if monotonicity1
+                   iChoice1Start = 1
                 end
 
                 for j = 1:nChoiceOne # first state
 
-                    valueHighSoFarTwo = -Inf
-                    valueProvisionalTwo = -Inf
+                    valueHighSoFarOne = -Inf
+                    valueProvisionalOne = -Inf
                     iChoice1 = 0
                     iChoice2 = 0
 
 					cnt.i_state += 1
 					cnt.i_choice = 0
 
-                    for lprime = iChoice2Start:nChoiceTwo
+                    for jprime = iChoice1Start:nChoiceOne
 
         						# get optimal second choice variable conditional on first
-        						valueHighSoFarOne = -Inf
-        						valueProvisionalOne = -Inf
-        						iChoice1inner  = 0
+        						valueHighSoFarTwo = -Inf
+        						valueProvisionalTwo = -Inf
+        						iChoice2inner  = 0
 
         						# find highest value for second state var
-        						for jprime = vChoice1Start[l]:nChoiceOne
+        						for lprime = vChoice2Start[j]:nChoiceTwo
 
 									cnt.i_statechoice += 1
 									cnt.i_choice += 1
@@ -152,46 +143,45 @@ function _solve2(rewardfunc, method::Type{T},
 										# 	@show jprime + nChoiceOne * (lprime-1)
 										# 	@show cnt.i_choice
 										# end
-            							  # reward = mReward[jprime + nChoiceOne * (lprime-1), cnt.i_state] # nChoices x nStates
-            							  reward = mReward[cnt.i_choice, cnt.i_state] # nChoices x nStates
+            							  reward = mReward[jprime + nChoiceOne * (lprime-1), cnt.i_state] # nChoices x nStates
+            							  # reward = mReward[cnt.i_choice, cnt.i_state] # nChoices x nStates
             						end
 
 					                if method == Separable_ExogStates # mβEV is nChoices x nStochStates
-											# βEV = mβEV[jprime + nChoiceOne * (lprime-1), cnt.i_exogstate]
-											βEV = mβEV[cnt.i_choice, cnt.i_exogstate]
+											βEV = mβEV[jprime + nChoiceOne * (lprime-1), cnt.i_exogstate]
         							elseif method == Separable_States # mβEV is nChoices x nStates
-            								# βEV = mβEV[jprime + nChoiceOne * (lprime-1), cnt.i_state]
-            								βEV = mβEV[cnt.i_choice, cnt.i_state]
+            								βEV = mβEV[jprime + nChoiceOne * (lprime-1), cnt.i_state]
         							else method == Separable # mβEV is nChoices x (nChoices * nStates)
-            								# βEV = mβEV[jprime + nChoiceOne * (lprime-1), cnt.i_statechoice]
-            								βEV = mβEV[cnt.i_choice, cnt.i_statechoice]
+            								βEV = mβEV[jprime + nChoiceOne * (lprime-1), cnt.i_statechoice]
         							end
 
-        							valueProvisionalOne = reward + βEV
+        							valueProvisionalTwo = reward + βEV
 
-        							if valueProvisionalOne >= valueHighSoFarOne
-            							   valueHighSoFarOne = valueProvisionalOne
-            							   iChoice1inner = jprime
-			                        elseif concavity1
+        							if valueProvisionalTwo >= valueHighSoFarTwo
+            							   valueHighSoFarTwo = valueProvisionalTwo
+            							   iChoice2inner = lprime
+			                        elseif concavity2
             							break
         							end
 
-        						end # jprime
+        						end # lprime
 
-                        valueProvisionalTwo = valueHighSoFarOne
+        						# return valueHighSoFarTwo, iChoice2
 
-                        if (valueProvisionalTwo>=valueHighSoFarTwo)
-                            valueHighSoFarTwo = valueProvisionalTwo
-                            iChoice1 = iChoice1inner
-                            iChoice2 = lprime
-                            if monotonicity2
-                	          iChoice2Start = lprime
+                        valueProvisionalOne = valueHighSoFarTwo
+
+                        if (valueProvisionalOne>=valueHighSoFarOne)
+                            valueHighSoFarOne = valueProvisionalOne
+                            iChoice1 = jprime
+                            iChoice2 = iChoice2inner
+                            if monotonicity1
+                	          iChoice1Start = jprime
                             end
-                        elseif concavity2
+                        elseif concavity1
                             break # break when we have achieved the max
                         end
 
-                    end #lprime
+                    end #jprime
 
                     # if isdefined(p.params, :F)
                     #     (inactionvalue, iChoice2inaction) =
@@ -210,14 +200,11 @@ function _solve2(rewardfunc, method::Type{T},
                     #     end
                     # end
 
-                    mValFunNew[cnt.i_state] = valueHighSoFarTwo
-                    mPolFunInd1[cnt.i_state] = iChoice1
-                    mPolFunInd2[cnt.i_state] = iChoice2
-                    # mValFunNew[j + nChoiceOne * (l-1), cnt.i_exogstate] = valueHighSoFarTwo
-                    # mPolFunInd1[j + nChoiceOne * (l-1), cnt.i_exogstate] = iChoice1
-                    # mPolFunInd2[j + nChoiceOne * (l-1), cnt.i_exogstate] = iChoice2
-                    if monotonicity1
-                        vChoice1Start[l] = iChoice1
+                    mValFunNew[j + nChoiceOne * (l-1), cnt.i_exogstate] = valueHighSoFarOne
+                    mPolFunInd1[j + nChoiceOne * (l-1), cnt.i_exogstate] = iChoice1
+                    mPolFunInd2[j + nChoiceOne * (l-1), cnt.i_exogstate] = iChoice2
+                    if monotonicity2
+                        vChoice2Start[j] = iChoice2
                     end
 
                 end #j (capital)
@@ -226,10 +213,7 @@ function _solve2(rewardfunc, method::Type{T},
 
         end #i (stochastic variables)
 
-		# @show size(mValFunNew)
-		# @show size(mValFun)
-		# @show size(mValFun[:])
-        mValFunDiff .= mValFunNew .- @view(mValFun[:])
+        mValFunDiff .= mValFunNew .- mValFun
         mValFunDiffAbs .= abs.(mValFunDiff)
         maxDifference  = maximum(mValFunDiffAbs)
 

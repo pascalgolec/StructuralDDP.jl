@@ -30,31 +30,51 @@ function _rewardmatrix(rewardfunc, tStateVectors, tChoiceVectors)
 end
 
 rewardmatrix_partial(p::DDP) = _rewardmatrix_partial(p.options.rewardfunc_partial,
-    getchoicevars(p.tStateVectors, p.tChoiceVectors),
-    getnonchoicevars(p.tStateVectors, p.tChoiceVectors))
+    p.tStateVectors)
+# rewardmatrix_partial(p::DDP) = _rewardmatrix_partial(p.options.rewardfunc_partial,
+#     getchoicevars(p.tStateVectors, p.tChoiceVectors),
+#     getnonchoicevars(p.tStateVectors, p.tChoiceVectors))
 
-"""Return a nEndogStates x nExogStates reward matrix."""
-function _rewardmatrix_partial(rewardfunc_partial,
-    tEndogStateVectors, tExogStateVectors)
-    # output dimension is nEndogStates x nExogStates
+function _rewardmatrix_partial(rewardfunc_partial, tStateVectors)
+    # output dimension is vector of length nStates
 
     # julia does not know dim of endog state vars from this expression
-    nEndogStates::Int64 = prod(length.(tEndogStateVectors))
-    nExogStates::Int64 = prod(length.(tExogStateVectors))
+    nStates::Int64 = prod(length.(tStateVectors))
 
-    # mStates::Array{Float64,2} = gridmake(tStateVectors...)
+    mReward = zeros(Float64, nStates)
 
-    mReward = zeros(Float64, nEndogStates, nExogStates)
+    iterator = Iterators.product(tStateVectors...)
 
-    iterator_endogstates = Iterators.product(tEndogStateVectors...)
-    iterator_exogstates = Iterators.product(tExogStateVectors...)
-
-    for (i, exogstates) in enumerate(iterator_exogstates)
-        for (j, endogstates) in enumerate(iterator_endogstates)
-           mReward[j,i] = rewardfunc_partial((endogstates..., exogstates...))
-        end
+    for (i, states) in enumerate(iterator)
+       mReward[i] = rewardfunc_partial(states)
     end
 
     return mReward
 
 end
+
+"""Return a nEndogStates x nExogStates reward matrix."""
+# function _rewardmatrix_partial(rewardfunc_partial,
+#     tEndogStateVectors, tExogStateVectors)
+#     # output dimension is nEndogStates x nExogStates
+#
+#     # julia does not know dim of endog state vars from this expression
+#     nEndogStates::Int64 = prod(length.(tEndogStateVectors))
+#     nExogStates::Int64 = prod(length.(tExogStateVectors))
+#
+#     # mStates::Array{Float64,2} = gridmake(tStateVectors...)
+#
+#     mReward = zeros(Float64, nEndogStates, nExogStates)
+#
+#     iterator_endogstates = Iterators.product(tEndogStateVectors...)
+#     iterator_exogstates = Iterators.product(tExogStateVectors...)
+#
+#     for (i, exogstates) in enumerate(iterator_exogstates)
+#         for (j, endogstates) in enumerate(iterator_endogstates)
+#            mReward[j,i] = rewardfunc_partial((endogstates..., exogstates...))
+#         end
+#     end
+#
+#     return mReward
+#
+# end
