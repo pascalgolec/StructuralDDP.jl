@@ -2,6 +2,7 @@
 - improve indexing inside VFI: count up the index in a smarter way, then don't have to calculate from scratch every time
     - **fix monotonicity/concavity for twochoicevar**
 - More example models (have two testmodels in test/models for now)
+- Benchmark with VFI with GPU ([here](https://discourse.julialang.org/t/value-function-iteration-on-gpu/13774/6) and [here](https://juliacon.org/2018/talks_workshops/106/)) and [others](https://github.com/JuliaStochOpt/StochDynamicProgramming.jl)
 - check [Event Handling and Callback Functions](http://docs.juliadiffeq.org/latest/features/callback_functions.html) in DifferentialEquations.jl
 - support more than two choice variables when the integration dimension is `separable`
 - plotrecipe for `DDPSolution`

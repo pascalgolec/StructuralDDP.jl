@@ -145,7 +145,6 @@ function _solve1(rewardfunc, method::Type{T},
 
 			cnt.i_exogstate += 1
 
-	        # We start from previous choice (monotonicity of policy function)
             if monotonicity
                iChoiceStart = 1
             end
@@ -172,15 +171,19 @@ function _solve1(rewardfunc, method::Type{T},
 	                if (valueProvisional>=valueHighSoFar)
     	            	valueHighSoFar = valueProvisional
     	            	iChoice = jprime
-                        if monotonicity
-            	          iChoiceStart = jprime
-                        end
+                        # if monotonicity
+            	        #   iChoiceStart = jprime
+                        # end
 	                elseif concavity
 						cnt.i_statechoice += nChoices - jprime # adjust counter if finish early
 	            	    break # We break when we have achieved the max
 					end
 
 	            end #jprime
+
+				if monotonicity
+				  iChoiceStart = iChoice
+				end
 
 				if try_additional
 					# check one more value outside of monotonicity and conc
