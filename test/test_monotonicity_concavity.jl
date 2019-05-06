@@ -1,13 +1,13 @@
 # Single choice variable
 dipar = Dict(:nK => 40, :nz => 5, :γ => 2., :F=>0.02)
-p_1 = createmodel(:CapitalAdjustModel; dipar..., intdim = :Separable_ExogStates)
+p_1 = createmodel(:CapitalAdjustModel; dipar..., intdim = :Separable)
 sol_1 = solve(p_1; monotonicity = false, concavity = false)
 sol_1_mon = solve(p_1; monotonicity = true, concavity = false)
 sol_1_conc = solve(p_1; monotonicity = false, concavity = true)
 
 # two choice variables
 dipar = Dict(:nK => 10, :nN => 7, :nz => 3)
-p_2 = createmodel(:CapitalAdjustModel2; dipar..., intdim = :Separable_ExogStates)
+p_2 = createmodel(:CapitalAdjustModel2; dipar..., intdim = :Separable)
 optdict = Dict(:rewardcall=>:jit)
 sol_2 = solve(p_2; optdict..., monotonicity=[false,false], concavity=[false,false])
 sol_2_mon = solve(p_2; optdict..., monotonicity=[true,true], concavity=[false,false])

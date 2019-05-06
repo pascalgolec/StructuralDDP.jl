@@ -1,3 +1,21 @@
+getreward(rewardcall::Type{pre_partial}, rewardfunc, mReward, tStateVectors,
+	vChoiceOne, vChoiceTwo,
+	cnt, ix, j, jprime, l, lprime) =
+	rewardfunc(mReward[cnt.i_state],
+					   getindex.(tStateVectors, (j, l, ix.I...)),
+					   (vChoiceOne[jprime], vChoiceTwo[lprime]))
+
+getreward(rewardcall::Type{jit}, rewardfunc, mReward, tStateVectors,
+	vChoiceOne, vChoiceTwo,
+	cnt, ix, j, jprime, l, lprime) =
+	reward = rewardfunc(getindex.(tStateVectors, (j, l, ix.I...)),
+						(vChoiceOne[jprime], vChoiceTwo[lprime]))
+
+getreward(rewardcall::Type{pre}, rewardfunc, mReward, tStateVectors,
+	vChoiceOne, vChoiceTwo,
+	cnt, ix, j, jprime, l, lprime) =  mReward[cnt.i_choice, cnt.i_state]
+
+
 _solve(p::DDP{nStateVars,2}, method::Type{T},
 		mTransition::Array{Float64,2}, mReward::Union{Array{Float64}, Nothing},
 		disp::Bool, disp_each_iter::Int, max_iter::Int, epsilon::Float64,
@@ -77,13 +95,7 @@ function _solve2(rewardfunc, method::Type{T},
     iChoice1::Int16 = 0
     iChoice2::Int16 = 0
 
-	# iChoice1Start::Int16 = 1
-    # vChoice2Start = ones(Int64, nChoiceOne)
-	# iChoice2inner = 0
-
-	# iChoice2Start = 1
     vChoice2Start = ones(Int64, nChoiceOne)
-    # vChoice1Start = ones(Int64, nChoiceTwo)
     vChoice1Start = 1
 	iChoice1inner = 0
 
@@ -98,10 +110,10 @@ function _solve2(rewardfunc, method::Type{T},
 
         mul!(mβEV, mValFun, mTransition_βT)
 
-        # @inbounds
 		i = 0
 		reset!(cnt)
 
+		# @inbounds
 		for ix in CartesianIndices(length.(tOtherStateVectors)) # other states
 			i = i + 1
 			cnt.i_exogstate += 1
@@ -126,7 +138,7 @@ function _solve2(rewardfunc, method::Type{T},
 					cnt.i_state += 1
 					cnt.i_choice = 0
 
-					cnt.i_statechoice += vChoice2Start[j]-1 # compensate if start later
+					cnt.i_statechoice += (vChoice2Start[j]-1)*nChoiceOne # compensate if start later
 					cnt.i_choice += (vChoice2Start[j]-1)*nChoiceOne # compensate if start later
 
                     for lprime = vChoice2Start[j]:nChoiceTwo
@@ -137,57 +149,28 @@ function _solve2(rewardfunc, method::Type{T},
         						iChoice1inner  = 0
 
         						# find highest value for second state var
+								cnt.i_statechoice += vChoice1Start-1 # compensate if start later
 								cnt.i_choice += vChoice1Start-1
         						for jprime = vChoice1Start:nChoiceOne
 
 									cnt.i_statechoice += 1
 									cnt.i_choice += 1
 
-            						# reward using pre_partial output matrix
-            						if rewardcall == pre_partial
-            							  reward = rewardfunc(mReward[cnt.i_state],
-	  					                                     getindex.(tStateVectors, (j, l, ix.I...)),
-														     (vChoiceOne[jprime], vChoiceTwo[lprime]))
-            						elseif rewardcall == jit
-            							  # need to be VERY careful with order of state vars here..
-            							  reward = rewardfunc(getindex.(tStateVectors, (j, l, ix.I...)),
-            												  (vChoiceOne[jprime], vChoiceTwo[lprime]))
-            						elseif rewardcall == pre
-            							  # reward = mReward[jprime + nChoiceOne * (lprime-1), cnt.i_state] # nChoices x nStates
-            							  reward = mReward[cnt.i_choice, cnt.i_state] # nChoices x nStates
-            						end
+									reward = getreward(rewardcall, rewardfunc,
+										mReward, tStateVectors,
+										vChoiceOne, vChoiceTwo,
+										cnt, ix, j, jprime, l, lprime)
 
-					                if method == Separable_ExogStates # mβEV is nChoices x nStochStates
-											# βEV = mβEV[jprime + nChoiceOne * (lprime-1), cnt.i_exogstate]
-											βEV = mβEV[cnt.i_choice, cnt.i_exogstate]
-        							elseif method == Separable_States # mβEV is nChoices x nStates
-            								# βEV = mβEV[jprime + nChoiceOne * (lprime-1), cnt.i_state]
-            								βEV = mβEV[cnt.i_choice, cnt.i_state]
-        							else method == Separable # mβEV is nChoices x (nChoices * nStates)
-            								# βEV = mβEV[jprime + nChoiceOne * (lprime-1), cnt.i_statechoice]
-            								βEV = mβEV[cnt.i_choice, cnt.i_statechoice]
-        							end
-
-									# if i==1
-									# 	@show cnt.i_choice
-									# 	@show jprime + nChoiceOne * (lprime-1)
-									# end
-									# if cnt.i_choice != jprime + nChoiceOne * (lprime-1)
-									# 	@show jprime
-									# 	@show lprime
-									# 	@show nChoiceOne
-									# 	@show vChoice2Start[j]
-									# 	@show cnt.i_choice
-									# 	@show jprime + nChoiceOne * (lprime-1)
-									# 	error("stop")
-									# end
-
-        							valueProvisionalOne = reward + βEV
+									valueProvisionalOne = reward + mβEV[cnt.i_choice,
+										getcounter(cnt, method)]
 
         							if valueProvisionalOne >= valueHighSoFarOne
             							   valueHighSoFarOne = valueProvisionalOne
             							   iChoice1inner = jprime
 			                        elseif concavity1
+										adj = nChoiceOne - jprime # adjust counter if finish early
+										cnt.i_statechoice += adj
+										cnt.i_choice += adj
             							break
         							end
 
@@ -200,7 +183,10 @@ function _solve2(rewardfunc, method::Type{T},
                             iChoice1 = iChoice1inner
                             iChoice2 = lprime
                         elseif concavity2
-                            break # break when we have achieved the max
+							adj = (nChoiceTwo - lprime)*nChoiceOne # adjust counter if finish early
+							cnt.i_statechoice += adj
+							cnt.i_choice += adj
+                            break
                         end
 
                     end #lprime
@@ -225,9 +211,6 @@ function _solve2(rewardfunc, method::Type{T},
                     mValFunNew[cnt.i_state] = valueHighSoFarTwo
                     mPolFunInd1[cnt.i_state] = iChoice1
                     mPolFunInd2[cnt.i_state] = iChoice2
-                    # mValFunNew[j + nChoiceOne * (l-1), i] = valueHighSoFarTwo
-                    # mPolFunInd1[j + nChoiceOne * (l-1), i] = iChoice1
-                    # mPolFunInd2[j + nChoiceOne * (l-1), i] = iChoice2
 
 					if monotonicity1
                         vChoice1Start = iChoice1
@@ -242,10 +225,6 @@ function _solve2(rewardfunc, method::Type{T},
 
         end #i (stochastic variables)
 
-		# @show size(mValFunNew)
-		# @show size(mValFun)
-		# @show size(mValFun[:])
-        # mValFunDiff .= mValFunNew .- mValFun
         mValFunDiff .= mValFunNew .- @view(mValFun[:])
         mValFunDiffAbs .= abs.(mValFunDiff)
         maxDifference  = maximum(mValFunDiffAbs)

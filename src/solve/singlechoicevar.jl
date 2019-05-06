@@ -137,10 +137,9 @@ function _solve1(rewardfunc, method::Type{T},
 
         mul!(mβEV, mValFun, mTransition_βT)
 
-        # inbounds does help by 50%
-	    # @inbounds
 		reset!(cnt)
 
+		# @inbounds
 		for ix in CartesianIndices(length.(tOtherStateVectors)) # other states
 
 			cnt.i_exogstate += 1
@@ -162,7 +161,6 @@ function _solve1(rewardfunc, method::Type{T},
 
 					cnt.i_statechoice += 1
 
-					# somehow it's slow when I put it into function.. should have dispatch for rewardcall
 					reward = getreward(rewardcall, rewardfunc, mReward, tStateVectors, vChoices,
 						cnt, ix, j, jprime)
 
@@ -171,12 +169,9 @@ function _solve1(rewardfunc, method::Type{T},
 	                if (valueProvisional>=valueHighSoFar)
     	            	valueHighSoFar = valueProvisional
     	            	iChoice = jprime
-                        # if monotonicity
-            	        #   iChoiceStart = jprime
-                        # end
 	                elseif concavity
 						cnt.i_statechoice += nChoices - jprime # adjust counter if finish early
-	            	    break # We break when we have achieved the max
+	            	    break # break bc value will only be lower from now on
 					end
 
 	            end #jprime
@@ -224,9 +219,7 @@ function _solve1(rewardfunc, method::Type{T},
                 # end
 
 	            mValFunNew[cnt.i_state] = valueHighSoFar
-	            # mValFunNew[j,cnt.i_exogstate] = valueHighSoFar
 	            mPolFunInd[cnt.i_state] = iChoice
-	            # mPolFunInd[j,cnt.i_exogstate] = iChoice
 
 	        end #j
 
