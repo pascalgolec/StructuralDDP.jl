@@ -5,6 +5,7 @@ module StructuralDDP
 	using Interpolations, Distributions, TreeViews, DataFrames
 	using SparseArrays, LinearAlgebra
 	using DocStringExtensions
+	using Parameters
 
 	import QuantEcon: solve
 	import DataFrames: DataFrame

@@ -4,7 +4,7 @@ sol_1_prebuild_partial = solve(p_1; rewardcall=:pre_partial)
 sol_1_nobuild = solve(p_1; rewardcall=:jit)
 
 p_2 = createmodel(:CapitalAdjustModel2; nK = 15, nN = 10, nz = 3, intdim=:Separable_ExogStates,)
-diopt = Dict(:concavity => true, :monotonicity => true)
+diopt = Dict(:concavity => [true,true], :monotonicity => [true,true])
 sol_2_prebuild = solve(p_2; diopt..., rewardcall=:pre)
 sol_2_prebuild_partial = solve(p_2; diopt..., rewardcall=:pre_partial)
 sol_2_nobuild = solve(p_2; diopt..., rewardcall=:jit)

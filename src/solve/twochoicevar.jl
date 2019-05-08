@@ -15,36 +15,27 @@ getreward(rewardcall::Type{pre}, rewardfunc, mReward, tStateVectors,
 	vChoiceOne, vChoiceTwo,
 	cnt, ix, j, jprime, l, lprime) =  mReward[cnt.i_choice, cnt.i_state]
 
-
-_solve(p::DDP{nStateVars,2}, method::Type{T},
-		mTransition::Array{Float64,2}, mReward::Union{Array{Float64}, Nothing},
-		disp::Bool, disp_each_iter::Int, max_iter::Int, epsilon::Float64,
-		rewardcall::Type{R}, monotonicity::Vector{Bool}, concavity::Vector{Bool}) where
-			{nStateVars, T <: Separable_Union, R<:RewardCall} =
-		_solve2(p.rewardfunc, method,
-			mTransition, mReward,
-			disp, disp_each_iter, max_iter, epsilon,
-			rewardcall,
-			monotonicity[1], monotonicity[2],
-			concavity[1], concavity[2],
-			p.tStateVectors,
-			getchoicevars(p),
-			getnonchoicevars(p),
-			p.β)
+_solve(p::DDP,
+	mTransition::Array{Float64,2}, mReward::Union{Array{Float64}, Nothing},
+	opts::SolverOptions) =
+	_solve(p, mTransition, mReward, opts, p.tStateVectors,
+		getchoicevars(p.tStateVectors, p.tChoiceVectors),
+		getnonchoicevars(p.tStateVectors, p.tChoiceVectors),)
 
 
-function _solve2(rewardfunc, method::Type{T},
-						mTransition::Array{Float64,2}, mReward::Union{Array{Float64}, Nothing},
-						disp::Bool, disp_each_iter::Int, max_iter::Int, epsilon::Float64,
-						rewardcall::Type{R},
-						monotonicity1::Bool, monotonicity2::Bool,
-						concavity1::Bool, concavity2::Bool,
-						tStateVectors,#::NTuple{2,Vector{Float64}},
-						tChoiceVectors,
-						tOtherStateVectors, #::NTuple{1,Vector{Float64}}
-						β::Float64) where
-						{T <: Separable_Union, R<:RewardCall}
+function _solve(p::DDP,
+				mTransition::Array{Float64,2}, mReward::Union{Array{Float64}, Nothing},
+				opts::SolverOptions,
+				tStateVectors,
+				tChoiceVectors,
+				tOtherStateVectors)
 
+	@unpack β, rewardfunc = p
+	@unpack disp, disp_each_iter, max_iter, epsilon, rewardcall,
+	monotonicity, concavity, intdim = opts
+	get_additional_index = p.options.get_additional_index
+	monotonicity1, monotonicity2 = monotonicity
+	concavity1, concavity2 = concavity
 
     (nChoiceOne, nChoiceTwo) = length.(tChoiceVectors)
     (vChoiceOne, vChoiceTwo) = tChoiceVectors
@@ -55,12 +46,9 @@ function _solve2(rewardfunc, method::Type{T},
 
 	mValFun    = zeros((nChoices, nOtherStates)) # matrix so that can multiply with mTransition
 	mValFunNew = zeros(nStates) # vector so that can index easily
-	# mValFunNew = zeros((nChoices, nOtherStates)) # vector so that can index easily
 
     mPolFunInd1 = zeros(Int16, nStates)
     mPolFunInd2 = zeros(Int16, nStates)
-    # mPolFunInd1 = zeros(Int16, nChoices, nOtherStates)
-    # mPolFunInd2 = zeros(Int16, nChoices, nOtherStates)
 
     mβEV = zeros(nChoices, size(mTransition, 1)) # depends on intdim
 
@@ -78,8 +66,6 @@ function _solve2(rewardfunc, method::Type{T},
     # initialize for less memory allocation
 	mValFunDiff = zeros(nStates)
     mValFunDiffAbs = zeros(nStates)
-	# mValFunDiff = zeros(nChoices, nOtherStates)
-    # mValFunDiffAbs = zeros(nChoices, nOtherStates)
 
     liquidationvalue::Float64 = -Inf
     inactionvalue::Float64 = -Inf
@@ -143,38 +129,38 @@ function _solve2(rewardfunc, method::Type{T},
 
                     for lprime = vChoice2Start[j]:nChoiceTwo
 
-        						# get optimal second choice variable conditional on first
-        						valueHighSoFarOne = -Inf
-        						valueProvisionalOne = -Inf
-        						iChoice1inner  = 0
+						# get optimal second choice variable conditional on first
+						valueHighSoFarOne = -Inf
+						valueProvisionalOne = -Inf
+						iChoice1inner  = 0
 
-        						# find highest value for second state var
-								cnt.i_statechoice += vChoice1Start-1 # compensate if start later
-								cnt.i_choice += vChoice1Start-1
-        						for jprime = vChoice1Start:nChoiceOne
+						# find highest value for second state var
+						cnt.i_statechoice += vChoice1Start-1 # compensate if start later
+						cnt.i_choice += vChoice1Start-1
+						for jprime = vChoice1Start:nChoiceOne
 
-									cnt.i_statechoice += 1
-									cnt.i_choice += 1
+							cnt.i_statechoice += 1
+							cnt.i_choice += 1
 
-									reward = getreward(rewardcall, rewardfunc,
-										mReward, tStateVectors,
-										vChoiceOne, vChoiceTwo,
-										cnt, ix, j, jprime, l, lprime)
+							reward = getreward(rewardcall, rewardfunc,
+								mReward, tStateVectors,
+								vChoiceOne, vChoiceTwo,
+								cnt, ix, j, jprime, l, lprime)
 
-									valueProvisionalOne = reward + mβEV[cnt.i_choice,
-										getcounter(cnt, method)]
+							valueProvisionalOne = reward + mβEV[cnt.i_choice,
+								getcounter(cnt, intdim)]
 
-        							if valueProvisionalOne >= valueHighSoFarOne
-            							   valueHighSoFarOne = valueProvisionalOne
-            							   iChoice1inner = jprime
-			                        elseif concavity1
-										adj = nChoiceOne - jprime # adjust counter if finish early
-										cnt.i_statechoice += adj
-										cnt.i_choice += adj
-            							break
-        							end
+							if valueProvisionalOne >= valueHighSoFarOne
+    							   valueHighSoFarOne = valueProvisionalOne
+    							   iChoice1inner = jprime
+	                        elseif concavity1
+								adj = nChoiceOne - jprime # adjust counter if finish early
+								cnt.i_statechoice += adj
+								cnt.i_choice += adj
+    							break
+							end
 
-        						end # jprime
+						end # jprime
 
                         valueProvisionalTwo = valueHighSoFarOne
 

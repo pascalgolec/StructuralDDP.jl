@@ -58,8 +58,6 @@ p_2_sep_exogstates = createmodel(model; dipar..., :intdim=>:Separable_ExogStates
 
 optdict = Dict(:monotonicity=>[true,true], :concavity=>[true,true],
 	:rewardcall=>:pre_partial)
-optdict = Dict(:monotonicity=>false, :concavity=>false,
-	:rewardcall=>:pre_partial)
 
 sol_2_all = solve(p_2_all; optdict...)
 sol_2_sep = solve(p_2_sep; optdict...)

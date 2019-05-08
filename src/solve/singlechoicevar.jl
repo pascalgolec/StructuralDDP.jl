@@ -10,9 +10,9 @@ mutable struct Counters
 end
 
 initialize_counter() = Counters(0,0,0,0)
-getcounter(cnt::Counters, method::Type{Separable_ExogStates}) = cnt.i_exogstate
-getcounter(cnt::Counters, method::Type{Separable_States}) = cnt.i_state
-getcounter(cnt::Counters, method::Type{Separable}) = cnt.i_statechoice
+getcounter(cnt::Counters, intdim::Type{Separable_ExogStates}) = cnt.i_exogstate
+getcounter(cnt::Counters, intdim::Type{Separable_States}) = cnt.i_state
+getcounter(cnt::Counters, intdim::Type{Separable}) = cnt.i_statechoice
 function reset!(cnt::Counters)
 	cnt.i_exogstate = 0
 	cnt.i_state = 0
@@ -47,34 +47,25 @@ getreward(rewardcall::Type{pre}, rewardfunc, mReward, tStateVectors, vChoices,
 ########################
 ##### Solver ######
 ########################
-_solve(p::DDP{nStateVars,1},
-		method::Type{T},
-		mTransition::Array{Float64,2}, mReward::Union{Array{Float64}, Nothing},
-		disp::Bool, disp_each_iter::Int, max_iter::Int, epsilon::Float64,
-		rewardcall::Type{R}, monotonicity::Bool, concavity::Bool) where
-			{nStateVars, T <: Separable_Union, R<:RewardCall} =
-		_solve1(p.rewardfunc, method,
-			mTransition, mReward,
-			disp, disp_each_iter, max_iter, epsilon,
-			rewardcall, monotonicity, concavity,
-			p.tStateVectors,
-			getchoicevars(p.tStateVectors, p.tChoiceVectors)[1],
-			getnonchoicevars(p.tStateVectors, p.tChoiceVectors),
-			p.β,
-			p.options.get_additional_index)
+_solve(p::DDP{NS,1},
+	mTransition::Array{Float64,2}, mReward::Union{Array{Float64}, Nothing},
+	opts::SolverOptions) where NS =
+	_solve(p, mTransition, mReward, opts, p.tStateVectors,
+		getchoicevars(p.tStateVectors, p.tChoiceVectors)[1],
+		getnonchoicevars(p.tStateVectors, p.tChoiceVectors),)
 
-
-# precondition is separable. have EndogStatevectors and exogstatevectors
-function _solve1(rewardfunc, method::Type{T},
+# function barrier for tuples
+function _solve(p::DDP{NS,1},
 				mTransition::Array{Float64,2}, mReward::Union{Array{Float64}, Nothing},
-				disp::Bool, disp_each_iter::Int, max_iter::Int, epsilon::Float64,
-				rewardcall::Type{R}, monotonicity::Bool, concavity::Bool,
-				tStateVectors,#::NTuple{2,Vector{Float64}},
+				opts::SolverOptions,
+				tStateVectors,
 				vChoices::Vector{Float64},
-				tOtherStateVectors, #::NTuple{1,Vector{Float64}}
-				β::Float64,
-				get_additional_index) where
-				{T <: Separable_Union, R<:RewardCall}
+				tOtherStateVectors) where NS
+
+	@unpack β, rewardfunc = p
+	@unpack disp, disp_each_iter, max_iter, epsilon, rewardcall,
+		monotonicity, concavity, intdim = opts
+	get_additional_index = p.options.get_additional_index
 
     nChoices = length(vChoices)
 
@@ -83,10 +74,8 @@ function _solve1(rewardfunc, method::Type{T},
 
     mValFun    = zeros((nChoices, nOtherStates)) # matrix so that can multiply with mTransition
 	mValFunNew = zeros(nStates) # vector so that can index easily
-	# mValFunNew = zeros((nChoices, nOtherStates)) # vector so that can index easily
 
 	mPolFunInd = zeros(Int16, nStates)
-	# mPolFunInd = zeros(Int16, nChoices, nOtherStates)
 
     mβEV = zeros(nChoices, size(mTransition, 1)) # depends on intdim
 
@@ -104,8 +93,6 @@ function _solve1(rewardfunc, method::Type{T},
     # initialize for less memory allocation
 	mValFunDiff = zeros(nStates)
     mValFunDiffAbs = zeros(nStates)
-	# mValFunDiff = zeros(nChoices,nOtherStates)
-    # mValFunDiffAbs = zeros(nChoices,nOtherStates)
 
     # liquidationvalue::Float64 = -10000.
     # inactionvalue::Float64 = -10000.
@@ -116,11 +103,6 @@ function _solve1(rewardfunc, method::Type{T},
     iChoiceStart::Int16 = 1
     iChoice::Int16 = 1
 
-
-	# need different counters depending on integration dimension and rewardcall
-	# i::Int64 = 0 # linear counter for exogenous state var
-	# i_state::Int64 = 0 # linear counter for state var
-	# i_statechoice::Int64 = 0 # linear counter for state*choice var
 	cnt = initialize_counter()
 
 	# will need beta times transpose of transition matrix
@@ -130,7 +112,6 @@ function _solve1(rewardfunc, method::Type{T},
 	try_additional = any((monotonicity, concavity)) && get_additional_index!=nothing
 
 	check_jprime  = -1
-
 
     # VFI
     while maxDifference > tolerance
@@ -164,7 +145,7 @@ function _solve1(rewardfunc, method::Type{T},
 					reward = getreward(rewardcall, rewardfunc, mReward, tStateVectors, vChoices,
 						cnt, ix, j, jprime)
 
-                    valueProvisional = reward + mβEV[jprime, getcounter(cnt, method)]
+                    valueProvisional = reward + mβEV[jprime, getcounter(cnt, intdim)]
 
 	                if (valueProvisional>=valueHighSoFar)
     	            	valueHighSoFar = valueProvisional
@@ -189,7 +170,7 @@ function _solve1(rewardfunc, method::Type{T},
 					reward = getreward(rewardcall, rewardfunc, mReward, tStateVectors, vChoices,
 						cnt, ix, j, check_jprime)
 
-					valueProvisional = reward + mβEV[check_jprime, getcounter(cnt, method)]
+					valueProvisional = reward + mβEV[check_jprime, getcounter(cnt, intdim)]
 
 					if valueHighSoFar <= valueProvisional # check is better than interior
 						valueHighSoFar = valueProvisional
