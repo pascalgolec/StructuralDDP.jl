@@ -39,9 +39,9 @@ module StructuralDDP
 	include("simulate/simulate.jl")
 
 	# Models for developing: requires NLsolve
-	# include("../test/models/CapitalAdjustModel.jl")
-	# include("../test/models/CapitalAdjustModel2.jl")
-	# createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
-	# export CapitalAdjustModel, CapitalAdjustModel2, createmodel
+	include("../test/models/CapitalAdjustModel.jl")
+	include("../test/models/CapitalAdjustModel2.jl")
+	createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)
+	export CapitalAdjustModel, CapitalAdjustModel2, createmodel
 
 end

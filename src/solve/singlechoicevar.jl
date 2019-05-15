@@ -54,7 +54,11 @@ _solve(p::DDP{NS,1},
 		getchoicevars(p.tStateVectors, p.tChoiceVectors)[1],
 		getnonchoicevars(p.tStateVectors, p.tChoiceVectors),)
 
-# function barrier for tuples
+# split _solve for function barrier for tuples
+# Note: really hard to create functions for the innner loops without getting
+# a performance hit. Possible to write a general maximum function that does
+# concavity, but it's slower if outside the loop somehow. Didn't try gathering
+# inputs into a struct though.
 function _solve(p::DDP{NS,1},
 				mTransition::Array{Float64,2}, mReward::Union{Array{Float64}, Nothing},
 				opts::SolverOptions,
@@ -67,41 +71,42 @@ function _solve(p::DDP{NS,1},
 		monotonicity, concavity, intdim = opts
 	get_additional_index = p.options.get_additional_index
 
-    nChoices = length(vChoices)
+	nChoices = length(vChoices)
 
-    nStates = prod(length.(tStateVectors))
-    nOtherStates = prod(length.(tOtherStateVectors))
+	nStates = prod(length.(tStateVectors))
+	nOtherStates = prod(length.(tOtherStateVectors))
 
-    mValFun    = zeros((nChoices, nOtherStates)) # matrix so that can multiply with mTransition
+	mValFun    = zeros((nChoices, nOtherStates)) # matrix so that can multiply with mTransition
 	mValFunNew = zeros(nStates) # vector so that can index easily
 
 	mPolFunInd = zeros(Int16, nStates)
 
-    mβEV = zeros(nChoices, size(mTransition, 1)) # depends on intdim
+	mβEV = zeros(nChoices, size(mTransition, 1)) # depends on intdim
 
-    # VFI initialization
-    maxDifference::Float64 = Inf # to initialize
-    iteration::Int64 = 0 # initialize counter
+	# VFI initialization
+	maxDifference::Float64 = Inf # to initialize
+	iteration::Int64 = 0 # initialize counter
 	if β == 0.0
-        tolerance = Inf
-    elseif β == 1.0
-        throw(ArgumentError("method invalid for beta = 1"))
-    else
-        tolerance = epsilon * (1-β) / (2*β)
-    end
+	    tolerance = Inf
+	elseif β == 1.0
+	    throw(ArgumentError("method invalid for beta = 1"))
+	else
+	    tolerance = epsilon * (1-β) / (2*β)
+	end
 
-    # initialize for less memory allocation
+	# initialize for less memory allocation
 	mValFunDiff = zeros(nStates)
-    mValFunDiffAbs = zeros(nStates)
+	mValFunDiffAbs = zeros(nStates)
 
-    # liquidationvalue::Float64 = -10000.
-    # inactionvalue::Float64 = -10000.
-    reward::Float64 = -Inf
+	# liquidationvalue::Float64 = -10000.
+	# inactionvalue::Float64 = -10000.
+	reward::Float64 = -Inf
 
 	valueHighSoFar::Float64 = -Inf
 	valueProvisional::Float64 = -Inf
-    iChoiceStart::Int16 = 1
-    iChoice::Int16 = 1
+	iChoiceStart::Int16 = 1
+	iChoice::Int16 = 1
+	choiceinner::Int16 = 1
 
 	cnt = initialize_counter()
 
@@ -113,57 +118,62 @@ function _solve(p::DDP{NS,1},
 
 	check_jprime  = -1
 
-    # VFI
-    while maxDifference > tolerance
+	# VFI
+	while maxDifference > tolerance
 
-        mul!(mβEV, mValFun, mTransition_βT)
+	mul!(mβEV, mValFun, mTransition_βT)
 
-		reset!(cnt)
+	reset!(cnt)
 
 		# @inbounds
 		for ix in CartesianIndices(length.(tOtherStateVectors)) # other states
 
 			cnt.i_exogstate += 1
 
-            if monotonicity
-               iChoiceStart = 1
-            end
+		    if monotonicity
+		       iChoiceStart = 1
+		    end
 
-	        for j = 1:nChoices # first state
+		    for j = 1:nChoices # first state
 
-	            valueHighSoFar = -Inf
-	            iChoice  = 1
+		        valueHighSoFar = -Inf
+		        iChoice  = 1
 
 				cnt.i_state += 1
 
 				cnt.i_statechoice += iChoiceStart-1 # compensate if start later
 
-	            for jprime = iChoiceStart:nChoices
+		        for jprime = iChoiceStart:nChoices
 
 					cnt.i_statechoice += 1
 
 					reward = getreward(rewardcall, rewardfunc, mReward, tStateVectors, vChoices,
 						cnt, ix, j, jprime)
 
-                    valueProvisional = reward + mβEV[jprime, getcounter(cnt, intdim)]
+		            valueProvisional = reward + mβEV[jprime, getcounter(cnt, intdim)]
 
-	                if (valueProvisional>=valueHighSoFar)
-    	            	valueHighSoFar = valueProvisional
-    	            	iChoice = jprime
-	                elseif concavity
+		            if valueProvisional>valueHighSoFar
+		            	valueHighSoFar = valueProvisional
+		            	iChoice = jprime
+		            	choiceinner = jprime
+		            elseif concavity & (jprime <= j) # second statement incase have fixed adj costs
 						cnt.i_statechoice += nChoices - jprime # adjust counter if finish early
-	            	    break # break bc value will only be lower from now on
+		        	    break # break bc value will only be lower from now on
 					end
 
-	            end #jprime
+		        end #jprime
 
-				if monotonicity
-				  iChoiceStart = iChoice
-				end
+				# if monotonicity
+				#   iChoiceStart = iChoice
+				# end
 
 				if try_additional
 					# check one more value outside of monotonicity and conc
 					check_jprime = get_additional_index((j, ix.I...))
+					# this is the problem above...
+					# perhaps preallocate the array{int} for indeces
+					# this below works much faster
+					# check_jprime = j
 
 					cnt.i_statechoice += check_jprime - nChoices
 
@@ -172,7 +182,7 @@ function _solve(p::DDP{NS,1},
 
 					valueProvisional = reward + mβEV[check_jprime, getcounter(cnt, intdim)]
 
-					if valueHighSoFar <= valueProvisional # check is better than interior
+					if valueProvisional >= valueHighSoFar  # check is better than interior
 						valueHighSoFar = valueProvisional
 						iChoice = check_jprime
 					end
@@ -181,71 +191,76 @@ function _solve(p::DDP{NS,1},
 
 				end
 
-                # # compare with liquidation
-                # if typeof(p) == LearningKExit
-                #     liquidationvalue = mReward[j,i] + p.β*p.κ*(1-p.δ)*vChoices[j]
-                #
+		        # # compare with liquidation
+		        # if typeof(p) == LearningKExit
+		        #     liquidationvalue = mReward[j,i] + p.β*p.κ*(1-p.δ)*vChoices[j]
+		        #
 				# 	# liquidation value is when desinvest to zero, don't need to pay future fixed costs
 				# 	# can not be smaller than zero because of limited liability
 				# 	# liquidationvalue = max(0, rewardfunc(mReward[j,i], vChoices[j], 0., p))
-                #
+		        #
 				# 	# liquidationvalue = dividends(rewardfunc(mReward[j,i], vChoices[j], 0., p), p)
-                #     if valueHighSoFar < liquidationvalue
-                #        valueHighSoFar = liquidationvalue
-                #        mExit[j,i] = true
-                #        #iChoice = j dont need this, its just for iterating
-                #     else
-                #        mExit[j,i] = false
-                #     end
-                # end
+		        #     if valueHighSoFar < liquidationvalue
+		        #        valueHighSoFar = liquidationvalue
+		        #        mExit[j,i] = true
+		        #        #iChoice = j dont need this, its just for iterating
+		        #     else
+		        #        mExit[j,i] = false
+		        #     end
+		        # end
 
-	            mValFunNew[cnt.i_state] = valueHighSoFar
-	            mPolFunInd[cnt.i_state] = iChoice
+		        mValFunNew[cnt.i_state] = valueHighSoFar
+		        mPolFunInd[cnt.i_state] = iChoice
 
-	        end #j
+				if monotonicity
+                    if iChoice > j
+                        iChoiceStart = choiceinner
+                    else
+                        iChoiceStart = 1
+                    end
+				end
 
-	    end #i
+		    end #j
 
-        mValFunDiff .= mValFunNew .- @view(mValFun[:])
-        mValFunDiffAbs .= abs.(mValFunDiff)
-	    maxDifference  = maximum(mValFunDiffAbs)
+		end #i
 
-        # mcqueen!(mValFunNew, mValFun, p.β)
+	mValFunDiff .= mValFunNew .- @view(mValFun[:])
+	mValFunDiffAbs .= abs.(mValFunDiff)
+	maxDifference  = maximum(mValFunDiffAbs)
 
-        copyto!(mValFun, mValFunNew)
+	# mcqueen!(mValFunNew, mValFun, p.β)
 
-        # howards improvement?
+	copyto!(mValFun, mValFunNew)
 
-        if disp
-			display_iter(iteration, disp_each_iter, maxDifference)
-        end
+	# howards improvement?
 
-		iteration += 1
+	if disp
+		display_iter(iteration, disp_each_iter, maxDifference)
+	end
 
-        if iteration > max_iter
-            println("WARNING: $max_iter maximum iterations exceeded")
-            # println("Parameters used:")
-			# println(p.params)
-            break
-        end
+	iteration += 1
 
-
+	if iteration > max_iter
+	    println("WARNING: $max_iter maximum iterations exceeded")
+	    # println("Parameters used:")
+		# println(p.params)
+	    break
+	end
 
 	end #while
 
+	# println("Iteration ", string(iteration), ": Sup change is = ", string(maxDifference))
 
-    # println("Iteration ", string(iteration), ": Sup change is = ", string(maxDifference))
+	mPolFun = vChoices[mPolFunInd]
 
-    mPolFun = vChoices[mPolFunInd]
+	nNodes = length.(tStateVectors)
+	meshPolFun = reshape(mPolFun, tuple(nNodes...))
+	meshValFun = reshape(mValFun, tuple(nNodes...))
+	# meshExit   = reshape(mExit, tuple(p.nNodes...))
 
-    nNodes = length.(tStateVectors)
-    meshPolFun = reshape(mPolFun, tuple(nNodes...))
-    meshValFun = reshape(mValFun, tuple(nNodes...))
-    # meshExit   = reshape(mExit, tuple(p.nNodes...))
+	meshValFun, (meshPolFun,)
 
-    meshValFun, (meshPolFun,)
-
-end # solve
+end # _solve
 
 # function mcqueen!(v, vold, beta)
 #     b_l = beta /(1-beta) * minimum(v-vold);

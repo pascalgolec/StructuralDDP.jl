@@ -46,6 +46,7 @@ function CapitalAdjustModel2(;
 	ρ  = 0.6,
 	σ  = 0.3,
 	C0  = 0.4,
+	F = 0.,
 
 	nK = 50,
 	nN = 50,
@@ -112,7 +113,9 @@ function CapitalAdjustModel2(;
 	    adj_K = γ_K/2*(capx/Ktot)^2 * Ktot
 	    adj_N = γ_N/2*(intx/Ktot)^2 * Ktot
 
-	    return adj_K + adj_N
+		action = Kprime != K
+
+	    return adj_K + adj_N + F*K*action
 	end
 
 	function reward(vStates, vChoices)
@@ -188,10 +191,14 @@ function CapitalAdjustModel2(;
 		shockdist_initial = nothing
 	end
 
-	# function checkwhich(vStatesIndex)
-	# 	vChoice = (vStatesIndex[1], vStatesIndex[2])
-	# 	return vChoice
-	# end
+	if F > 0
+		function checkwhich(vStatesIndex)
+			K = vStatesIndex[1] # try with Kprime = K
+			return K
+		end
+	else
+		checkwhich = nothing
+	end
 
 	DDP(tStateVectors,
 		tChoiceVectors,
@@ -205,6 +212,6 @@ function CapitalAdjustModel2(;
         initializefunc = initialize,
 		shockdist_initial = shockdist_initial,
 		tChoiceVectorsZero = tChoiceVectorsZero,
-		# get_additional_index = checkwhich,
+		get_additional_index = checkwhich,
         )
 end

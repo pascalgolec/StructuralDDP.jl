@@ -84,12 +84,18 @@ function _solve(p::DDP,
     vChoice2Start = ones(Int64, nChoiceOne)
     vChoice1Start = 1
 	iChoice1inner = 0
+	iChoice1prov = 0
+
+	# check_jprime = 0
 
 	i::Int64 = 0 # outer loop for other state vars
 	cnt = initialize_counter()
 
 	# will need beta times transpose of transition matrix
 	mTransition_βT = β * transpose(mTransition)
+
+	# whether to check outside of monotonicity/concavity
+	try_additional = any((monotonicity..., concavity...)) && get_additional_index!=nothing
 
     # VFI
     while maxDifference > tolerance
@@ -133,6 +139,7 @@ function _solve(p::DDP,
 						valueHighSoFarOne = -Inf
 						valueProvisionalOne = -Inf
 						iChoice1inner  = 0
+						iChoice1prov  = 0
 
 						# find highest value for second state var
 						cnt.i_statechoice += vChoice1Start-1 # compensate if start later
@@ -153,6 +160,7 @@ function _solve(p::DDP,
 							if valueProvisionalOne >= valueHighSoFarOne
     							   valueHighSoFarOne = valueProvisionalOne
     							   iChoice1inner = jprime
+    							   iChoice1prov = jprime
 	                        elseif concavity1
 								adj = nChoiceOne - jprime # adjust counter if finish early
 								cnt.i_statechoice += adj
@@ -162,11 +170,37 @@ function _solve(p::DDP,
 
 						end # jprime
 
+						if try_additional
+							# check one more value outside of monotonicity and conc
+							check_jprime = get_additional_index((j, l, ix.I...))
+
+							cnt.i_statechoice += check_jprime - nChoiceOne
+							cnt.i_choice += check_jprime - nChoiceOne
+
+							reward = getreward(rewardcall, rewardfunc,
+								mReward, tStateVectors,
+								vChoiceOne, vChoiceTwo,
+								cnt, ix, j, check_jprime, l, lprime)
+
+							valueProvisionalOne = reward + mβEV[cnt.i_choice,
+								getcounter(cnt, intdim)]
+
+							if valueProvisionalOne > valueHighSoFarOne
+								valueHighSoFarOne = valueProvisionalOne
+								iChoice1prov = check_jprime
+							end
+
+							cnt.i_statechoice += nChoiceOne - check_jprime
+							cnt.i_choice += nChoiceOne - check_jprime
+
+						end
+
                         valueProvisionalTwo = valueHighSoFarOne
 
                         if (valueProvisionalTwo>=valueHighSoFarTwo)
                             valueHighSoFarTwo = valueProvisionalTwo
-                            iChoice1 = iChoice1inner
+                            # iChoice1 = iChoice1inner
+                            iChoice1 = iChoice1prov
                             iChoice2 = lprime
                         elseif concavity2
 							adj = (nChoiceTwo - lprime)*nChoiceOne # adjust counter if finish early
@@ -176,6 +210,8 @@ function _solve(p::DDP,
                         end
 
                     end #lprime
+
+
 
                     # if isdefined(p.params, :F)
                     #     (inactionvalue, iChoice2inaction) =
@@ -199,7 +235,7 @@ function _solve(p::DDP,
                     mPolFunInd2[cnt.i_state] = iChoice2
 
 					if monotonicity1
-                        vChoice1Start = iChoice1
+                        vChoice1Start = iChoice1inner
                     end
 					if monotonicity2
 					  vChoice2Start[j] = iChoice2

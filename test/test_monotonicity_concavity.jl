@@ -1,5 +1,7 @@
 # Single choice variable
 dipar = Dict(:nK => 40, :nz => 5, :γ => 2., :F=>0.02)
+# need higher F and lower gamma here for proper test...
+dipar = Dict(:nK => 40, :nz => 5, :γ => 0.5, :F=>0.1)
 p_1 = createmodel(:CapitalAdjustModel; dipar..., intdim = :Separable)
 sol_1 = solve(p_1; monotonicity = false, concavity = false)
 sol_1_mon = solve(p_1; monotonicity = true, concavity = false)

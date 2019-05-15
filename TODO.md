@@ -10,6 +10,7 @@
 - allow `LabelledArrays.jl` in problem definition
 - support firm exit
 - add @inbounds
+- fixed shock draws should be possible if [fix the local RNG](https://github.com/JuliaStats/Distributions.jl/issues/436)
 - :firm in DataFrame(sim) should be an CategoricalArray for easy plotting
 - document plotting with VegaLite.jl
 ```julia
