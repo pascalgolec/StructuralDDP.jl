@@ -5,6 +5,7 @@ module StructuralDDP
 	using Interpolations, Distributions, TreeViews, DataFrames
 	using SparseArrays, LinearAlgebra
 	using DocStringExtensions
+	using Parameters
 
 	import QuantEcon: solve
 	import DataFrames: DataFrame
@@ -37,7 +38,7 @@ module StructuralDDP
 	include("simulate/shocks.jl")
 	include("simulate/simulate.jl")
 
-	# # Models for developing: requires NLsolve
+	# Models for developing: requires NLsolve
 	# include("../test/models/CapitalAdjustModel.jl")
 	# include("../test/models/CapitalAdjustModel2.jl")
 	# createmodel(model::Symbol; kwargs...) = eval(model)(; kwargs...)

@@ -1,3 +1,38 @@
+# types for dispatch
+abstract type RewardCall end
+abstract type jit <: RewardCall end
+abstract type pre <: RewardCall end
+abstract type pre_partial <: RewardCall end
+
+struct SolverOptions{RC<:RewardCall,  ID<:IntDim, M<:Union{Bool,Vector{Bool}},
+		T<:Union{Nothing, Array{Float64,2}}}
+	disp::Bool
+	disp_each_iter::Int
+	max_iter::Int
+	epsilon::Float64
+	rewardcall::Type{RC}
+	monotonicity::M
+	concavity::M
+	numquadnodes::Vector{Int}
+	mTransition::T
+	intdim::Type{ID}
+end
+
+function SolverOptions(p::DDP; disp::Bool = false,
+	disp_each_iter::Int = 10,
+	max_iter::Int = 500,
+	epsilon::Float64 = 1e-3,
+	rewardcall::Symbol = :jit,
+	monotonicity::Union{Bool,Vector{Bool}} = false,
+	concavity::Union{Bool,Vector{Bool}} = false,
+	numquadnodes::Vector{Int} = 5*ones(Int64, length(p.shockdist.μ)),
+	mTransition::Union{Nothing, Array{Float64,2}} = nothing,
+	intdim::Type{T} = p.intdim) where # if want to override type in the model, mostly for testing)
+		T<:IntDim
+
+	SolverOptions(disp, disp_each_iter, max_iter, epsilon, eval(rewardcall),
+		monotonicity, concavity, numquadnodes, mTransition, intdim)
+end
 
 """
 Solve the dynamic programming problem.
@@ -24,24 +59,17 @@ function in the choice of next period's state.
 TODO
 
 """
-function solve(p::DDP;
-    disp::Bool = false,
-    disp_each_iter::Int = 10,
-    max_iter::Int = 500,
-    epsilon::Float64 = 1e-3,
-    rewardcall::Symbol = :jit,
-    monotonicity::Union{Bool,Vector{Bool}} = false,
-    concavity::Union{Bool,Vector{Bool}} = false,
-    numquadnodes::Vector{Int} = 5*ones(Int64, length(p.shockdist.μ)),
-	mTransition::Union{Nothing, Array{Float64,2}} = nothing,
-    intdim::Type{T} = p.intdim, # if want to override type in the model, mostly for testing
-    ) where T<:IntDim
+function solve(p::DDP; kwargs...)
 
-    if rewardcall == :pre || intdim == All
+	opts = SolverOptions(p; kwargs...)
+	# @unpack_SolverOptions opts
+	@unpack mTransition, rewardcall, intdim, disp, numquadnodes = opts
+
+    if rewardcall == pre || intdim == All
         mReward = rewardmatrix(p)
-    elseif rewardcall == :pre_partial
+    elseif rewardcall == pre_partial
         mReward = rewardmatrix_partial(p)
-    elseif rewardcall == :jit
+    elseif rewardcall == jit
         mReward = nothing
     else
         error("supplied wrong rewardcall option")
@@ -52,17 +80,15 @@ function solve(p::DDP;
     end
 
     if intdim == All
-        meshValFun, tmeshPolFun = _solve(p, eval(intdim), mTransition, mReward, disp)
+        meshValFun, tmeshPolFun = _solve(p, intdim, mTransition, mReward, disp)
     else
-        if typeof(p) <: DDP{NS,2} where NS
-            # if user only supplied monotonivity/concavity for one option, extend to vector
-            if typeof(monotonicity) == Bool; monotonicity = fill!(Vector{Bool}(undef, 2), monotonicity) end
-            if typeof(concavity) == Bool; concavity = fill!(Vector{Bool}(undef, 2), concavity) end
-        end
+        # if typeof(p) <: DDP{NS,2} where NS
+        #     # if user only supplied monotonivity/concavity for one option, extend to vector
+        #     if typeof(monotonicity) == Bool; monotonicity = fill!(Vector{Bool}(undef, 2), monotonicity) end
+        #     if typeof(concavity) == Bool; concavity = fill!(Vector{Bool}(undef, 2), concavity) end
+        # end
 
-        meshValFun, tmeshPolFun = _solve(p, intdim, mTransition, mReward,
-            disp, disp_each_iter, max_iter, epsilon,
-            rewardcall, monotonicity, concavity)
+        meshValFun, tmeshPolFun = _solve(p, mTransition, mReward, opts)
     end
 
     createsolution(p, meshValFun, tmeshPolFun)

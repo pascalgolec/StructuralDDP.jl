@@ -1,32 +1,40 @@
-_solve(p::DDP{nStateVars,2}, method::Type{T},
-		mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
-		disp::Bool, disp_each_iter::Int, max_iter::Int, epsilon::Float64,
-		rewardcall::Symbol, monotonicity::Vector{Bool}, concavity::Vector{Bool}) where
-			{nStateVars, T <: Separable_Union} =
-		_solve2(p.rewardfunc, method,
-			mTransition, mReward,
-			disp, disp_each_iter, max_iter, epsilon,
-			rewardcall,
-			monotonicity[1], monotonicity[2],
-			concavity[1], concavity[2],
-			p.tStateVectors,
-			getchoicevars(p),
-			getnonchoicevars(p),
-			p.β)
+getreward(rewardcall::Type{pre_partial}, rewardfunc, mReward, tStateVectors,
+	vChoiceOne, vChoiceTwo,
+	cnt, ix, j, jprime, l, lprime) =
+	rewardfunc(mReward[cnt.i_state],
+					   getindex.(tStateVectors, (j, l, ix.I...)),
+					   (vChoiceOne[jprime], vChoiceTwo[lprime]))
+
+getreward(rewardcall::Type{jit}, rewardfunc, mReward, tStateVectors,
+	vChoiceOne, vChoiceTwo,
+	cnt, ix, j, jprime, l, lprime) =
+	reward = rewardfunc(getindex.(tStateVectors, (j, l, ix.I...)),
+						(vChoiceOne[jprime], vChoiceTwo[lprime]))
+
+getreward(rewardcall::Type{pre}, rewardfunc, mReward, tStateVectors,
+	vChoiceOne, vChoiceTwo,
+	cnt, ix, j, jprime, l, lprime) =  mReward[cnt.i_choice, cnt.i_state]
+
+_solve(p::DDP,
+	mTransition::Array{Float64,2}, mReward::Union{Array{Float64}, Nothing},
+	opts::SolverOptions) =
+	_solve(p, mTransition, mReward, opts, p.tStateVectors,
+		getchoicevars(p.tStateVectors, p.tChoiceVectors),
+		getnonchoicevars(p.tStateVectors, p.tChoiceVectors),)
 
 
-function _solve2(rewardfunc, method::Type{T},
-						mTransition::Array{Float64,2}, mReward::Union{Array{Float64,2}, Nothing},
-						disp::Bool, disp_each_iter::Int, max_iter::Int, epsilon::Float64,
-						rewardcall,
-						monotonicity1::Bool, monotonicity2::Bool,
-						concavity1::Bool, concavity2::Bool,
-						tStateVectors,#::NTuple{2,Vector{Float64}},
-						tChoiceVectors,
-						tOtherStateVectors, #::NTuple{1,Vector{Float64}}
-						β::Float64) where
-						T <: Separable_Union
+function _solve(p::DDP,
+				mTransition::Array{Float64,2}, mReward::Union{Array{Float64}, Nothing},
+				opts::SolverOptions,
+				tStateVectors,
+				tChoiceVectors,
+				tOtherStateVectors)
 
+	@unpack β, rewardfunc = p
+	@unpack disp, disp_each_iter, max_iter, epsilon, rewardcall,
+	monotonicity, concavity, intdim = opts
+	monotonicity1, monotonicity2 = monotonicity
+	concavity1, concavity2 = concavity
 
     (nChoiceOne, nChoiceTwo) = length.(tChoiceVectors)
     (vChoiceOne, vChoiceTwo) = tChoiceVectors
@@ -35,11 +43,11 @@ function _solve2(rewardfunc, method::Type{T},
     nStates = prod(length.(tStateVectors))
     nOtherStates = prod(length.(tOtherStateVectors))
 
-    mValFun    = zeros((nChoices, nOtherStates))
-    mValFunNew = zeros((nChoices, nOtherStates))
+	mValFun    = zeros((nChoices, nOtherStates)) # matrix so that can multiply with mTransition
+	mValFunNew = zeros(nStates) # vector so that can index easily
 
-    mPolFunInd1 = zeros(Int16, nChoices, nOtherStates)
-    mPolFunInd2 = zeros(Int16, nChoices, nOtherStates)
+    mPolFunInd1 = zeros(Int16, nStates)
+    mPolFunInd2 = zeros(Int16, nStates)
 
     mβEV = zeros(nChoices, size(mTransition, 1)) # depends on intdim
 
@@ -55,8 +63,8 @@ function _solve2(rewardfunc, method::Type{T},
     end
 
     # initialize for less memory allocation
-	mValFunDiff = zeros(nChoices, nOtherStates)
-    mValFunDiffAbs = zeros(nChoices, nOtherStates)
+	mValFunDiff = zeros(nStates)
+    mValFunDiffAbs = zeros(nStates)
 
     liquidationvalue::Float64 = -Inf
     inactionvalue::Float64 = -Inf
@@ -72,24 +80,28 @@ function _solve2(rewardfunc, method::Type{T},
     iChoice1::Int16 = 0
     iChoice2::Int16 = 0
 
-	iChoice1Start::Int16 = 1
     vChoice2Start = ones(Int64, nChoiceOne)
+    vChoice1Start = 1
+	iChoice1inner = 0
 
 	i::Int64 = 0 # outer loop for other state vars
+	cnt = initialize_counter()
 
 	# will need beta times transpose of transition matrix
 	mTransition_βT = β * transpose(mTransition)
-
 
     # VFI
     while maxDifference > tolerance
 
         mul!(mβEV, mValFun, mTransition_βT)
 
-        # @inbounds
 		i = 0
+		reset!(cnt)
+
+		# @inbounds
 		for ix in CartesianIndices(length.(tOtherStateVectors)) # other states
 			i = i + 1
+			cnt.i_exogstate += 1
 
             if monotonicity2
                 vChoice2Start[:] .= 1
@@ -97,112 +109,91 @@ function _solve2(rewardfunc, method::Type{T},
 
             for l = 1:nChoiceTwo
 
-                # We start from previous choice (monotonicity of policy function)
-                if monotonicity1
-                   iChoice1Start = 1
-                end
+				if monotonicity1
+	                vChoice1Start = 1
+	            end
 
                 for j = 1:nChoiceOne # first state
 
-                    valueHighSoFarOne = -Inf
-                    valueProvisionalOne = -Inf
+                    valueHighSoFarTwo = -Inf
+                    valueProvisionalTwo = -Inf
                     iChoice1 = 0
                     iChoice2 = 0
 
-                    for jprime = iChoice1Start:nChoiceOne
+					cnt.i_state += 1
+					cnt.i_choice = 0
 
-        						# get optimal second choice variable conditional on first
-        						valueHighSoFarTwo = -Inf
-        						valueProvisionalTwo = -Inf
-        						iChoice2inner  = 0
+					cnt.i_statechoice += (vChoice2Start[j]-1)*nChoiceOne # compensate if start later
+					cnt.i_choice += (vChoice2Start[j]-1)*nChoiceOne # compensate if start later
 
-        						# find highest value for second state var
-        						for lprime = vChoice2Start[j]:nChoiceTwo
+                    for lprime = vChoice2Start[j]:nChoiceTwo
 
-            						# reward using pre_partial output matrix
-            						if rewardcall == :pre_partial
-            							  reward = rewardfunc(mReward[j + nChoiceOne*(l-1),i],
-	  					                                     getindex.(tStateVectors, (j, l, ix.I...)),
-														     (vChoiceOne[jprime], vChoiceTwo[lprime]))
-            						elseif rewardcall == :jit
-            							  # need to be VERY careful with order of state vars here..
-            							  reward = rewardfunc(getindex.(tStateVectors, (j, l, ix.I...)),
-            												  (vChoiceOne[jprime], vChoiceTwo[lprime]))
-            						elseif rewardcall == :pre
-            							  # jprime is first choice var, changes faster
-            							  reward = mReward[jprime + nChoiceOne * (lprime-1), j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1)] # nChoices x nStates
-            						end
+						# get optimal second choice variable conditional on first
+						valueHighSoFarOne = -Inf
+						valueProvisionalOne = -Inf
+						iChoice1inner  = 0
 
-					                if method == Separable_ExogStates # mβEV is nChoices x nStochStates
-            								βEV = mβEV[jprime + nChoiceOne * (lprime-1), i] # mβEV is already discounted, jprime = j for inactive
-        							elseif method == Separable_States # mβEV is nChoices x nStates
-            								βEV = mβEV[jprime + nChoiceOne * (lprime-1), j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1)]
-        							else method == Separable # mβEV is mβEV is nChoices x (nChoices * nStates)
-            								# error("separable not done yet")
-            								βEV = mβEV[jprime + nChoiceOne * (lprime-1),
-            								  jprime + nChoiceOne * (lprime-1) + (nChoiceOne*nChoiceTwo) *
-            									  (-1 + j + nChoiceOne * (l-1) + (nChoiceOne*nChoiceTwo) * (i-1)) ]
-        							end
+						# find highest value for second state var
+						cnt.i_statechoice += vChoice1Start-1 # compensate if start later
+						cnt.i_choice += vChoice1Start-1
+						for jprime = vChoice1Start:nChoiceOne
 
-        							valueProvisionalTwo = reward + βEV
+							cnt.i_statechoice += 1
+							cnt.i_choice += 1
 
-        							if valueProvisionalTwo >= valueHighSoFarTwo
-            							   valueHighSoFarTwo = valueProvisionalTwo
-            							   iChoice2inner = lprime
-			                        elseif concavity2
-            							break
-        							end
+							reward = getreward(rewardcall, rewardfunc,
+								mReward, tStateVectors,
+								vChoiceOne, vChoiceTwo,
+								cnt, ix, j, jprime, l, lprime)
 
-        						end # lprime
+							valueProvisionalOne = reward + mβEV[cnt.i_choice,
+								getcounter(cnt, intdim)]
 
-        						# return valueHighSoFarTwo, iChoice2
+							if valueProvisionalOne >= valueHighSoFarOne
+    							   valueHighSoFarOne = valueProvisionalOne
+    							   iChoice1inner = jprime
+	                        elseif concavity1
+								adj = nChoiceOne - jprime # adjust counter if finish early
+								cnt.i_statechoice += adj
+								cnt.i_choice += adj
+    							break
+							end
 
-                        valueProvisionalOne = valueHighSoFarTwo
+						end # jprime
 
-                        if (valueProvisionalOne>=valueHighSoFarOne)
-                            valueHighSoFarOne = valueProvisionalOne
-                            iChoice1 = jprime
-                            iChoice2 = iChoice2inner
-                            if monotonicity1
-                	          iChoice1Start = jprime
-                            end
-                        elseif concavity1
-                            break # break when we have achieved the max
+                        valueProvisionalTwo = valueHighSoFarOne
+
+                        if valueProvisionalTwo > valueHighSoFarTwo
+                            valueHighSoFarTwo = valueProvisionalTwo
+                            iChoice1 = iChoice1inner
+                            iChoice2 = lprime
+                        elseif concavity2
+							adj = (nChoiceTwo - lprime)*nChoiceOne # adjust counter if finish early
+							cnt.i_statechoice += adj
+							cnt.i_choice += adj
+                            break
                         end
 
-                    end #jprime
+                    end #lprime
 
-                    # if isdefined(p.params, :F)
-                    #     (inactionvalue, iChoice2inaction) =
-                    #                     getsecondchoice(p,
-                    #                                     passive, # whether capital choice active or passive
-                    #                                     mReward, mβEV, i, j, l,
-                    #                                     nChoiceOne, vChoiceOne, j, # inaction: jprime = j
-                    #                                     nChoiceTwo, vChoiceTwo,
-                    #                                     vChoice2Start[j])
-                    #
-                    #     if valueHighSoFarOne <= inactionvalue
-                    #         # don't have interior K'
-                    #         valueHighSoFarOne = inactionvalue
-                    #         iChoice1 = j
-                    #         iChoice2 = iChoice2inaction
-                    #     end
-                    # end
+                    mValFunNew[cnt.i_state] = valueHighSoFarTwo
+                    mPolFunInd1[cnt.i_state] = iChoice1
+                    mPolFunInd2[cnt.i_state] = iChoice2
 
-                    mValFunNew[j + nChoiceOne * (l-1), i] = valueHighSoFarOne
-                    mPolFunInd1[j + nChoiceOne * (l-1), i] = iChoice1
-                    mPolFunInd2[j + nChoiceOne * (l-1), i] = iChoice2
-                    if monotonicity2
-                        vChoice2Start[j] = iChoice2
+					if monotonicity1
+                        vChoice1Start = iChoice1inner
                     end
+					if monotonicity2
+					  vChoice2Start[j] = iChoice2
+					end
 
-                end #j (capital)
+                end # j (first choice)
 
             end # l (second choice)
 
         end #i (stochastic variables)
 
-        mValFunDiff .= mValFunNew .- mValFun
+        mValFunDiff .= mValFunNew .- @view(mValFun[:])
         mValFunDiffAbs .= abs.(mValFunDiff)
         maxDifference  = maximum(mValFunDiffAbs)
 
@@ -212,11 +203,11 @@ function _solve2(rewardfunc, method::Type{T},
 
         # howards improvement?
 
-        iteration += 1
-
         if disp
             display_iter(iteration, disp_each_iter, maxDifference)
         end
+
+		iteration += 1
 
         if iteration > max_iter
             println("WARNING: maximum iterations exceeded")

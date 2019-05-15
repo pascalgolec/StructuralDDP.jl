@@ -31,18 +31,18 @@ warn_memory(bytes, 75555555, "CapitalAdjustModel All: Solver")
 
 sol_1_Separable = solve(p_1_Separable; diopt...)
 val, t, bytes = @timed solve(p_1_Separable; diopt...)
-warn_time(t, 0.07, "CapitalAdjustModel Separable: Solver")
-warn_memory(bytes, 19000000, "CapitalAdjustModel Separable: Solver")
+warn_time(t, 0.045, "CapitalAdjustModel Separable: Solver")
+warn_memory(bytes, 15000000, "CapitalAdjustModel Separable: Solver")
 
 sol_1_Separable_States = solve(p_1_Separable_States; diopt...)
 val, t, bytes = @timed solve(p_1_Separable_States; diopt...)
-warn_time(t, 0.01, "CapitalAdjustModel Separable_States: Solver")
-warn_memory(bytes, 650000, "CapitalAdjustModel Separable_States: Solver")
+warn_time(t, 0.007, "CapitalAdjustModel Separable_States: Solver")
+warn_memory(bytes, 580000, "CapitalAdjustModel Separable_States: Solver")
 
 sol_1_Separable_ExogStates = solve(p_1_Separable_ExogStates; diopt...)
 val, t, bytes = @timed solve(p_1_Separable_ExogStates; diopt...)
-warn_time(t, 0.01, "CapitalAdjustModel Separable_ExogStates: Solver")
-warn_memory(bytes, 210000, "CapitalAdjustModel Separable_ExogStates: Solver")
+warn_time(t, 0.006, "CapitalAdjustModel Separable_ExogStates: Solver")
+warn_memory(bytes, 230000, "CapitalAdjustModel Separable_ExogStates: Solver")
 
 # SIMULATE
 shocks = drawshocks(p_1_All, nFirms=10^4, nPeriods=50)
@@ -50,7 +50,7 @@ shocks = drawshocks(p_1_All, nFirms=10^4, nPeriods=50)
 simulate(sol_1_All, shocks)
 val, t, bytes = @timed simulate(sol_1_All, shocks)
 warn_time(t, 0.25, "CapitalAdjustModel All: Simulator")
-warn_memory(bytes, 221000000, "CapitalAdjustModel All: Simulator")
+warn_memory(bytes, 231000000, "CapitalAdjustModel All: Simulator")
 
 simulate(sol_1_Separable, shocks)
 val, t, bytes = @timed simulate(sol_1_Separable, shocks)
@@ -63,10 +63,9 @@ warn_time(t, 0.24, "CapitalAdjustModel Separable_States: Simulator")
 warn_memory(bytes, 260000000, "CapitalAdjustModel Separable_States: Simulator")
 
 simulate(sol_1_Separable_ExogStates, shocks)
-simulate(sol_1_Separable_ExogStates, shocks)
 val, t, bytes = @timed simulate(sol_1_Separable_ExogStates, shocks)
 warn_time(t, 0.23, "CapitalAdjustModel Separable_ExogStates: Simulator")
-warn_memory(bytes, 190000000, "CapitalAdjustModel Separable_ExogStates: Simulator")
+warn_memory(bytes, 191000000, "CapitalAdjustModel Separable_ExogStates: Simulator")
 
 
 # Two choice variables
@@ -83,22 +82,22 @@ diopt = Dict(:monotonicity=>[false,false], :concavity=>[false,false],
 sol_2_All = solve(p_2_All; diopt...)
 val, t, bytes = @timed solve(p_2_All; diopt...)
 warn_time(t, 2.1, "CapitalAdjustModel2 All: Solver")
-warn_memory(bytes, 860000000, "CapitalAdjustModel2 All: Solver")
+warn_memory(bytes, 870000000, "CapitalAdjustModel2 All: Solver")
 
 sol_2_Sep = solve(p_2_Sep; diopt...)
 val, t, bytes = @timed solve(p_2_Sep; diopt...)
-warn_time(t, 1., "CapitalAdjustModel2 Separable: Solver")
-warn_memory(bytes, 800000000, "CapitalAdjustModel2 Separable: Solver")
+warn_time(t, 0.45, "CapitalAdjustModel2 Separable: Solver")
+warn_memory(bytes, 120000000, "CapitalAdjustModel2 Separable: Solver")
 
 sol_2_Sep_States = solve(p_2_Sep_States; diopt...)
 val, t, bytes = @timed solve(p_2_Sep_States; diopt...)
-warn_time(t, 0.1, "CapitalAdjustModel2 Separable_States: Solver")
-warn_memory(bytes, 2000000, "CapitalAdjustModel2 Separable_States: Solver")
+warn_time(t, 0.031, "CapitalAdjustModel2 Separable_States: Solver")
+warn_memory(bytes, 1700000, "CapitalAdjustModel2 Separable_States: Solver")
 
 sol_2_Sep_ExogStates = solve(p_2_Sep_ExogStates; diopt...)
 val, t, bytes = @timed solve(p_2_Sep_ExogStates; diopt...)
-warn_time(t, 0.1, "CapitalAdjustModel2 Separable_ExogStates: Solver")
-warn_memory(bytes, 552000, "CapitalAdjustModel2 Separable_ExogStates: Solver")
+warn_time(t, 0.03, "CapitalAdjustModel2 Separable_ExogStates: Solver")
+warn_memory(bytes, 570000, "CapitalAdjustModel2 Separable_ExogStates: Solver")
 
 # SIMULATE
 shocks = drawshocks(p_2_All, nFirms=10^3, nPeriods=50)
@@ -106,7 +105,7 @@ shocks = drawshocks(p_2_All, nFirms=10^3, nPeriods=50)
 simulate(sol_2_All, shocks)
 val, t, bytes = @timed simulate(sol_2_All, shocks)
 warn_time(t, 0.12, "CapitalAdjustModel2 All: Simulator")
-warn_memory(bytes, 62000000, "CapitalAdjustModel2 All: Simulator")
+warn_memory(bytes, 62100000, "CapitalAdjustModel2 All: Simulator")
 
 simulate(sol_2_Sep, shocks)
 val, t, bytes = @timed simulate(sol_2_Sep, shocks)

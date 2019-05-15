@@ -41,16 +41,13 @@ InitializationOptions(problem, func, shockdist::Distribution,
 		problem, func, shockdist, tChoiceVectorsZero,tStateVectors)
 
 
-struct DiscreteDynamicProblemOptions{RFP, I<:Union{InitializationOptions, Nothing},F}
+struct DiscreteDynamicProblemOptions{RFP, I<:Union{InitializationOptions, Nothing}}
 
 	"""The partial reward function."""
 	rewardfunc_partial::RFP
 
 	"""Options for exact initialization."""
 	initialize::I
-
-	"""Function specifying additional possible choices to check for discontinuities."""
-	get_additional_index::F
 
 end
 const DDPOptions = DiscreteDynamicProblemOptions
@@ -169,8 +166,7 @@ function DDP(
             initializefunc = nothing,
 			shockdist_initial::Union{Distribution,Nothing} = shockdist,
             tChoiceVectorsZero::Union{NTuple{C0,Int64},Nothing} = nothing,
-			get_additional_index = nothing
-            ) where {I <: IntDim, dimStates, dimChoices, typeC<:Union{Vector{Float64}, Int64},
+			) where {I <: IntDim, dimStates, dimChoices, typeC<:Union{Vector{Float64}, Int64},
                 C0}
 
 	# make sure functions are callable
@@ -191,7 +187,7 @@ function DDP(
 			shockdist_initial, tChoiceVectorsZero, tStateVectors)
 	end
 
-	ddp_options = DDPOptions(rewardfunc_partial, init_options, get_additional_index)
+	ddp_options = DDPOptions(rewardfunc_partial, init_options)
 
     DDP(tStateVectors,
         tChoiceVectors,

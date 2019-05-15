@@ -66,6 +66,9 @@ sol_2_sep_exogstates = solve(p_2_sep_exogstates; optdict...)
 
 shocks_2 = drawshocks(p_2_all, nPeriods=20, nFirms=10)
 
+isapprox(sol_2_all, sol_2_sep)
+isapprox(sol_2_all, sol_2_sep_states)
+isapprox(sol_2_all, sol_2_sep_exogstates)
 @testset "Simulate CapitalAdjustModel2" begin
 	@testset "conversion" begin
 		sim = simulate(sol_2_sep_exogstates, shocks_2, get_value=true)

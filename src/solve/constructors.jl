@@ -101,7 +101,7 @@ function isapprox(sol1::AbstractDDPSolution,
             append!(test,isapprox(field1, field2; kwargs...))
         end
     end
-	return any(test)
+	return .!any(.!test)
 end
 
 # function compare(sol1::AbstractDDPSolution,
