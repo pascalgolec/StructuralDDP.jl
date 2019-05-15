@@ -69,7 +69,6 @@ function _solve(p::DDP{NS,1},
 	@unpack β, rewardfunc = p
 	@unpack disp, disp_each_iter, max_iter, epsilon, rewardcall,
 		monotonicity, concavity, intdim = opts
-	get_additional_index = p.options.get_additional_index
 
 	nChoices = length(vChoices)
 
@@ -106,17 +105,11 @@ function _solve(p::DDP{NS,1},
 	valueProvisional::Float64 = -Inf
 	iChoiceStart::Int16 = 1
 	iChoice::Int16 = 1
-	choiceinner::Int16 = 1
 
 	cnt = initialize_counter()
 
 	# will need beta times transpose of transition matrix
 	mTransition_βT = β * transpose(mTransition)
-
-	# whether to check outside of monotonicity/concavity
-	try_additional = any((monotonicity, concavity)) && get_additional_index!=nothing
-
-	check_jprime  = -1
 
 	# VFI
 	while maxDifference > tolerance
@@ -155,69 +148,18 @@ function _solve(p::DDP{NS,1},
 		            if valueProvisional>valueHighSoFar
 		            	valueHighSoFar = valueProvisional
 		            	iChoice = jprime
-		            	choiceinner = jprime
-		            elseif concavity & (jprime <= j) # second statement incase have fixed adj costs
+		            elseif concavity
 						cnt.i_statechoice += nChoices - jprime # adjust counter if finish early
 		        	    break # break bc value will only be lower from now on
 					end
 
 		        end #jprime
 
-				# if monotonicity
-				#   iChoiceStart = iChoice
-				# end
-
-				if try_additional
-					# check one more value outside of monotonicity and conc
-					check_jprime = get_additional_index((j, ix.I...))
-					# this is the problem above...
-					# perhaps preallocate the array{int} for indeces
-					# this below works much faster
-					# check_jprime = j
-
-					cnt.i_statechoice += check_jprime - nChoices
-
-					reward = getreward(rewardcall, rewardfunc, mReward, tStateVectors, vChoices,
-						cnt, ix, j, check_jprime)
-
-					valueProvisional = reward + mβEV[check_jprime, getcounter(cnt, intdim)]
-
-					if valueProvisional >= valueHighSoFar  # check is better than interior
-						valueHighSoFar = valueProvisional
-						iChoice = check_jprime
-					end
-
-					cnt.i_statechoice += nChoices - check_jprime
-
-				end
-
-		        # # compare with liquidation
-		        # if typeof(p) == LearningKExit
-		        #     liquidationvalue = mReward[j,i] + p.β*p.κ*(1-p.δ)*vChoices[j]
-		        #
-				# 	# liquidation value is when desinvest to zero, don't need to pay future fixed costs
-				# 	# can not be smaller than zero because of limited liability
-				# 	# liquidationvalue = max(0, rewardfunc(mReward[j,i], vChoices[j], 0., p))
-		        #
-				# 	# liquidationvalue = dividends(rewardfunc(mReward[j,i], vChoices[j], 0., p), p)
-		        #     if valueHighSoFar < liquidationvalue
-		        #        valueHighSoFar = liquidationvalue
-		        #        mExit[j,i] = true
-		        #        #iChoice = j dont need this, its just for iterating
-		        #     else
-		        #        mExit[j,i] = false
-		        #     end
-		        # end
-
 		        mValFunNew[cnt.i_state] = valueHighSoFar
 		        mPolFunInd[cnt.i_state] = iChoice
 
 				if monotonicity
-                    if iChoice > j
-                        iChoiceStart = choiceinner
-                    else
-                        iChoiceStart = 1
-                    end
+                    iChoiceStart = iChoice
 				end
 
 		    end #j

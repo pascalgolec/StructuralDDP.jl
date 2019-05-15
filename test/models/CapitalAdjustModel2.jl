@@ -191,15 +191,6 @@ function CapitalAdjustModel2(;
 		shockdist_initial = nothing
 	end
 
-	if F > 0
-		function checkwhich(vStatesIndex)
-			K = vStatesIndex[1] # try with Kprime = K
-			return K
-		end
-	else
-		checkwhich = nothing
-	end
-
 	DDP(tStateVectors,
 		tChoiceVectors,
 		reward,
@@ -212,6 +203,5 @@ function CapitalAdjustModel2(;
         initializefunc = initialize,
 		shockdist_initial = shockdist_initial,
 		tChoiceVectorsZero = tChoiceVectorsZero,
-		get_additional_index = checkwhich,
         )
 end
