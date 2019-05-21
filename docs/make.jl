@@ -1,7 +1,7 @@
-using Documenter, DocumenterTools, StructuralDDP
+using Documenter, DocumenterTools, StructuralDDP, StructuralDDPModels
 
 makedocs(sitename="StructuralDDP.jl",
-	modules = StructuralDDP,
+	modules = [StructuralDDP, StructuralDDPModels],
 	authors = "Pascal Golec",
 	doctest = false)
 

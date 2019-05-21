@@ -1,7 +1,7 @@
 name = "StructuralDDP"
 uuid = "b1843380-676b-11e9-1a07-a51b6a2d0c16"
 authors = ["Pascal Golec <pascalmgolec@gmail.com>"]
-version = "0.1.0"
+version = "v0.1.0"
 
 [deps]
 BasisMatrices = "08854c51-b66b-5062-a90d-8e7ae4547a49"
@@ -16,7 +16,7 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 TreeViews = "a2a6695c-b41b-5b7d-aed9-dbfdeacea5d7"
 
 [compat]
-julia = "1.0"
+julia = ">= 1.0.0"
 
 [extras]
 NLsolve = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"

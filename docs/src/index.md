@@ -5,12 +5,12 @@ This package defines, solves and simulates discrete dynamic optimization problem
 The general workflow is to define a problem, solve it, simulate it, and then analyze it. The full code for an example is:
 
 ```julia
-using StructuralDDP
-prob = CapitalAdjustModel(nK=150, nz=15, ρ=0.5, σ=0.3, γ=2.)
+using StructuralDDP, StructuralDDPModels
+prob = CooperHaltiwanger2006(nK=80, na=5, ni=40, ρ=0.5, σ=0.3)
 sol = solve(prob)
-sim = simulate(sol, nPeriods=50, nFirms=5)
+sim = simulate(sol, nPeriods=50, nFirms=2)
 df_sim = DataFrame(sim)
-using Plots, StatPlots
+using Plots, StatsPlots
 @df df_sim plot(:period, :state_1, group=:firm,
     xlabel="years", ylabel="capital stock")
 ```
@@ -402,3 +402,13 @@ sim = simulate(sol, shocks)
 ```
 
 This can be useful for doing comparative statics on the model parameters, and wants to be sure that the shocks do not change. Note: the draw of shocks refers to the supplied shock distribution in the problem defintion. If the shock distribution is parametrized, for example by its variance, then one should not do comparative statics on those parameters.
+
+# Models
+
+`StructuralDDPModels.jl` contains a library of domain-specific models from the literature.
+
+## Economics
+
+```@docs
+CooperHaltiwanger2006
+```
