@@ -24,6 +24,12 @@ In the Julia REPL, press `]` to enter the Pkg mode. To add the package, use the 
 (v1.1) pkg> add https://github.com/pascalgolec/StructuralDDP.jl
 ```
 
+To also add a library with models,
+
+```julia
+(v1.1) pkg> add https://github.com/pascalgolec/StructuralDDPModels.jl
+```
+
 The documention is available [here](https://pascalgolec.github.io/StructuralDDP.jl/stable).
 
 [docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
